@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "perun"
+version = "0.1.0"
+description = ""
+authors = ["Gutiérrez Hermosillo Muriedas, Juan Pedro <juanpedroghm@gmail.com>"]
+license = "BSD-3-Clause"
+
+[tool.poetry.scripts]
+perun = "perun.cli:cli"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+mpi4py = "^3.1.3"
+h5py = "^3.7.0"
+pyRAPL = "^0.2.3"
+pynvml = "^11.4.1"
+click = "^8.1.3"
+
+# Wait for poetry 1.2
+# [tool.poetry.no-binary]
+# packages = [
+#     "h5py",
+# ]
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+flake8 = "^5.0.4"
+mypy = "^0.971"
+black = "^22.6.0"
+pre-commit = "^2.20.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

@@ -1,0 +1,1 @@
+"""Perun tests module."""
