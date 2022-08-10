@@ -10,11 +10,13 @@ from perun.logging import init_logging
 load_dotenv()
 os.environ["IBV_FORK_SAFE"] = "1"
 os.environ["RDMAV_FORK_SAFE"] = "1"
-log = init_logging(os.environ["LOG_LVL"])
+log_lvl = os.environ["LOG_LVL"] if "LOG_LVL" in os.environ else "INFO"
+log = init_logging(log_lvl)
 
 from perun.perun import perunSubprocess, getDeviceConfiguration, monitor
 from perun.storage import LocalStorage, ExperimentStorage
 from perun.backend import backends, Device
+
 
 __all__ = [
     "perunSubprocess",

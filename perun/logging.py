@@ -4,7 +4,7 @@ import logging
 import logging.config
 
 
-def init_logging(level: str = "DEBUG"):
+def init_logging(level: str):
     """Initialize default stdout logger.
 
     Args:

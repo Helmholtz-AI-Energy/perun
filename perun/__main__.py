@@ -1,3 +1,5 @@
 """perun module."""
+if __name__ == "__main__":
+    from perun.cli import cli
 
-print("__main__")
+    cli()
