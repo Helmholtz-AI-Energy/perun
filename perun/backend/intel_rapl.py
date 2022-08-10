@@ -4,11 +4,8 @@ from typing import Callable
 from .backend import Backend, backend
 from .device import Device
 from perun.units import Joule
-import logging
+from perun import log
 import cpuinfo
-
-
-log = logging.getLogger(__name__)
 
 
 @backend
@@ -24,6 +21,10 @@ class IntelRAPLBackend(Backend):
     def __init__(self) -> None:
         """Init IntelRAPLBackend."""
         super().__init__()
+        log.debug("Initialized pyrapl")
+
+    def setup(self):
+        """Import pyrapl and gather basic information."""
         import pyRAPL
 
         self.sensor = pyRAPL.Sensor()

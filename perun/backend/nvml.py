@@ -4,12 +4,9 @@ from typing import Callable
 from .backend import Backend, backend
 from .device import Device
 from perun.units import Watt
-import logging
+from perun import log
 import pynvml
 from pynvml import NVMLError
-
-
-log = logging.getLogger(__name__)
 
 
 @backend
@@ -25,7 +22,6 @@ class NVMLSource(Backend):
     def __init__(self) -> None:
         """Init NVIDIA ML Backend."""
         super().__init__()
-        pynvml.nvmlInit()
 
     def close(self):
         """Backend shutdown code."""
@@ -72,15 +68,15 @@ class NVMLSource(Backend):
                     Device(name, long_name, Watt(), "mili", getCallback(handle))
                 )
             except NVMLError as e:
-                log.debug(f"Could not found device {device}")
+                log.debug(f"Could not find device {device}")
                 log.debug(e)
 
         return self.devices
 
-    def _setup(self):
-
+    def setup(self):
+        """Init pynvml and gather number of devices."""
+        pynvml.nvmlInit()
         deviceCount = pynvml.nvmlDeviceGetCount()
-
         log.debug(f"NVML Device count: {deviceCount}")
 
 

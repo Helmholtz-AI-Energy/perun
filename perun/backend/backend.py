@@ -2,11 +2,8 @@
 from abc import ABC, abstractmethod
 
 import functools
-import logging
 from .device import Device
-
-
-log = logging.getLogger(__name__)
+from perun import log
 
 
 class Backend(ABC):
@@ -19,6 +16,7 @@ class Backend(ABC):
         """Import and setup backend."""
         super().__init__()
         self.devices: list[Device] = []
+        self.setup()
 
     @abstractmethod
     def visibleDevices(self) -> set[str]:
@@ -43,6 +41,11 @@ class Backend(ABC):
         """Clean up and close backend related activities."""
         pass
 
+    @abstractmethod
+    def setup(self):
+        """Perform backend setup."""
+        pass
+
 
 backends: list[Backend] = []
 
@@ -61,11 +64,11 @@ def backend(cls):
                 backend_wrapper.instance = cls(*args, **kwargs)
                 backends.append(backend_wrapper.instance)
             except ImportError as ie:
-                log.warn(f"Missing dependencies for backend {cls.__name__}")
-                log.warn(ie)
+                log.debug(f"Missing dependencies for backend {cls.__name__}")
+                log.debug(ie)
             except Exception as e:
-                log.warn(f"Unknown error loading dependecy {cls.__name__}")
-                log.warn(e)
+                log.debug(f"Unknown error loading dependecy {cls.__name__}")
+                log.debug(e)
 
     backend_wrapper.instance = None
     return backend_wrapper

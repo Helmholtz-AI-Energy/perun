@@ -1,5 +1,6 @@
 """Logging utilities."""
 
+import logging
 import logging.config
 
 
@@ -27,3 +28,4 @@ def init_logging(level: str = "DEBUG"):
         },
     }
     logging.config.dictConfig(logConfig)
+    return logging.getLogger("perun")

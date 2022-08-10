@@ -1,9 +1,6 @@
 """Unit module."""
-import logging
 import sys
-
-
-log = logging.getLogger(__name__)
+from perun import log
 
 
 class MagnitudePrefix:

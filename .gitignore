@@ -131,3 +131,5 @@ dmypy.json
 ##Editors
 .vscode
 example/
+results/
+*.out
