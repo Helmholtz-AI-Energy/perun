@@ -1,15 +1,20 @@
 """Core perun functionality."""
 from datetime import datetime
 from functools import reduce
-from mpi4py.MPI import Comm
+import functools
+from pathlib import Path
 import platform
+from typing import Optional
 from perun.backend import Backend, Device
 from perun.storage import LocalStorage
 from perun import log
-from multiprocessing import Queue
+from multiprocessing import Event, Process, Queue
+from mpi4py import MPI
+import perun
+import sys
 
 
-def getDeviceConfiguration(comm: Comm, backends: list[Backend]) -> list[str]:
+def getDeviceConfiguration(comm: MPI.Comm, backends: list[Backend]) -> list[str]:
     """
     Obtain a list with the assigned devices to the current rank.
 
@@ -40,6 +45,81 @@ def getDeviceConfiguration(comm: Comm, backends: list[Backend]) -> list[str]:
             globalDeviceNames[index] = set()
 
     return globalDeviceNames[comm.rank]
+
+
+def monitor(frequency: int = 1, outDir: str = "./"):
+    """Decorate function to monitor its energy usage."""
+
+    def inner_function(func):
+        @functools.wraps(func)
+        def func_wrapper(*args, **kwargs):
+
+            comm = MPI.COMM_WORLD
+            start_event = Event()
+            stop_event = Event()
+
+            filePath: Path = Path(sys.argv[0])
+            outPath: Path = Path(outDir)
+
+            # Get node devices
+            log.debug(f"Backends: {perun.backends}")
+            lDeviceIds: list[str] = perun.getDeviceConfiguration(comm, perun.backends)
+
+            for backend in perun.backends:
+                backend.close()
+
+            log.debug(f"Rank {comm.rank} - lDeviceIds : {lDeviceIds}")
+
+            # If assigned devices, start subprocess
+            if len(lDeviceIds) > 0:
+                queue: Queue = Queue()
+                perunSP = Process(
+                    target=perun.perunSubprocess,
+                    args=[queue, start_event, stop_event, lDeviceIds, frequency],
+                )
+                perunSP.start()
+                start_event.wait()
+
+            # Sync everyone
+            comm.barrier()
+
+            func(*args, **kwargs)
+            stop_event.set()
+
+            lStrg: Optional[LocalStorage]
+            # Obtain perun subprocess results
+            if len(lDeviceIds) > 0:
+                perunSP.join()
+                perunSP.close()
+                lStrg = queue.get()
+            else:
+                lStrg = None
+
+            # Sync
+            comm.barrier()
+
+            # Save raw data to hdf5
+
+            if comm.rank == 0:
+                if not outPath.exists():
+                    outPath.mkdir(parents=True)
+
+            scriptName = filePath.name.removesuffix(filePath.suffix)
+            resultPath = outPath / f"{scriptName}.hdf5"
+            log.debug(f"Result path: {resultPath}")
+            expStrg = perun.ExperimentStorage(resultPath, comm)
+            if lStrg:
+                log.debug("Creating new experiment")
+                expId = expStrg.addExperimentRun(lStrg.toDict())
+                expStrg.saveDeviceData(expId, lStrg)
+            else:
+                expId = expStrg.addExperimentRun(None)
+
+            expStrg.close()
+
+        return func_wrapper
+
+    return inner_function
 
 
 def perunSubprocess(

@@ -12,7 +12,7 @@ os.environ["IBV_FORK_SAFE"] = "1"
 os.environ["RDMAV_FORK_SAFE"] = "1"
 log = init_logging(os.environ["LOG_LVL"])
 
-from perun.perun import perunSubprocess, getDeviceConfiguration
+from perun.perun import perunSubprocess, getDeviceConfiguration, monitor
 from perun.storage import LocalStorage, ExperimentStorage
 from perun.backend import backends, Device
 
@@ -24,4 +24,5 @@ __all__ = [
     "backends",
     "Device",
     "log",
+    "monitor",
 ]
