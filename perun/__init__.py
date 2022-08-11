@@ -16,6 +16,7 @@ log = init_logging(log_lvl)
 from perun.perun import perunSubprocess, getDeviceConfiguration, monitor, postprocessing
 from perun.storage import LocalStorage, ExperimentStorage
 from perun.backend import backends, Device
+from perun.report import report
 
 
 __all__ = [
@@ -27,4 +28,5 @@ __all__ = [
     "Device",
     "log",
     "monitor",
+    "report",
 ]

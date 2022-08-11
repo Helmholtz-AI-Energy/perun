@@ -144,6 +144,20 @@ class ExperimentStorage:
         """Close hdf5 file."""
         self.file.close()
 
+    def getExperimentRun(self, index: int) -> Group:
+        """
+        Return experiment with the desired index.
+
+        Args:
+            index (int): Run index
+
+        Returns:
+            Group: h5py group with run info
+        """
+        if index == -1:
+            index = len(self.file[self.experimentName].keys())
+        return self.file[self.experimentName][f"exp_{index}"]
+
     def getExperimentRuns(self) -> list[Group]:
         """Return list of run hdf5 groups.
 
@@ -160,3 +174,74 @@ class ExperimentStorage:
             Group: Root object
         """
         return self.file[self.experimentName]
+
+    def toDict(self, data: bool = False) -> dict:
+        """
+        Create dict represation of storage object.
+
+        Args:
+            data (bool, optional): Include raw data. Defaults to False.
+
+        Returns:
+            dict: Storage dictionary
+        """
+        rootObj = self.getRootObject()
+        expDict: dict[str, Any] = {"name": self.experimentName, "runs": []}
+        for key, value in rootObj.attrs.items():
+            expDict[key] = str(value)
+
+        for run_id, runs in rootObj.items():
+            expDict["runs"].append(self._runToDict(run_id, runs, data))
+
+        return expDict
+
+    def _runToDict(self, name: str, run: Group, data: bool = False) -> dict:
+        """
+        Get dictionary from run object.
+
+        Args:
+            name (str): Run name
+            run (Group): Run object
+            data (bool, optional): If raw data should be included. Defaults to False.
+
+        Returns:
+            dict: run dictionary
+        """
+        runDict: dict[str, Any] = {"id": name, "node": []}
+        for key, value in run.attrs.items():
+            runDict[key] = str(value)
+
+        for node_id, node in run.items():
+            runDict["node"].append(self._nodeToDict(node_id, node, data))
+        return runDict
+
+    def _nodeToDict(self, name: str, node: Group, data: bool = False) -> dict:
+        """
+        Transform h5py node to dictionary.
+
+        Args:
+            name (str): Node name
+            node (Group): Node object
+            data (bool, optional): If raw data should be included. Defaults to False.
+
+        Returns:
+            dict: Node dictionary
+        """
+        nodeDict: dict[str, Any] = {"id": name, "devices": []}
+
+        for key, value in node.attrs.items():
+            nodeDict[key] = str(value)
+
+        for device_id, device in node.items():
+            deviceDict: dict[str, Any] = {
+                "id": device_id,
+            }
+            if data:
+                deviceDict["data"] = device[:]
+
+            for key, value in device.attrs.items():
+                deviceDict[key] = str(value)
+
+            nodeDict["devices"].append(deviceDict)
+
+        return nodeDict

@@ -27,6 +27,22 @@ def postprocess(exp_hdf5: str):
     expStrg.close()
 
 
+@cli.command()
+@click.argument("exp_hdf5", type=click.Path(exists=True))
+@click.option(
+    "-f", "--format", type=click.Choice(["txt", "yaml", "yml", "json"]), default="txt"
+)
+def report(exp_hdf5: str, format: str):
+    """Print report from existing experiment hdf5 file."""
+    from mpi4py import MPI
+    import perun
+
+    expPath = Path(exp_hdf5)
+    expStrg = ExperimentStorage(expPath, MPI.COMM_WORLD)
+    print(perun.report(expStrg, format=format))
+    expStrg.close()
+
+
 @cli.command(context_settings={"ignore_unknown_options": True})
 @click.argument("script", type=click.Path(exists=True))
 @click.argument("script_args", nargs=-1)
