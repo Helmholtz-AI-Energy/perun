@@ -36,6 +36,7 @@ version_variable = [
 branch = "main"
 upload_to_pypi = true
 upload_to_release = true
+mayor_on_zero = false
 build_command = "pip install poetry && poetry build"
 
 [build-system]
