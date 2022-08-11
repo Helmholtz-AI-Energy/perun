@@ -20,4 +20,4 @@ jobs:
         github_token: ${{ secrets.GH_TOKEN }}
         repository_username: __token__
         repository_password: ${{ secrets.PYPI_TOKEN }}
-        additional_options: ["--prerelease"]
+        additional_options: "--prerelease"
