@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.3 (2022-08-11)
+### Fix
+* Missing pyyaml dependency ([`3b8e74a`](https://github.com/Helmholtz-AI-Energy/perun/commit/3b8e74a3318bcac43398db3f86cc9be9da75ce5a))
+
 ## v0.1.0-beta.2 (2022-08-11)
 
 
