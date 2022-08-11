@@ -48,12 +48,17 @@ def report(exp_hdf5: str, format: str):
 @click.argument("script_args", nargs=-1)
 @click.option("-f", "--frequency", type=float, default=1.0)
 @click.option(
+    "--format", type=click.Choice(["txt", "yaml", "yml", "json"]), default="txt"
+)
+@click.option(
     "-o",
     "--outdir",
     type=click.Path(exists=False, dir_okay=True, file_okay=False),
     default="./",
 )
-def monitor(script: str, script_args: tuple, frequency: float, outdir: str):
+def monitor(
+    script: str, script_args: tuple, frequency: float, outdir: str, format: str
+):
     """
     Monitor the energy consumption of a python script.
 
@@ -145,6 +150,8 @@ def monitor(script: str, script_args: tuple, frequency: float, outdir: str):
 
     # Post post-process
     perun.postprocessing(expStorage=expStrg)
+    if comm.rank == 0:
+        print(perun.report(expStrg, expIdx=expId, format=format))
     expStrg.close()
 
 

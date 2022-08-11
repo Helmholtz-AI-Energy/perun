@@ -155,7 +155,7 @@ class ExperimentStorage:
             Group: h5py group with run info
         """
         if index == -1:
-            index = len(self.file[self.experimentName].keys())
+            index = len(self.file[self.experimentName].keys()) - 1
         return self.file[self.experimentName][f"exp_{index}"]
 
     def getExperimentRuns(self) -> list[Group]:

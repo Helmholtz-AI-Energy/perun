@@ -50,7 +50,7 @@ def getDeviceConfiguration(comm: MPI.Comm, backends: list[Backend]) -> list[str]
     return globalDeviceNames[comm.rank]
 
 
-def monitor(frequency: float = 1.0, outDir: str = "./"):
+def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
     """Decorate function to monitor its energy usage."""
 
     def inner_function(func):
@@ -120,6 +120,8 @@ def monitor(frequency: float = 1.0, outDir: str = "./"):
 
             # Post post-process
             perun.postprocessing(expStorage=expStrg)
+            if comm.rank == 0:
+                print(perun.report(expStrg, expIdx=expId, format=format))
             expStrg.close()
 
         return func_wrapper

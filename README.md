@@ -26,16 +26,20 @@ To build h5py with mpi support:
 
 To get a quick report of the power usage of a python script simply run
 
-```$ perun monitor path/to/your/script.py [args]```
+```$ perun monitor --format yaml path/to/your/script.py [args]```
+
+Or
+
+```$ python -m perun monitor --format json -o results/ path/to/your/script.py [args]```
 
 ### Decorator
 
 Or decorate the function that you want analysed
 
 ```python
-from perun.monitor import monitor
+import perun
 
-@monitor
+@perun.monitor(outDir="results/", format="txt")
 def training_loop(args, model, device, train_loader, test_loader, optimizer, scheduler):
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
