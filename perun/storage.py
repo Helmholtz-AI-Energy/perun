@@ -7,6 +7,7 @@ from datetime import datetime
 import h5py
 from h5py import Group
 from mpi4py.MPI import Comm
+import numpy as np
 
 
 class LocalStorage:
@@ -16,13 +17,13 @@ class LocalStorage:
         """Create dictionary based on nodeName and devices."""
         self.devices = [device.toDict() for device in devices]
         self.nodeName = nodeName
-        self.nodeData: dict[str, list[Any]] = {"ts": []}
+        self.nodeData: dict[str, list[Any]] = {"t_ns": []}
         for device in self.devices:
             self.nodeData[device["id"]] = []
 
-    def addTimestep(self, timestamp: float, step: dict):
+    def addTimestep(self, timestamp: int, step: dict):
         """Add one step of information to storage."""
-        self.nodeData["ts"].append(timestamp)
+        self.nodeData["t_ns"].append(timestamp)
         for key, value in step.items():
             self.nodeData[key].append(value)
 
@@ -31,7 +32,7 @@ class LocalStorage:
         return {
             "devices": self.devices,
             "nodeName": self.nodeName,
-            "steps": len(self.nodeData["ts"]),
+            "steps": len(self.nodeData["t_ns"]),
         }
 
 
@@ -79,11 +80,11 @@ class ExperimentStorage:
             lStrg (LocalStorage): Storage with hardware measurements
         """
         group = self.file[self.experimentName][f"exp_{expId}"][lStrg.nodeName]
-        group["ts"][:] = lStrg.nodeData["ts"]
+        group["t_ns"][:] = np.array(lStrg.nodeData["t_ns"], dtype="float64")
 
         for device in lStrg.devices:
             dsId = self._dsFromDevice(device)
-            group[dsId][:] = lStrg.nodeData[device["id"]]
+            group[dsId][:] = np.array(lStrg.nodeData[device["id"]])
 
     def _createNodeDataStrg(self, group: Group, strg: dict):
         """
@@ -100,20 +101,23 @@ class ExperimentStorage:
 
     def _createTimestampDatabase(self, group: Group, strg: dict):
         """Initilize timestamp database."""
-        ts_ds: h5py.Dataset = group.create_dataset(name="ts", shape=(strg["steps"],))
-        ts_ds.attrs["long_name"] = "timestamp"
-        ts_ds.attrs["units"] = "seconds"
-        ts_ds.attrs["standard_name"] = "timestamp"
+        t_ns_ds: h5py.Dataset = group.create_dataset(
+            name="t_ns", shape=(strg["steps"],), dtype="float64"
+        )
+        t_ns_ds.attrs["long_name"] = "time"
+        t_ns_ds.attrs["units"] = "seconds"
+        t_ns_ds.attrs["mag"] = "nano"
+        t_ns_ds.attrs["standard_name"] = "time"
 
     def _createDataset(self, group: Group, deviceDict: dict[str, Any], steps: int):
         """Create a dataset based on node name and device information."""
         ds: h5py.Dataset = group.create_dataset(
-            self._dsFromDevice(deviceDict), shape=(steps,)
+            self._dsFromDevice(deviceDict), shape=(steps,), dtype="float64"
         )
         ds.attrs["long_name"] = deviceDict["long_name"]
         ds.attrs["units"] = deviceDict["unit"].name
         ds.attrs["symbol"] = deviceDict["unit"].symbol
-        ds.attrs.create("coordinates", data=["ts"])
+        ds.attrs.create("coordinates", data=["t_ns"])
         ds.attrs.create("valid_min", data=deviceDict["unit"].min_value, dtype="f")
         ds.attrs.create("valid_max", data=deviceDict["unit"].max_value, dtype="f")
         ds.attrs.create("_FillValue", data=-1.0, dtype="f")
@@ -139,3 +143,20 @@ class ExperimentStorage:
     def close(self):
         """Close hdf5 file."""
         self.file.close()
+
+    def getExperimentRuns(self) -> list[Group]:
+        """Return list of run hdf5 groups.
+
+        Returns:
+            list[Group]: List of hdf5 groups with run data
+        """
+        return self.file[self.experimentName].values()
+
+    def getRootObject(self) -> Group:
+        """
+        Get hdf5 root object.
+
+        Returns:
+            Group: Root object
+        """
+        return self.file[self.experimentName]

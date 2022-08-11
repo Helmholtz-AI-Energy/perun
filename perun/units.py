@@ -6,9 +6,9 @@ from perun import log
 class MagnitudePrefix:
     """Quick conversion from metric symbols and prefixes."""
 
-    symbols = ["p", "n", "µ", "m", "k", "M", "G", "T"]
-    prefixes = ["pico", "nano", "micro", "mili", "kilo", "mega", "giga", "tera"]
-    factor = [1e-12, 1e-9, 1e-6, 1e-3, 1e3, 1e6, 1e9, 1e12]
+    symbols = ["p", "n", "µ", "m", "", "k", "M", "G", "T"]
+    prefixes = ["pico", "nano", "micro", "mili", "", "kilo", "mega", "giga", "tera"]
+    factor = [1e-12, 1e-9, 1e-6, 1e-3, 1, 1e3, 1e6, 1e9, 1e12]
 
     @classmethod
     def getFactor(cls, prefixOrSymbol: str) -> float:
@@ -52,6 +52,22 @@ class MagnitudePrefix:
         else:
             log.error("Invalid magniture prefix")
             raise ValueError(prefix)
+
+    @classmethod
+    def transformFactor(cls, fromPrefix: str, toPrefix: str) -> float:
+        """
+        Obtain multiplication factor to transform unit between 2 prefixes.
+
+        Args:
+            fromPrefix (str): Current magnitude prefix
+            toPrefix (str): Desired magnitude prefix
+
+        Returns:
+            float: Transformation factor
+        """
+        fromFactor = cls.getFactor(fromPrefix)
+        toFactor = cls.getFactor(toPrefix)
+        return fromFactor / toFactor
 
 
 class Unit:

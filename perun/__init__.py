@@ -1,6 +1,6 @@
 """perun module."""
 # flake8: noqa
-__version__ = "0.1.0"
+__version__ = "0.0.0"
 
 import os
 from dotenv import load_dotenv
@@ -13,7 +13,7 @@ os.environ["RDMAV_FORK_SAFE"] = "1"
 log_lvl = os.environ["LOG_LVL"] if "LOG_LVL" in os.environ else "INFO"
 log = init_logging(log_lvl)
 
-from perun.perun import perunSubprocess, getDeviceConfiguration, monitor
+from perun.perun import perunSubprocess, getDeviceConfiguration, monitor, postprocessing
 from perun.storage import LocalStorage, ExperimentStorage
 from perun.backend import backends, Device
 

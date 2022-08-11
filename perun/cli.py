@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 import click
 
-from perun.storage import LocalStorage
+from perun.storage import ExperimentStorage, LocalStorage
 
 
 @click.group()
@@ -14,17 +14,30 @@ def cli():
     """Entry point for the perun command line interface."""
 
 
+@cli.command()
+@click.argument("exp_hdf5", type=click.Path(exists=True))
+def postprocess(exp_hdf5: str):
+    """Apply postprocessing to the desired perun hdf5 file."""
+    from mpi4py import MPI
+    import perun
+
+    expPath = Path(exp_hdf5)
+    expStrg = ExperimentStorage(expPath, MPI.COMM_WORLD)
+    perun.postprocessing(expStrg)
+    expStrg.close()
+
+
 @cli.command(context_settings={"ignore_unknown_options": True})
 @click.argument("script", type=click.Path(exists=True))
 @click.argument("script_args", nargs=-1)
-@click.option("-f", "--frequency", type=int, default=1)
+@click.option("-f", "--frequency", type=float, default=1.0)
 @click.option(
     "-o",
     "--outdir",
     type=click.Path(exists=False, dir_okay=True, file_okay=False),
     default="./",
 )
-def monitor(script: str, script_args: tuple, frequency: int, outdir: str):
+def monitor(script: str, script_args: tuple, frequency: float, outdir: str):
     """
     Monitor the energy consumption of a python script.
 
@@ -114,6 +127,8 @@ def monitor(script: str, script_args: tuple, frequency: int, outdir: str):
     else:
         expId = expStrg.addExperimentRun(None)
 
+    # Post post-process
+    perun.postprocessing(expStorage=expStrg)
     expStrg.close()
 
 
