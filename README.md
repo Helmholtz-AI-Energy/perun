@@ -1,4 +1,6 @@
-# perun
+<div align="center">
+  <img src="./doc/images/perun.svg">
+</div>
 
 Have you ever wondered how much energy is used when training your neural network on the MNIST dataset? Want to get scared because of impact you are having on the evironment while doing "valuable" research? Are you interested in knowing how much carbon you are burning playing with DALL-E just to get attention on twitter? If the thing that was missing from your machine learning workflow was existential dread, this is the correct package for you!
 
