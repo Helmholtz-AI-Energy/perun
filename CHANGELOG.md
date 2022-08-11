@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.5 (2022-08-11)
+### Fix
+* Missing report after monitor ([`5234a96`](https://github.com/Helmholtz-AI-Energy/perun/commit/5234a96292de553b57f4aaa82deb90153fe41ffc))
+
 ## v0.1.0-beta.4 (2022-08-11)
 ### Documentation
 * Updated readme ([`75d10bb`](https://github.com/Helmholtz-AI-Energy/perun/commit/75d10bbbef942695c8505bb5863a71ae523fbe54))
