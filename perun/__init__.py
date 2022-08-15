@@ -1,6 +1,6 @@
 """perun module."""
 # flake8: noqa
-__version__ = "0.1.0-beta.5"
+__version__ = "0.1.0-beta.6"
 
 import os
 from dotenv import load_dotenv
