@@ -173,5 +173,22 @@ def monitor(
     expStrg.close()
 
 
+@cli.command()
+@click.argument("node", type=str)
+def horeka(node: str):
+    """Query influxdb for the power measurements from the last hour of NODE."""
+    from perun.extras.horeka import HoreKaDB
+    import datetime
+    import os
+
+    URL = os.environ["INFLUXDB_URL"]
+    TOKEN = os.environ["INFLUXDB_TOKEN"]
+    ORG = os.environ["INFLUXDB_ORG"]
+
+    horekaDB = HoreKaDB(url=URL, token=TOKEN, org=ORG)
+    start = datetime.datetime.now() - datetime.timedelta(hours=1)
+    print(horekaDB.getNodeData(node, start, datetime.datetime.now()))
+
+
 if __name__ == "__main__":
     cli()
