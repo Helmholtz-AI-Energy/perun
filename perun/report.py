@@ -1,7 +1,9 @@
 """Report module."""
-from perun.storage import ExperimentStorage
 import json
+
 import yaml
+
+from perun.storage import ExperimentStorage
 
 
 def report(

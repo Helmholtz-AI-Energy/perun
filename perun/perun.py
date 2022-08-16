@@ -1,24 +1,24 @@
 """Core perun functionality."""
+import functools
+import platform
+import sys
 import time
 from functools import reduce
-import functools
-from pathlib import Path
-import platform
-from typing import Optional
-from perun.units import MagnitudePrefix
-from perun.backend import Backend, Device
-from perun.storage import ExperimentStorage, LocalStorage
-from perun import log
 from multiprocessing import Event, Process, Queue
-from mpi4py import MPI
-from typing import List, Set
-import perun
-import sys
+from pathlib import Path
+from typing import Optional, List, Set
+
 import h5py
 import numpy as np
+from mpi4py import MPI
 
+import perun
+from perun import log
+from perun.backend import Backend, Device
+from perun.storage import ExperimentStorage, LocalStorage
+from perun.units import MagnitudePrefix
 
-def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]:
+def getDeviceConfiguration(comm: MPI.Comm, backends: list[Backend]) -> list[str]:
     """
     Obtain a list with the assigned devices to the current rank.
 

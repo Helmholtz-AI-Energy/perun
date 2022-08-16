@@ -1,7 +1,8 @@
 """Connection to HoreKa hardware measurements."""
 from datetime import datetime
-from influxdb_client import InfluxDBClient
+
 import pandas as pd
+from influxdb_client import InfluxDBClient
 
 
 class HoreKaDB:

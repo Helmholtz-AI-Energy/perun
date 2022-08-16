@@ -1,12 +1,13 @@
 """Defines Intel RAPL related classes."""
 from typing import Callable, Set, List
 
+import cpuinfo
+
+from perun import log
+from perun.units import Joule
+
 from .backend import Backend, backend
 from .device import Device
-from perun.units import Joule
-from perun import log
-
-import cpuinfo
 
 
 @backend

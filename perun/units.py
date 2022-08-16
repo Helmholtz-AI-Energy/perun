@@ -1,5 +1,6 @@
 """Unit module."""
 import sys
+
 from perun import log
 
 

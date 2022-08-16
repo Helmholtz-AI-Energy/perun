@@ -1,12 +1,14 @@
 """Nvidia Mangement Library Source definition."""
 from typing import Callable, Set
 
-from .backend import Backend, backend
-from .device import Device
-from perun.units import Watt
-from perun import log
 import pynvml
 from pynvml import NVMLError
+
+from perun import log
+from perun.units import Watt
+
+from .backend import Backend, backend
+from .device import Device
 
 
 @backend
