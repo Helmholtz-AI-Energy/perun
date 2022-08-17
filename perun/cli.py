@@ -3,7 +3,7 @@
 Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline configurations.
 """
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 import click
 
 from perun.storage import ExperimentStorage, LocalStorage
@@ -101,7 +101,7 @@ def monitor(
 
     # Get node devices
     log.debug(f"Backends: {perun.backends}")
-    lDeviceIds: list[str] = perun.getDeviceConfiguration(comm, perun.backends)
+    lDeviceIds: List[str] = perun.getDeviceConfiguration(comm, perun.backends)
 
     for backend in perun.backends:
         backend.close()
@@ -151,7 +151,7 @@ def monitor(
         if not outPath.exists():
             outPath.mkdir(parents=True)
 
-    scriptName = filePath.name.removesuffix(filePath.suffix)
+    scriptName = filePath.name.replace(filePath.suffix, "")
     resultPath = outPath / f"{scriptName}.hdf5"
     log.debug(f"Result path: {resultPath}")
     expStrg = perun.ExperimentStorage(resultPath, comm)
@@ -163,9 +163,13 @@ def monitor(
         expId = expStrg.addExperimentRun(None)
 
     # Post post-process
+    comm.barrier()
     perun.postprocessing(expStorage=expStrg)
+    comm.barrier()
     if comm.rank == 0:
         print(perun.report(expStrg, expIdx=expId, format=format))
+
+    comm.barrier()
     expStrg.close()
 
 

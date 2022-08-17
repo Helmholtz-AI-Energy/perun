@@ -1,6 +1,6 @@
 """Storage Module."""
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Union, List, Dict
 from perun.backend.device import Device
 from perun.units import MagnitudePrefix
 from datetime import datetime
@@ -13,11 +13,11 @@ import numpy as np
 class LocalStorage:
     """Object used to store device data inside the perunSubprocess."""
 
-    def __init__(self, nodeName: str, devices: list[Device]):
+    def __init__(self, nodeName: str, devices: List[Device]):
         """Create dictionary based on nodeName and devices."""
         self.devices = [device.toDict() for device in devices]
         self.nodeName = nodeName
-        self.nodeData: dict[str, list[Any]] = {"t_ns": []}
+        self.nodeData: Dict[str, List[Any]] = {"t_ns": []}
         for device in self.devices:
             self.nodeData[device["id"]] = []
 
@@ -27,7 +27,7 @@ class LocalStorage:
         for key, value in step.items():
             self.nodeData[key].append(value)
 
-    def toDict(self) -> dict[str, Any]:
+    def toDict(self) -> Dict[str, Any]:
         """Lightweight local storage without the data."""
         return {
             "devices": self.devices,
@@ -63,7 +63,7 @@ class ExperimentStorage:
         expGroup = self.file[self.experimentName].create_group(f"exp_{expIdx}")
         expGroup.attrs["experiment_date"] = str(datetime.utcnow())
 
-        gatherdStrg: list[Union[dict, None]] = self.comm.allgather(lStrg)
+        gatherdStrg: List[Union[dict, None]] = self.comm.allgather(lStrg)
 
         for strg in gatherdStrg:
             if strg:
@@ -109,7 +109,7 @@ class ExperimentStorage:
         t_ns_ds.attrs["mag"] = "nano"
         t_ns_ds.attrs["standard_name"] = "time"
 
-    def _createDataset(self, group: Group, deviceDict: dict[str, Any], steps: int):
+    def _createDataset(self, group: Group, deviceDict: Dict[str, Any], steps: int):
         """Create a dataset based on node name and device information."""
         ds: h5py.Dataset = group.create_dataset(
             self._dsFromDevice(deviceDict), shape=(steps,), dtype="float64"
@@ -127,12 +127,12 @@ class ExperimentStorage:
         ds.attrs["scale_prefix"] = deviceDict["mag"]
         ds.attrs.create("add_offset", data=1.0, dtype="f")
 
-    def _dsFromDevice(self, device: dict[str, Any]) -> str:
+    def _dsFromDevice(self, device: Dict[str, Any]) -> str:
         """
         Generate dataset name from device dict.
 
         Args:
-            device (dict[str, any]): Device dict.
+            device (Dict[str, any]): Device dict.
 
         Returns:
             str: Dataset name string.
@@ -158,11 +158,11 @@ class ExperimentStorage:
             index = len(self.file[self.experimentName].keys()) - 1
         return self.file[self.experimentName][f"exp_{index}"]
 
-    def getExperimentRuns(self) -> list[Group]:
+    def getExperimentRuns(self) -> List[Group]:
         """Return list of run hdf5 groups.
 
         Returns:
-            list[Group]: List of hdf5 groups with run data
+            List[Group]: List of hdf5 groups with run data
         """
         return self.file[self.experimentName].values()
 
@@ -186,7 +186,7 @@ class ExperimentStorage:
             dict: Storage dictionary
         """
         rootObj = self.getRootObject()
-        expDict: dict[str, Any] = {"name": self.experimentName, "runs": []}
+        expDict: Dict[str, Any] = {"name": self.experimentName, "runs": []}
         for key, value in rootObj.attrs.items():
             expDict[key] = str(value)
 
@@ -207,7 +207,7 @@ class ExperimentStorage:
         Returns:
             dict: run dictionary
         """
-        runDict: dict[str, Any] = {"id": name, "node": []}
+        runDict: Dict[str, Any] = {"id": name, "node": []}
         for key, value in run.attrs.items():
             runDict[key] = str(value)
 
@@ -227,13 +227,13 @@ class ExperimentStorage:
         Returns:
             dict: Node dictionary
         """
-        nodeDict: dict[str, Any] = {"id": name, "devices": []}
+        nodeDict: Dict[str, Any] = {"id": name, "devices": []}
 
         for key, value in node.attrs.items():
             nodeDict[key] = str(value)
 
         for device_id, device in node.items():
-            deviceDict: dict[str, Any] = {
+            deviceDict: Dict[str, Any] = {
                 "id": device_id,
             }
             if data:

@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 import functools
 from .device import Device
 from perun import log
+from typing import List, Set
 
 
 class Backend(ABC):
@@ -15,24 +16,24 @@ class Backend(ABC):
     def __init__(self) -> None:
         """Import and setup backend."""
         super().__init__()
-        self.devices: list[Device] = []
+        self.devices: List[Device] = []
         self.setup()
 
     @abstractmethod
-    def visibleDevices(self) -> set[str]:
+    def visibleDevices(self) -> Set[str]:
         """Get a string id of devices visible by the backend."""
         pass
 
     @abstractmethod
-    def getDevices(self, deviceList: set[str]) -> list[Device]:
+    def getDevices(self, deviceList: Set[str]) -> List[Device]:
         """
         Return device objects based on the provided list of device ids.
 
         Args:
-            deviceList (set[str]): List with wanted device ids
+            deviceList (Set[str]): List with wanted device ids
 
         Returns:
-            list[Device]: List of device objects
+            List[Device]: List of device objects
         """
         pass
 
@@ -47,7 +48,7 @@ class Backend(ABC):
         pass
 
 
-backends: list[Backend] = []
+backends: List[Backend] = []
 
 
 def backend(cls):

@@ -1,5 +1,5 @@
 """Nvidia Mangement Library Source definition."""
-from typing import Callable
+from typing import Callable, Set
 
 from .backend import Backend, backend
 from .device import Device
@@ -27,12 +27,12 @@ class NVMLSource(Backend):
         """Backend shutdown code."""
         pynvml.nvmlShutdown()
 
-    def visibleDevices(self) -> set[str]:
+    def visibleDevices(self) -> Set[str]:
         """
         Return string ids of visible devices.
 
         Returns:
-            set[str]: Set with device string ids
+            Set[str]: Set with device string ids
         """
         devices = set()
         for i in range(pynvml.nvmlDeviceGetCount()):
@@ -40,15 +40,15 @@ class NVMLSource(Backend):
             devices.add(pynvml.nvmlDeviceGetUUID(handle).decode("utf-8"))
         return devices
 
-    def getDevices(self, deviceList: set[str]):
+    def getDevices(self, deviceList: Set[str]):
         """
         Gather device objects based on a set of device ids.
 
         Args:
-            deviceList (set[str]): Set containing devices ids
+            deviceList (Set[str]): Set containing devices ids
 
         Returns:
-            list[Device]: Device objects
+            List[Device]: Device objects
         """
 
         def getCallback(handle) -> Callable[[], float]:

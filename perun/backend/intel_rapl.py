@@ -1,10 +1,11 @@
 """Defines Intel RAPL related classes."""
-from typing import Callable
+from typing import Callable, Set, List
 
 from .backend import Backend, backend
 from .device import Device
 from perun.units import Joule
 from perun import log
+
 import cpuinfo
 
 
@@ -36,12 +37,12 @@ class IntelRAPLBackend(Backend):
         """Backend shutdown code (does nothing for intel rapl)."""
         return
 
-    def visibleDevices(self) -> set[str]:
+    def visibleDevices(self) -> Set[str]:
         """
         Return string ids of visible devices.
 
         Returns:
-            set[str]: Set with device string ids
+            Set[str]: Set with device string ids
         """
         visibleDevices = set()
         for device in self.sensor._available_devices:
@@ -49,15 +50,15 @@ class IntelRAPLBackend(Backend):
                 visibleDevices.add(f"{device.name}_{socket}")
         return visibleDevices
 
-    def getDevices(self, deviceList: set[str]) -> list[Device]:
+    def getDevices(self, deviceList: Set[str]) -> List[Device]:
         """
         Gather devive objects based on a set of device ids.
 
         Args:
-            deviceList (set[str]): Set containing devices ids
+            deviceList (Set[str]): Set containing devices ids
 
         Returns:
-            list[Device]: Device objects
+            List[Device]: Device objects
         """
 
         def getCallback(device_api, socket) -> Callable[[], float]:
