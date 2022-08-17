@@ -1,6 +1,6 @@
 """Device module."""
 from dataclasses import dataclass
-from typing import Callable, Any
+from typing import Callable, Any, Dict
 from perun.units import Unit
 
 
@@ -18,7 +18,7 @@ class Device:
         """Read value from sensor."""
         return self.measureCallback()
 
-    def toDict(self) -> dict[str, Any]:
+    def toDict(self) -> Dict[str, Any]:
         """Return device as a dictionary."""
         return {
             "id": self.id,

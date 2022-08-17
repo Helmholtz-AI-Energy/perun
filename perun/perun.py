@@ -11,24 +11,25 @@ from perun.storage import ExperimentStorage, LocalStorage
 from perun import log
 from multiprocessing import Event, Process, Queue
 from mpi4py import MPI
+from typing import List, Set
 import perun
 import sys
 import h5py
 import numpy as np
 
 
-def getDeviceConfiguration(comm: MPI.Comm, backends: list[Backend]) -> list[str]:
+def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]:
     """
     Obtain a list with the assigned devices to the current rank.
 
     Args:
         comm (Comm): MPI communicator object
-        backends (list[Backend]): List of available backend objects
+        backends (List[Backend]): List of available backend objects
 
     Returns:
-        list[str]: IDs of assigned devices to the current rank
+        List[str]: IDs of assigned devices to the current rank
     """
-    visibleDevices: set[str] = reduce(
+    visibleDevices: Set[str] = reduce(
         lambda a, b: a | b, [backend.visibleDevices() for backend in backends]
     )
 
@@ -66,7 +67,7 @@ def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
 
             # Get node devices
             log.debug(f"Backends: {perun.backends}")
-            lDeviceIds: list[str] = perun.getDeviceConfiguration(comm, perun.backends)
+            lDeviceIds: List[str] = perun.getDeviceConfiguration(comm, perun.backends)
 
             for backend in perun.backends:
                 backend.close()
@@ -107,7 +108,7 @@ def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
                 if not outPath.exists():
                     outPath.mkdir(parents=True)
 
-            scriptName = filePath.name.removesuffix(filePath.suffix)
+            scriptName = filePath.name.replace(filePath.suffix, "")
             resultPath = outPath / f"{scriptName}.hdf5"
             log.debug(f"Result path: {resultPath}")
             expStrg = perun.ExperimentStorage(resultPath, comm)
@@ -119,9 +120,12 @@ def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
                 expId = expStrg.addExperimentRun(None)
 
             # Post post-process
+            comm.barrier()
             perun.postprocessing(expStorage=expStrg)
+            comm.barrier()
             if comm.rank == 0:
                 print(perun.report(expStrg, expIdx=expId, format=format))
+            comm.barrier()
             expStrg.close()
 
         return func_wrapper
@@ -130,7 +134,7 @@ def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
 
 
 def perunSubprocess(
-    queue: Queue, start_event, stop_event, deviceIds: set[str], frequency: float
+    queue: Queue, start_event, stop_event, deviceIds: Set[str], frequency: float
 ):
     """
     Parallel function that samples energy values from hardware libraries.
@@ -139,12 +143,12 @@ def perunSubprocess(
         queue (Queue): multiprocessing Queue object where the results are sent after finish
         start_event (_type_): Marks that perun finished setting up and started sampling from devices
         stop_event (_type_): Signal the subprocess that the monitored processed has finished
-        deviceIds (set[str]): List of device ids to sample from
+        deviceIds (Set[str]): List of device ids to sample from
         frequency (int): Sampling frequency in Hz
     """
     from perun import backends
 
-    lDevices: list[Device] = []
+    lDevices: List[Device] = []
     for backend in backends:
         backend.setup()
         lDevices += backend.getDevices(deviceIds)
