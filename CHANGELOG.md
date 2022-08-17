@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.7 (2022-08-17)
+### Fix
+* Extra typing imports for 3.8 support ([#12](https://github.com/Helmholtz-AI-Energy/perun/issues/12)) ([`28367a7`](https://github.com/Helmholtz-AI-Energy/perun/commit/28367a747015288e7a5bb09f3cdc97c96d0e4680))
+
 ## v0.1.0-beta.6 (2022-08-15)
 ### Documentation
 * Expanded usage documentation ([`e2c0c2d`](https://github.com/Helmholtz-AI-Energy/perun/commit/e2c0c2dae77100a68fcab9c875f9c22efce4d149))
