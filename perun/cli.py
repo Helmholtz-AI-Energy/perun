@@ -3,7 +3,7 @@
 Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline configurations.
 """
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 import click
 
@@ -91,6 +91,7 @@ def monitor(
 
     import perun
     from perun import log
+    from perun.backend import backends
 
     comm = MPI.COMM_WORLD
     start_event = Event()
@@ -105,10 +106,10 @@ def monitor(
     log.debug(f"Script args: { sys.argv }")
 
     # Get node devices
-    log.debug(f"Backends: {perun.backends}")
-    lDeviceIds: List[str] = perun.getDeviceConfiguration(comm, perun.backends)
+    log.debug(f"Backends: {backends}")
+    lDeviceIds: List[str] = perun.getDeviceConfiguration(comm, backends)
 
-    for backend in perun.backends:
+    for backend in backends:
         backend.close()
 
     log.debug(f"Rank {comm.rank} - lDeviceIds : {lDeviceIds}")
@@ -192,8 +193,9 @@ def horeka(node: str):
     ORG = os.environ["INFLUXDB_ORG"]
 
     horekaDB = HoreKaDB(url=URL, token=TOKEN, org=ORG)
-    start = datetime.datetime.now() - datetime.timedelta(hours=1)
-    print(horekaDB.getNodeData(node, start, datetime.datetime.now()))
+    start = datetime.datetime.utcnow() + datetime.timedelta(hours=-1)
+    stop = datetime.datetime.utcnow() + datetime.timedelta(hours=-0.5)
+    print(horekaDB.getNodeData(node, start, stop))
 
 
 if __name__ == "__main__":

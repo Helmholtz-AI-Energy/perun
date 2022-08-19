@@ -1,8 +1,14 @@
 """Connection to HoreKa hardware measurements."""
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 from influxdb_client import InfluxDBClient
+
+query = """from(bucket: "hk-collector")
+|> range(start: _start, stop: _stop)
+|> filter(fn: (r) => r["hostname"] == _node)
+|> filter(fn: (r) => r["_measurement"] == "consumed_watts" or r["_measurement"] == "nv_power_usage")"""
+# |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "value")'''
 
 
 class HoreKaDB:
@@ -14,11 +20,13 @@ class HoreKaDB:
 
     def getNodeData(
         self, nodename: str, starttime: datetime, endtime: datetime
-    ) -> pd.Dataframe:
+    ) -> pd.DataFrame:
         """Query influxDB for node information within a time range."""
-        query = f'from(bucket: "hk-collector") \
-            |> range(start: {starttime}, end: {endtime}) \
-            |> filter(fn: (r) => r["hostname"] == "{nodename}") \
-            |> filter(fn: (r) => r["_measurement"] == "consumed_watts" or r["_measurement"] == "nv_power_usage")'
+        now = datetime.utcnow()
+        print(timedelta(hours=-1))
+        print(now - starttime)
+        print((now - endtime))
 
-        return self.idb.query_api().query_data_frame(query=query)
+        p = {"_start": starttime - now, "_stop": endtime - now, "_node": nodename}
+
+        return self.idb.query_api().query(query=query, params=p)
