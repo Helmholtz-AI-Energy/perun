@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.8 (2022-08-22)
+### Feature
+* Horeka options in cli and monitor decorator ([#13](https://github.com/Helmholtz-AI-Energy/perun/issues/13)) ([`0fde3cd`](https://github.com/Helmholtz-AI-Energy/perun/commit/0fde3cdcf8c489ff1b8ba4a985778c0e92a06cc6))
+
 ## v0.1.0-beta.7 (2022-08-17)
 ### Fix
 * Extra typing imports for 3.8 support ([#12](https://github.com/Helmholtz-AI-Energy/perun/issues/12)) ([`28367a7`](https://github.com/Helmholtz-AI-Energy/perun/commit/28367a747015288e7a5bb09f3cdc97c96d0e4680))
