@@ -1,21 +1,23 @@
 """Core perun functionality."""
-import time
-from functools import reduce
 import functools
-from pathlib import Path
 import platform
-from typing import Optional
-from perun.units import MagnitudePrefix
-from perun.backend import Backend, Device
-from perun.storage import ExperimentStorage, LocalStorage
-from perun import log
-from multiprocessing import Event, Process, Queue
-from mpi4py import MPI
-from typing import List, Set
-import perun
 import sys
+import time
+from datetime import datetime
+from functools import reduce
+from multiprocessing import Event, Process, Queue
+from pathlib import Path
+from typing import List, Optional, Set
+
 import h5py
 import numpy as np
+from mpi4py import MPI
+
+from perun import log
+from perun.backend import Backend, Device
+from perun.report import report
+from perun.storage import ExperimentStorage, LocalStorage
+from perun.units import MagnitudePrefix
 
 
 def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]:
@@ -51,12 +53,19 @@ def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]
     return globalDeviceNames[comm.rank]
 
 
-def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
+def monitor(
+    frequency: float = 1.0,
+    outDir: str = "./",
+    format: str = "txt",
+    horeka: bool = False,
+):
     """Decorate function to monitor its energy usage."""
 
     def inner_function(func):
         @functools.wraps(func)
         def func_wrapper(*args, **kwargs):
+
+            from perun.backend import backends
 
             comm = MPI.COMM_WORLD
             start_event = Event()
@@ -66,10 +75,10 @@ def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
             outPath: Path = Path(outDir)
 
             # Get node devices
-            log.debug(f"Backends: {perun.backends}")
-            lDeviceIds: List[str] = perun.getDeviceConfiguration(comm, perun.backends)
+            log.debug(f"Backends: {backends}")
+            lDeviceIds: List[str] = getDeviceConfiguration(comm, backends)
 
-            for backend in perun.backends:
+            for backend in backends:
                 backend.close()
 
             log.debug(f"Rank {comm.rank} - lDeviceIds : {lDeviceIds}")
@@ -78,7 +87,7 @@ def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
             if len(lDeviceIds) > 0:
                 queue: Queue = Queue()
                 perunSP = Process(
-                    target=perun.perunSubprocess,
+                    target=perunSubprocess,
                     args=[queue, start_event, stop_event, lDeviceIds, frequency],
                 )
                 perunSP.start()
@@ -86,9 +95,11 @@ def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
 
             # Sync everyone
             comm.barrier()
+            start = datetime.now()
 
             func(*args, **kwargs)
             stop_event.set()
+            stop = datetime.now()
 
             lStrg: Optional[LocalStorage]
             # Obtain perun subprocess results
@@ -111,20 +122,27 @@ def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
             scriptName = filePath.name.replace(filePath.suffix, "")
             resultPath = outPath / f"{scriptName}.hdf5"
             log.debug(f"Result path: {resultPath}")
-            expStrg = perun.ExperimentStorage(resultPath, comm)
+            expStrg = ExperimentStorage(resultPath, comm)
             if lStrg:
                 log.debug("Creating new experiment")
                 expId = expStrg.addExperimentRun(lStrg.toDict())
                 expStrg.saveDeviceData(expId, lStrg)
+
+                if horeka:
+                    from perun.extras.horeka import get_horeka_measurements
+
+                    get_horeka_measurements(
+                        comm, outPath, expStrg.experimentName, expId, start, stop
+                    )
             else:
                 expId = expStrg.addExperimentRun(None)
 
             # Post post-process
             comm.barrier()
-            perun.postprocessing(expStorage=expStrg)
+            postprocessing(expStorage=expStrg)
             comm.barrier()
             if comm.rank == 0:
-                print(perun.report(expStrg, expIdx=expId, format=format))
+                print(report(expStrg, expIdx=expId, format=format))
             comm.barrier()
             expStrg.close()
 
@@ -146,7 +164,7 @@ def perunSubprocess(
         deviceIds (Set[str]): List of device ids to sample from
         frequency (int): Sampling frequency in Hz
     """
-    from perun import backends
+    from perun.backend import backends
 
     lDevices: List[Device] = []
     for backend in backends:

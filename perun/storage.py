@@ -1,13 +1,15 @@
 """Storage Module."""
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Union, List, Dict
-from perun.backend.device import Device
-from perun.units import MagnitudePrefix
-from datetime import datetime
+
 import h5py
+import numpy as np
 from h5py import Group
 from mpi4py.MPI import Comm
-import numpy as np
+
+from perun.backend.device import Device
+from perun.units import MagnitudePrefix
 
 
 class LocalStorage:

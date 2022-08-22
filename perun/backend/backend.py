@@ -1,10 +1,11 @@
 """Backend module."""
+import functools
 from abc import ABC, abstractmethod
 
-import functools
-from .device import Device
 from perun import log
 from typing import List, Set
+
+from .device import Device
 
 
 class Backend(ABC):
