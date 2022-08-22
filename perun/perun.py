@@ -3,6 +3,7 @@ import functools
 import platform
 import sys
 import time
+from datetime import datetime
 from functools import reduce
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
@@ -52,7 +53,12 @@ def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]
     return globalDeviceNames[comm.rank]
 
 
-def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
+def monitor(
+    frequency: float = 1.0,
+    outDir: str = "./",
+    format: str = "txt",
+    horeka: bool = False,
+):
     """Decorate function to monitor its energy usage."""
 
     def inner_function(func):
@@ -89,9 +95,11 @@ def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
 
             # Sync everyone
             comm.barrier()
+            start = datetime.now()
 
             func(*args, **kwargs)
             stop_event.set()
+            stop = datetime.now()
 
             lStrg: Optional[LocalStorage]
             # Obtain perun subprocess results
@@ -119,6 +127,13 @@ def monitor(frequency: float = 1.0, outDir: str = "./", format: str = "txt"):
                 log.debug("Creating new experiment")
                 expId = expStrg.addExperimentRun(lStrg.toDict())
                 expStrg.saveDeviceData(expId, lStrg)
+
+                if horeka:
+                    from perun.extras.horeka import get_horeka_measurements
+
+                    get_horeka_measurements(
+                        comm, outPath, expStrg.experimentName, expId, start, stop
+                    )
             else:
                 expId = expStrg.addExperimentRun(None)
 

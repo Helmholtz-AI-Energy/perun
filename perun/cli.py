@@ -2,6 +2,7 @@
 
 Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline configurations.
 """
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -76,8 +77,19 @@ def report(exp_hdf5: str, format: str):
     default="./",
     help="experiment data output directory",
 )
+@click.option(
+    "--horeka/--no-horeka",
+    type=bool,
+    default=False,
+    help="experiment data output directory",
+)
 def monitor(
-    script: str, script_args: tuple, frequency: float, outdir: str, format: str
+    script: str,
+    script_args: tuple,
+    frequency: float,
+    outdir: str,
+    format: str,
+    horeka: bool,
 ):
     """
     Gather power consumption from hardware devices while SCRIPT [SCRIPT_ARGS] is running.
@@ -126,6 +138,7 @@ def monitor(
 
     # Sync everyone
     comm.barrier()
+    start = datetime.now()
 
     # Start script
     try:
@@ -138,6 +151,7 @@ def monitor(
         return
 
     stop_event.set()
+    stop = datetime.now()
 
     lStrg: Optional[LocalStorage]
     # Obtain perun subprocess results
@@ -165,6 +179,13 @@ def monitor(
         log.debug("Creating new experiment")
         expId = expStrg.addExperimentRun(lStrg.toDict())
         expStrg.saveDeviceData(expId, lStrg)
+
+        if horeka:
+            from perun.extras.horeka import get_horeka_measurements
+
+            get_horeka_measurements(
+                comm, outPath, expStrg.experimentName, expId, start, stop
+            )
     else:
         expId = expStrg.addExperimentRun(None)
 
@@ -177,25 +198,6 @@ def monitor(
 
     comm.barrier()
     expStrg.close()
-
-
-@cli.command()
-@click.argument("node", type=str)
-def horeka(node: str):
-    """Query influxdb for the power measurements from the last hour of NODE."""
-    import datetime
-    import os
-
-    from perun.extras.horeka import HoreKaDB
-
-    URL = os.environ["INFLUXDB_URL"]
-    TOKEN = os.environ["INFLUXDB_TOKEN"]
-    ORG = os.environ["INFLUXDB_ORG"]
-
-    horekaDB = HoreKaDB(url=URL, token=TOKEN, org=ORG)
-    start = datetime.datetime.utcnow() + datetime.timedelta(hours=-1)
-    stop = datetime.datetime.utcnow() + datetime.timedelta(hours=-0.5)
-    print(horekaDB.getNodeData(node, start, stop))
 
 
 if __name__ == "__main__":
