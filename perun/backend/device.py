@@ -2,6 +2,8 @@
 from dataclasses import dataclass
 from typing import Any, Callable, Dict
 
+import numpy as np
+
 from perun.units import Unit
 
 
@@ -16,9 +18,9 @@ class Device:
     min: int
     max: int
     dtype: str
-    measureCallback: Callable[[], int]
+    measureCallback: Callable[[], np.number]
 
-    def read(self) -> float:
+    def read(self) -> np.number:
         """Read value from sensor."""
         return self.measureCallback()
 
