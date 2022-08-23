@@ -1,6 +1,7 @@
 """Nvidia Mangement Library Source definition."""
 from typing import Callable, Set
 
+import numpy as np
 import pynvml
 from pynvml import NVMLError
 
@@ -53,9 +54,9 @@ class NVMLSource(Backend):
             List[Device]: Device objects
         """
 
-        def getCallback(handle) -> Callable[[], float]:
-            def func() -> float:
-                return pynvml.nvmlDeviceGetPowerUsage(handle)
+        def getCallback(handle) -> Callable[[], np.number]:
+            def func() -> np.number:
+                return np.uint32(pynvml.nvmlDeviceGetPowerUsage(handle))
 
             return func
 
@@ -65,9 +66,19 @@ class NVMLSource(Backend):
 
                 name = f"CUDA:{device}"
                 long_name = f"{pynvml.nvmlDeviceGetName(handle).decode('utf-8')}"
+                max_power = np.uint32(pynvml.nvmlDeviceGetPowerManagementLimit(handle))
 
                 self.devices.append(
-                    Device(name, long_name, Watt(), "mili", getCallback(handle))
+                    Device(
+                        name,
+                        long_name,
+                        Watt(),
+                        "mili",
+                        0,
+                        max_power,
+                        "uint32",
+                        getCallback(handle),
+                    )
                 )
             except NVMLError as e:
                 log.debug(f"Could not find device {device}")

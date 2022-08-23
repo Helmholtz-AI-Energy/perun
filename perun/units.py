@@ -1,6 +1,4 @@
 """Unit module."""
-import sys
-
 from perun import log
 
 
@@ -76,8 +74,6 @@ class Unit:
 
     symbol: str = "#"
     name: str = "Scalar"
-    min_value: float = sys.float_info.min
-    max_value: float = sys.float_info.max
 
     @classmethod
     def toString(cls, value: float, mag: str = None):
@@ -91,8 +87,6 @@ class Joule(Unit):
 
     symbol: str = "J"
     name: str = "Joule"
-    min_value: float = 0.0
-    max_value: float = sys.float_info.max
 
     KWH_factor = 3.6 * 1e6
 
@@ -112,8 +106,6 @@ class Watt(Unit):
 
     symbol: str = "W"
     name: str = "Watt"
-    min_value: float = 0.0
-    max_value: float = sys.float_info.max
 
 
 class Second(Unit):
@@ -121,5 +113,3 @@ class Second(Unit):
 
     symbol: str = "s"
     name: str = "Second"
-    min_value: float = 0.0
-    max_value: float = sys.float_info.max
