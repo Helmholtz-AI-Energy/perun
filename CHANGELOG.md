@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.9 (2022-08-23)
+
+
 ## v0.1.0-beta.8 (2022-08-22)
 ### Feature
 * Horeka options in cli and monitor decorator ([#13](https://github.com/Helmholtz-AI-Energy/perun/issues/13)) ([`0fde3cd`](https://github.com/Helmholtz-AI-Energy/perun/commit/0fde3cdcf8c489ff1b8ba4a985778c0e92a06cc6))
