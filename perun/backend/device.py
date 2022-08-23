@@ -13,7 +13,10 @@ class Device:
     long_name: str
     unit: Unit
     mag: str
-    measureCallback: Callable[[], float]
+    min: int
+    max: int
+    dtype: str
+    measureCallback: Callable[[], int]
 
     def read(self) -> float:
         """Read value from sensor."""
@@ -26,4 +29,7 @@ class Device:
             "long_name": self.long_name,
             "unit": self.unit,
             "mag": self.mag,
+            "min": self.min,
+            "max": self.max,
+            "dtype": self.dtype,
         }

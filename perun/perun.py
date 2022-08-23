@@ -176,7 +176,7 @@ def perunSubprocess(
     start_event.set()
 
     while not stop_event.wait(1.0 / frequency):
-        t = time.time_ns()
+        t = np.uint64(time.time_ns())
         stepData = {}
         for device in lDevices:
             stepData[device.id] = device.read()
@@ -267,14 +267,13 @@ def _postprocessDevice(device: h5py.Dataset, t_ns: h5py.Dataset):
     tTransFactor = MagnitudePrefix.transformFactor(t_ns.attrs["mag"], "")
 
     if device.attrs["units"] == "Joule":
-        startEnergy = device[0]
-        endEnergy = device[-1]
-        if endEnergy < startEnergy:
-            maxValue = np.finfo(device.dtype).max
-            totalEnergy = maxValue - startEnergy + endEnergy
-        else:
-            totalEnergy = endEnergy - startEnergy
-        totalDeviceEnergy_kJ = totalEnergy * mTransFactor
+        energy_array = device[:]
+        maxValue = device.attrs["valid_max"]
+        d_energy = energy_array[1:] - energy_array[:-1]
+        d_energy[d_energy <= 0] = d_energy[d_energy <= 0] + maxValue
+        total_energy = d_energy.sum()
+
+        totalDeviceEnergy_kJ = float(total_energy) * mTransFactor
         device.attrs["totalDeviceEnergy_kJ"] = totalDeviceEnergy_kJ
         device.attrs["avgDevicePower_kW"] = totalDeviceEnergy_kJ / (
             (t_ns[-1] - t_ns[0]) * tTransFactor

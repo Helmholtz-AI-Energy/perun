@@ -1,7 +1,7 @@
 """Storage Module."""
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Union, List, Dict
+from typing import Any, Dict, List, Union
 
 import h5py
 import numpy as np
@@ -19,11 +19,11 @@ class LocalStorage:
         """Create dictionary based on nodeName and devices."""
         self.devices = [device.toDict() for device in devices]
         self.nodeName = nodeName
-        self.nodeData: Dict[str, List[Any]] = {"t_ns": []}
+        self.nodeData: Dict[str, List[np.number]] = {"t_ns": []}
         for device in self.devices:
             self.nodeData[device["id"]] = []
 
-    def addTimestep(self, timestamp: int, step: dict):
+    def addTimestep(self, timestamp: np.uint64, step: dict):
         """Add one step of information to storage."""
         self.nodeData["t_ns"].append(timestamp)
         for key, value in step.items():
@@ -82,7 +82,7 @@ class ExperimentStorage:
             lStrg (LocalStorage): Storage with hardware measurements
         """
         group = self.file[self.experimentName][f"exp_{expId}"][lStrg.nodeName]
-        group["t_ns"][:] = np.array(lStrg.nodeData["t_ns"], dtype="float64")
+        group["t_ns"][:] = np.array(lStrg.nodeData["t_ns"], dtype="uint64")
 
         for device in lStrg.devices:
             dsId = self._dsFromDevice(device)
@@ -104,7 +104,7 @@ class ExperimentStorage:
     def _createTimestampDatabase(self, group: Group, strg: dict):
         """Initilize timestamp database."""
         t_ns_ds: h5py.Dataset = group.create_dataset(
-            name="t_ns", shape=(strg["steps"],), dtype="float64"
+            name="t_ns", shape=(strg["steps"],), dtype="uint64"
         )
         t_ns_ds.attrs["long_name"] = "time"
         t_ns_ds.attrs["units"] = "seconds"
@@ -114,20 +114,20 @@ class ExperimentStorage:
     def _createDataset(self, group: Group, deviceDict: Dict[str, Any], steps: int):
         """Create a dataset based on node name and device information."""
         ds: h5py.Dataset = group.create_dataset(
-            self._dsFromDevice(deviceDict), shape=(steps,), dtype="float64"
+            self._dsFromDevice(deviceDict), shape=(steps,), dtype=deviceDict["dtype"]
         )
         ds.attrs["long_name"] = deviceDict["long_name"]
         ds.attrs["units"] = deviceDict["unit"].name
         ds.attrs["symbol"] = deviceDict["unit"].symbol
         ds.attrs.create("coordinates", data=["t_ns"])
-        ds.attrs.create("valid_min", data=deviceDict["unit"].min_value, dtype="f")
-        ds.attrs.create("valid_max", data=deviceDict["unit"].max_value, dtype="f")
-        ds.attrs.create("_FillValue", data=-1.0, dtype="f")
+        ds.attrs.create("valid_min", data=deviceDict["min"], dtype=deviceDict["dtype"])
+        ds.attrs.create("valid_max", data=deviceDict["max"], dtype=deviceDict["dtype"])
+        ds.attrs.create("_FillValue", data=0.0, dtype=deviceDict["dtype"])
         ds.attrs.create(
             "scale_factor", data=MagnitudePrefix.getFactor(deviceDict["mag"]), dtype="f"
         )
         ds.attrs["scale_prefix"] = deviceDict["mag"]
-        ds.attrs.create("add_offset", data=1.0, dtype="f")
+        ds.attrs.create("add_offset", data=0, dtype=deviceDict["dtype"])
 
     def _dsFromDevice(self, device: Dict[str, Any]) -> str:
         """
