@@ -8,6 +8,7 @@ from typing import List, Optional
 
 import click
 
+from perun.perun import postprocessing
 from perun.storage import ExperimentStorage, LocalStorage
 
 
@@ -29,7 +30,7 @@ def postprocess(exp_hdf5: str):
     import perun
 
     expPath = Path(exp_hdf5)
-    expStrg = ExperimentStorage(expPath, MPI.COMM_WORLD)
+    expStrg = ExperimentStorage(expPath, MPI.COMM_WORLD, write=True)
     perun.postprocessing(expStrg)
     expStrg.close()
 
@@ -174,28 +175,20 @@ def monitor(
     scriptName = filePath.name.replace(filePath.suffix, "")
     resultPath = outPath / f"{scriptName}.hdf5"
     log.debug(f"Result path: {resultPath}")
-    expStrg = perun.ExperimentStorage(resultPath, comm)
-    if lStrg:
-        log.debug("Creating new experiment")
-        expId = expStrg.addExperimentRun(lStrg.toDict())
-        expStrg.saveDeviceData(expId, lStrg)
+    expStrg = ExperimentStorage(resultPath, comm, write=True)
+    expId = expStrg.addExperimentRun(lStrg)
+    if lStrg and horeka:
+        from perun.extras.horeka import get_horeka_measurements
 
-        if horeka:
-            from perun.extras.horeka import get_horeka_measurements
-
-            get_horeka_measurements(
-                comm, outPath, expStrg.experimentName, expId, start, stop
-            )
-    else:
-        expId = expStrg.addExperimentRun(None)
+        get_horeka_measurements(
+            comm, outPath, expStrg.experimentName, expId, start, stop
+        )
 
     # Post post-process
     comm.barrier()
-    perun.postprocessing(expStorage=expStrg)
-    comm.barrier()
+    postprocessing(expStorage=expStrg)
     if comm.rank == 0:
         print(perun.report(expStrg, expIdx=expId, format=format))
-
     comm.barrier()
     expStrg.close()
 
