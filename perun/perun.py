@@ -122,25 +122,18 @@ def monitor(
             scriptName = filePath.name.replace(filePath.suffix, "")
             resultPath = outPath / f"{scriptName}.hdf5"
             log.debug(f"Result path: {resultPath}")
-            expStrg = ExperimentStorage(resultPath, comm)
-            if lStrg:
-                log.debug("Creating new experiment")
-                expId = expStrg.addExperimentRun(lStrg.toDict())
-                expStrg.saveDeviceData(expId, lStrg)
+            expStrg = ExperimentStorage(resultPath, comm, write=True)
+            expId = expStrg.addExperimentRun(lStrg)
+            if lStrg and horeka:
+                from perun.extras.horeka import get_horeka_measurements
 
-                if horeka:
-                    from perun.extras.horeka import get_horeka_measurements
-
-                    get_horeka_measurements(
-                        comm, outPath, expStrg.experimentName, expId, start, stop
-                    )
-            else:
-                expId = expStrg.addExperimentRun(None)
+                get_horeka_measurements(
+                    comm, outPath, expStrg.experimentName, expId, start, stop
+                )
 
             # Post post-process
             comm.barrier()
             postprocessing(expStorage=expStrg)
-            comm.barrier()
             if comm.rank == 0:
                 print(report(expStrg, expIdx=expId, format=format))
             comm.barrier()
@@ -190,18 +183,19 @@ def perunSubprocess(
 
 def postprocessing(expStorage: ExperimentStorage):
     """Process the obtained data."""
-    expRuns = expStorage.getExperimentRuns()
-    totalExpEnergy_kJ = 0
-    totalExpRuntime_s = 0
-    for run in expRuns:
-        if "totalRunEnergy_kJ" not in run.attrs:
-            _postprocessRun(run)
-        totalExpEnergy_kJ += run.attrs["totalRunEnergy_kJ"]
-        totalExpRuntime_s += run.attrs["totalRunRuntime_s"]
+    if (expStorage.serial and expStorage.comm.rank == 0) or not expStorage.serial:
+        expRuns = expStorage.getExperimentRuns()
+        totalExpEnergy_kJ = 0
+        totalExpRuntime_s = 0
+        for run in expRuns:
+            if "totalRunEnergy_kJ" not in run.attrs:
+                _postprocessRun(run)
+            totalExpEnergy_kJ += run.attrs["totalRunEnergy_kJ"]
+            totalExpRuntime_s += run.attrs["totalRunRuntime_s"]
 
-    rootExp = expStorage.getRootObject()
-    rootExp.attrs["totalExpEnergy_kJ"] = totalExpEnergy_kJ
-    rootExp.attrs["totalExpRuntime_s"] = totalExpRuntime_s
+        rootExp = expStorage.getRootObject()
+        rootExp.attrs["totalExpEnergy_kJ"] = totalExpEnergy_kJ
+        rootExp.attrs["totalExpRuntime_s"] = totalExpRuntime_s
 
 
 def _postprocessRun(run: h5py.Group):

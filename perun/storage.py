@@ -8,6 +8,7 @@ import numpy as np
 from h5py import Group
 from mpi4py.MPI import Comm
 
+from perun import log
 from perun.backend.device import Device
 from perun.units import MagnitudePrefix
 
@@ -29,43 +30,108 @@ class LocalStorage:
         for key, value in step.items():
             self.nodeData[key].append(value)
 
-    def toDict(self) -> Dict[str, Any]:
+    def toDict(self, data=False) -> Dict[str, Any]:
         """Lightweight local storage without the data."""
-        return {
+        returnDict = {
             "devices": self.devices,
             "nodeName": self.nodeName,
             "steps": len(self.nodeData["t_ns"]),
         }
+        if data:
+            returnDict["nodeData"] = self.nodeData
+
+        return returnDict
 
 
 class ExperimentStorage:
     """Store hardware measurments across multiple runs of the same experiment."""
 
-    def __init__(self, filePath: Path, comm: Comm):
+    def __init__(self, filePath: Path, comm: Comm, write=False):
         """Initialize experiment storage."""
         self.comm = comm
-        if self.comm.size > 1:
-            self.file = h5py.File(filePath, "a", driver="mpio", comm=self.comm)
-        else:
-            self.file = h5py.File(filePath, "a")
-
+        self.serial = False
         self.experimentName = self._getExperimentName(filePath)
 
+        # Write new data
+        if write:
+            if self.comm.size > 1:
+                try:
+                    self.file = h5py.File(filePath, "a", driver="mpio", comm=self.comm)
+                except ValueError as e:
+                    log.warn(e)
+                    self.serial = True
+                    if self.comm.rank == 0:
+                        self.file = h5py.File(filePath, "a")
+            else:
+                self.file = h5py.File(filePath, "a")
+        # Only read
+        else:
+            self.file = h5py.File(filePath, "r")
+
+    def addExperimentRun(self, lStrg: Union[LocalStorage, None]) -> int:
+        """Add new experiment group and setup the internal datasets."""
+        if self.serial:
+            storageDicts = self.comm.allgather(
+                lStrg.toDict(data=True) if lStrg else None
+            )
+            runIdx: Union[int, None] = None
+            if self.comm.rank == 0:
+                runIdx = self._serialCreate(storageDicts)
+            idx: int = self.comm.bcast(runIdx, root=0)
+            return idx
+        else:
+            if self.experimentName not in self.file:
+                rootGroup = self.file.create_group(self.experimentName)
+                rootGroup.attrs["creation_date"] = str(datetime.utcnow())
+
+            expId = self._addExperimentRun(lStrg)
+            if lStrg:
+                self._saveDeviceData(expId, lStrg)
+
+            return expId
+
+    def _serialCreate(self, gatheredStrg: List[Union[Dict, None]]) -> int:
+        """
+        Save device data into hdf5 from a single mpi rank.
+
+        Args:
+            filePath (_type_): Path to save directory
+            gatheredStrg (List[Union[Dict, None]]): List with device data from all mpi ranks
+        """
         if self.experimentName not in self.file:
             rootGroup = self.file.create_group(self.experimentName)
             rootGroup.attrs["creation_date"] = str(datetime.utcnow())
+
+        expIdx: int = len(self.file[self.experimentName].keys())
+        expGroup = self.file[self.experimentName].create_group(f"exp_{expIdx}")
+        expGroup.attrs["experiment_date"] = str(datetime.utcnow())
+
+        for strg in gatheredStrg:
+            if strg:
+                self._createNodeDataStrg(expGroup, strg)
+                group = self.file[self.experimentName][f"exp_{expIdx}"][
+                    strg["nodeName"]
+                ]
+                group["t_ns"][:] = np.array(strg["nodeData"]["t_ns"], dtype="uint64")
+
+                for device in strg["devices"]:
+                    dsId = self._dsFromDevice(device)
+                    group[dsId][:] = np.array(strg["nodeData"][device["id"]])
+        return expIdx
 
     def _getExperimentName(self, filePath: Path) -> str:
         """Remove suffix from a file path."""
         return filePath.name.replace(filePath.suffix, "")
 
-    def addExperimentRun(self, lStrg: Union[dict, None]) -> int:
+    def _addExperimentRun(self, lStrg: Union[LocalStorage, None]) -> int:
         """Add new experiment group and setup the internal datasets."""
         expIdx: int = len(self.file[self.experimentName].keys())
         expGroup = self.file[self.experimentName].create_group(f"exp_{expIdx}")
         expGroup.attrs["experiment_date"] = str(datetime.utcnow())
 
-        gatherdStrg: List[Union[dict, None]] = self.comm.allgather(lStrg)
+        gatherdStrg: List[Union[dict, None]] = self.comm.allgather(
+            lStrg.toDict() if lStrg else None
+        )
 
         for strg in gatherdStrg:
             if strg:
@@ -73,7 +139,7 @@ class ExperimentStorage:
 
         return expIdx
 
-    def saveDeviceData(self, expId: int, lStrg: LocalStorage):
+    def _saveDeviceData(self, expId: int, lStrg: LocalStorage):
         """
         Write the device data on the newly created hdf5 datasets.
 
@@ -144,7 +210,8 @@ class ExperimentStorage:
 
     def close(self):
         """Close hdf5 file."""
-        self.file.close()
+        if (self.serial and self.comm.rank == 0) or not self.serial:
+            self.file.close()
 
     def getExperimentRun(self, index: int) -> Group:
         """
