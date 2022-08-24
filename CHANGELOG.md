@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.10 (2022-08-24)
+### Feature
+* Serial hdf5 support ([#15](https://github.com/Helmholtz-AI-Energy/perun/issues/15)) ([`e9caa69`](https://github.com/Helmholtz-AI-Energy/perun/commit/e9caa69948eec4f6baf98807d7e4bcaf81700e8a))
+
 ## v0.1.0-beta.9 (2022-08-23)
 
 
