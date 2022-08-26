@@ -130,7 +130,6 @@ dmypy.json
 
 # Custom
 .vscode
-example/
-results/
 *.out
 poetry.lock
+.perun.ini

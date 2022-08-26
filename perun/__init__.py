@@ -1,20 +1,15 @@
 """perun module."""
 # flake8: noqa
 __version__ = "0.1.0-beta.10"
+from perun.configuration import config
+from perun.logging import init_logging
+
+log = init_logging(config.get("perun", "log_lvl"))
 
 import os
 
-from dotenv import load_dotenv
-
-# SETUP ENV
-load_dotenv()
 os.environ["IBV_FORK_SAFE"] = "1"
 os.environ["RDMAV_FORK_SAFE"] = "1"
-log_lvl = os.environ["LOG_LVL"] if "LOG_LVL" in os.environ else "INFO"
-
-from perun.logging import init_logging
-
-log = init_logging(log_lvl)
 
 from perun.perun import getDeviceConfiguration, monitor, perunSubprocess, postprocessing
 from perun.report import report
@@ -29,4 +24,5 @@ __all__ = [
     "monitor",
     "report",
     "postprocessing",
+    "config",
 ]

@@ -48,7 +48,8 @@ def _textReport(expStrg: ExperimentStorage, expIdx: int = None) -> str:
     Returns:
         str: txt report
     """
-    run = expStrg.getExperimentRun(expIdx if expIdx else -1)
+    expIdx = expIdx if expIdx else expStrg.getLastExperimentIndex()
+    run = expStrg.getExperimentRun(expIdx)
     reportStr = (
         "\n------------------------------------------\n"
         "PERUN REPORT\n"
