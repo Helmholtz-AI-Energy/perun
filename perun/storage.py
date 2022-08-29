@@ -213,6 +213,15 @@ class ExperimentStorage:
         if (self.serial and self.comm.rank == 0) or not self.serial:
             self.file.close()
 
+    def getLastExperimentIndex(self) -> int:
+        """
+        Return index of the last experiment in the storage file.
+
+        Returns:
+            int: Index of last experiment
+        """
+        return len(self.file[self.experimentName].keys()) - 1
+
     def getExperimentRun(self, index: int) -> Group:
         """
         Return experiment with the desired index.
@@ -224,7 +233,7 @@ class ExperimentStorage:
             Group: h5py group with run info
         """
         if index == -1:
-            index = len(self.file[self.experimentName].keys()) - 1
+            index = self.getLastExperimentIndex()
         return self.file[self.experimentName][f"exp_{index}"]
 
     def getExperimentRuns(self) -> List[Group]:

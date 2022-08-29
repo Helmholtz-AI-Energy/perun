@@ -14,7 +14,8 @@ import numpy as np
 from mpi4py import MPI
 
 from perun import log
-from perun.backend import Backend, Device
+from perun.backend import Backend, Device, backends
+from perun.configuration import config, read_custom_config, save_to_config
 from perun.report import report
 from perun.storage import ExperimentStorage, LocalStorage
 from perun.units import MagnitudePrefix
@@ -54,10 +55,8 @@ def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]
 
 
 def monitor(
-    frequency: float = 1.0,
-    outDir: str = "./",
-    format: str = "txt",
-    horeka: bool = False,
+    configuration: str = "./.perun.ini",
+    **conf_kwargs,
 ):
     """Decorate function to monitor its energy usage."""
 
@@ -65,14 +64,17 @@ def monitor(
         @functools.wraps(func)
         def func_wrapper(*args, **kwargs):
 
-            from perun.backend import backends
+            # Get custom config and kwargs
+            read_custom_config(None, None, configuration)
+            for key, value in conf_kwargs.items():
+                save_to_config(key, value)
 
             comm = MPI.COMM_WORLD
             start_event = Event()
             stop_event = Event()
 
             filePath: Path = Path(sys.argv[0])
-            outPath: Path = Path(outDir)
+            outPath: Path = Path(config.get("monitor", "data_out"))
 
             # Get node devices
             log.debug(f"Backends: {backends}")
@@ -88,7 +90,13 @@ def monitor(
                 queue: Queue = Queue()
                 perunSP = Process(
                     target=perunSubprocess,
-                    args=[queue, start_event, stop_event, lDeviceIds, frequency],
+                    args=[
+                        queue,
+                        start_event,
+                        stop_event,
+                        lDeviceIds,
+                        config.getfloat("monitor", "frequency"),
+                    ],
                 )
                 perunSP.start()
                 start_event.wait()
@@ -124,7 +132,7 @@ def monitor(
             log.debug(f"Result path: {resultPath}")
             expStrg = ExperimentStorage(resultPath, comm, write=True)
             expId = expStrg.addExperimentRun(lStrg)
-            if lStrg and horeka:
+            if lStrg and config.getboolean("horeka", "enabled"):
                 from perun.extras.horeka import get_horeka_measurements
 
                 get_horeka_measurements(
@@ -135,7 +143,9 @@ def monitor(
             comm.barrier()
             postprocessing(expStorage=expStrg)
             if comm.rank == 0:
-                print(report(expStrg, expIdx=expId, format=format))
+                print(
+                    report(expStrg, expIdx=expId, format=config.get("report", "format"))
+                )
             comm.barrier()
             expStrg.close()
 

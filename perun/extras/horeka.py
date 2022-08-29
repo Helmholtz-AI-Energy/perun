@@ -1,5 +1,4 @@
 """Connection to HoreKa hardware measurements."""
-import os
 import platform
 from datetime import datetime
 from pathlib import Path
@@ -8,6 +7,8 @@ from typing import List, Union
 import pandas as pd
 from influxdb_client import InfluxDBClient
 from mpi4py.MPI import Comm
+
+from perun import config
 
 query = """from(bucket: "hk-collector")
 |> range(start: _start, stop: _stop)
@@ -25,14 +26,14 @@ def get_horeka_measurements(
     Args:
         comm (Comm): MPI Communication Object
         outdir (Path): Result location
-        expName (str): Experiment name
+        expName (str): Experiment config.get("horeka", "org")
         expId (int): Experiment Id
         start (datetime): Experiment start time
         stop (datetime): Experiment end time
     """
-    URL = os.environ["INFLUXDB_URL"]
-    TOKEN = os.environ["INFLUXDB_TOKEN"]
-    ORG = os.environ["INFLUXDB_ORG"]
+    URL = config.get("horeka", "url")
+    TOKEN = config.get("horeka", "token")
+    ORG = config.get("horeka", "org")
     nodename = platform.node().replace(".localdomain", "")
 
     idb = InfluxDBClient(url=URL, token=TOKEN, org=ORG)
