@@ -80,14 +80,15 @@ def cli():
 
 
 @cli.command()
-@click.option("--default", is_flag=True, show_default=True, default=False)
+@click.option(
+    "--default",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Print default configuration",
+)
 def showconf(default: bool):
-    """
-    Print current perun configuration in INI format.
-
-    Args:
-        default (bool): Print default values
-    """
+    """Print current perun configuration in INI format."""
     import sys
 
     from perun.configuration import _default_config

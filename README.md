@@ -35,6 +35,34 @@ Or
 
 #### Subcommands
 
+Perun subcommands have some shared options that are typed before the subcommands.
+
+```
+Usage: perun [OPTIONS] COMMAND [ARGS]...
+
+  Perun: Energy measuring and reporting tool.
+
+Options:
+  --version                       Show the version and exit.
+  -c, --configuration FILE
+  -f, --format [txt|yaml|yml|json]
+                                  report print format
+  -f, --frequency FLOAT           sampling frequency (in Hz)
+  --format [txt|yaml|yml|json]    report print format
+  --data_out DIRECTORY            experiment data output directory
+  -l, --log_lvl [DEBUG|INFO|WARN|ERROR|CRITICAL]
+                                  Loggging level
+  --pue FLOAT                     Data center Power usage efficiency
+  --location TEXT                 Data center location
+  --help                          Show this message and exit.
+
+Commands:
+  monitor      Gather power consumption from hardware devices while...
+  postprocess  Apply post-processing to EXP_HDF5 experiment file.
+  report       Print consumption report from EXP_HDF5 on the command line...
+  showconf     Print current perun configuration in INI format.
+```
+
 **monitor**
 
 Monitor energy usage of a python script.
@@ -49,9 +77,6 @@ Usage: perun monitor [OPTIONS] SCRIPT [SCRIPT_ARGS]...
   SCRIPT_ARGS.
 
 Options:
-  -f, --frequency FLOAT         sampling frequency (in Hz)
-  --format [txt|yaml|yml|json]  report print format
-  -o, --outdir DIRECTORY        experiment data output directory
   --help                        Show this message and exit.
 ```
 
@@ -69,8 +94,6 @@ Usage: perun report [OPTIONS] EXP_HDF5
   containing data gathered from hardware devices.
 
 Options:
-  -f, --format [txt|yaml|yml|json]
-                                  report print format
   --help                          Show this message and exit.
 ```
 
@@ -89,6 +112,20 @@ Usage: perun postprocess [OPTIONS] EXP_HDF5
 Options:
   --help  Show this message and exit.
 ```
+
+**showconf**
+
+Prints the current option configurations based on the global, local configurations files and command line options.
+
+'''
+Usage: perun showconf [OPTIONS]
+
+  Print current perun configuration in INI format.
+
+Options:
+  --default  Print default configuration
+  --help     Show this message and exit.
+'''
 
 ### Decorator
 
@@ -113,6 +150,45 @@ Optional Arguments:
 |frequency: FLOAT             |sampling frequency (in Hz) |
 |format: [txt|yaml|yml|json]  |report print format |
 |outdir DIRECTORY:            |experiment data output directory |
+
+
+## Configuration
+
+There are multiple ways to configure perun, with a different level of priorities.
+
+1. CMD Line options and Env Variables
+
+The highest priority is given to command line options and environmental variables. The options are shown in the command line section. The options can also be passed as environmental variables by adding the prefix 'PERUN' to them. Ex. "--format txt" -> PERUN_FORMAT=txt
+
+2. Local INI file
+
+Perun will look into the cwd for ".perun.ini" file, where options can be fixed for the directory.
+
+Example:
+```ini
+[report]
+format = txt
+pue = 1.58
+location = DE
+
+[monitor]
+frequency = 1
+data_out = ./results
+
+[perun]
+log_lvl = WARN
+```
+
+The location of the file can be changed using the option "-c" or "PERUN_CONFIGURATION".
+
+3. Global INI file
+
+If the file ~/.config/perun.ini is found, perun will override the default configuration with the contents of the file.
+
+
+### Priority
+
+CMD LINE and ENV > Local INI > Global INI > Default options
 
 ## Experiment data
 
