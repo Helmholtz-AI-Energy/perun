@@ -9,7 +9,8 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
     "report": {
         "format": "txt",
         "pue": 1.58,
-        "location": "DE",
+        "emissions-factor": 0.355,  # kgCO2eq/kWh - source https://www.nowtricity.com/country/germany/
+        "price-factor": 41.59,  # cent/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ Baden-Württemberg lokare anbieter
     },
     "monitor": {"frequency": 1, "data_out": "./results"},
     "perun": {"log_lvl": "WARN"},

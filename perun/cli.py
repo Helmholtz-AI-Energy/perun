@@ -9,6 +9,7 @@ from typing import List, Optional
 import click
 
 import perun
+from perun import log
 from perun.configuration import config, read_custom_config, save_to_config_callback
 
 
@@ -69,14 +70,22 @@ from perun.configuration import config, read_custom_config, save_to_config_callb
     expose_value=False,
 )
 @click.option(
-    "--location",
-    type=str,
-    help="Data center location",
+    "--emissions-factor",
+    type=float,
+    help="Emissions factor at compute resource location",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+@click.option(
+    "--price-factor",
+    type=float,
+    help="Electricity price factor at compute resource location",
     callback=save_to_config_callback,
     expose_value=False,
 )
 def cli():
     """Perun: Energy measuring and reporting tool."""
+    log.setLevel(config.get("perun", "log_lvl"))
 
 
 @cli.command()
@@ -112,7 +121,7 @@ def postprocess(exp_hdf5: str):
 
     expPath = Path(exp_hdf5)
     expStrg = perun.ExperimentStorage(expPath, MPI.COMM_WORLD, write=True)
-    perun.postprocessing(expStrg)
+    perun.postprocessing(expStrg, reset=True)
     expStrg.close()
 
 
@@ -203,19 +212,26 @@ def monitor(
         return
 
     stop_event.set()
+    log.debug("Set closed event")
     stop = datetime.now()
 
     lStrg: Optional[perun.LocalStorage]
     # Obtain perun subprocess results
     if len(lDeviceIds) > 0:
+        log.debug("Getting queue contents")
+        lStrg = queue.get(block=True)
+        log.debug("Got queue contents")
+        log.debug("Waiting for subprocess to close")
         perunSP.join()
         perunSP.close()
-        lStrg = queue.get()
+        log.debug("Subprocess closed")
+        queue.close()
     else:
         lStrg = None
 
     # Sync
     comm.barrier()
+    log.debug("Passed first barrier")
 
     # Save raw data to hdf5
 

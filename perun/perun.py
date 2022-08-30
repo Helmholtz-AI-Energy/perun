@@ -18,7 +18,7 @@ from perun.backend import Backend, Device, backends
 from perun.configuration import config, read_custom_config, save_to_config
 from perun.report import report
 from perun.storage import ExperimentStorage, LocalStorage
-from perun.units import MagnitudePrefix
+from perun.units import Joule, MagnitudePrefix
 
 
 def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]:
@@ -185,30 +185,39 @@ def perunSubprocess(
             stepData[device.id] = device.read()
         lStrg.addTimestep(t, stepData)
 
+    log.debug("Subprocess: Stop event received.")
     for backend in backends:
         backend.close()
+    log.debug("Subprocess: Closed backends")
 
-    queue.put(lStrg)
+    queue.put(lStrg, block=True)
+    log.debug("Subprocess: Sent lStrg")
 
 
-def postprocessing(expStorage: ExperimentStorage):
+def postprocessing(expStorage: ExperimentStorage, reset: bool = False):
     """Process the obtained data."""
     if (expStorage.serial and expStorage.comm.rank == 0) or not expStorage.serial:
         expRuns = expStorage.getExperimentRuns()
-        totalExpEnergy_kJ = 0
+        totalExpEnergy_kWh = 0
         totalExpRuntime_s = 0
+        totalExpCO2e_kg = 0
+        totalExpPrice_euro = 0
         for run in expRuns:
-            if "totalRunEnergy_kJ" not in run.attrs:
-                _postprocessRun(run)
-            totalExpEnergy_kJ += run.attrs["totalRunEnergy_kJ"]
+            if "totalRunEnergy_kWh" not in run.attrs or reset:
+                _postprocessRun(run, reset)
+            totalExpEnergy_kWh += run.attrs["totalRunEnergy_kWh"]
             totalExpRuntime_s += run.attrs["totalRunRuntime_s"]
+            totalExpCO2e_kg += run.attrs["totalRunCO2e_kg"]
+            totalExpPrice_euro += run.attrs["totalRunPrice_euro"]
 
         rootExp = expStorage.getRootObject()
-        rootExp.attrs["totalExpEnergy_kJ"] = totalExpEnergy_kJ
+        rootExp.attrs["totalExpEnergy_kWh"] = totalExpEnergy_kWh
         rootExp.attrs["totalExpRuntime_s"] = totalExpRuntime_s
+        rootExp.attrs["totalExpCO2e_kg"] = totalExpCO2e_kg
+        rootExp.attrs["totalExpPrice_euro"] = totalExpPrice_euro
 
 
-def _postprocessRun(run: h5py.Group):
+def _postprocessRun(run: h5py.Group, reset: bool = False):
     """
     Collect run statistics and save them in the group.
 
@@ -221,18 +230,28 @@ def _postprocessRun(run: h5py.Group):
     totalRunRuntime_s = 0
 
     for node in run.values():
-        if "totalNodeEnergy_kJ" not in node.attrs:
-            _postprocessNode(node)
+        if "totalNodeEnergy_kJ" not in node.attrs or reset:
+            _postprocessNode(node, reset)
         totalRunEnergy_kJ += node.attrs["totalNodeEnergy_kJ"]
         runAvgPower_kW += node.attrs["avgNodePower_kW"]
         totalRunRuntime_s = max(totalRunRuntime_s, node.attrs["totalNodeRuntime_s"])
 
-    run.attrs["totalRunEnergy_kJ"] = totalRunEnergy_kJ
+    totalRunEnergy_kWh = Joule.to_kWh(
+        totalRunEnergy_kJ * MagnitudePrefix.transformFactor("kilo", "")
+    ) * config.getfloat("report", "pue")
+    run.attrs["totalRunEnergy_kWh"] = totalRunEnergy_kWh
     run.attrs["totalRunRuntime_s"] = totalRunRuntime_s
     run.attrs["runAvgPower_kW"] = runAvgPower_kW
 
+    run.attrs["totalRunCO2e_kg"] = totalRunEnergy_kWh * config.getfloat(
+        "report", "emissions-factor"
+    )
+    run.attrs["totalRunPrice_euro"] = (
+        totalRunEnergy_kWh * config.getfloat("report", "price-factor") / 100
+    )
 
-def _postprocessNode(node: h5py.Group):
+
+def _postprocessNode(node: h5py.Group, reset: bool = False):
     """
     Collect node statistics and save them in the group.
 
@@ -249,7 +268,7 @@ def _postprocessNode(node: h5py.Group):
 
     for device in node.values():
         if "/t_ns" not in device.name:
-            if "totalDeviceEnergy_kJ" not in device.attrs:
+            if "totalDeviceEnergy_kJ" not in device.attrs or reset:
                 _postprocessDevice(device, t_ns_ds)
             totalNodeEnergy_kJ += device.attrs["totalDeviceEnergy_kJ"]
             avgNodePower_kW += device.attrs["avgDevicePower_kW"]
@@ -273,8 +292,15 @@ def _postprocessDevice(device: h5py.Dataset, t_ns: h5py.Dataset):
     if device.attrs["units"] == "Joule":
         energy_array = device[:]
         maxValue = device.attrs["valid_max"]
+        dtype = device.dtype.name
         d_energy = energy_array[1:] - energy_array[:-1]
-        d_energy[d_energy <= 0] = d_energy[d_energy <= 0] + maxValue
+        if "uint" in dtype:
+            idx = d_energy >= maxValue
+            max_dtype = np.iinfo(dtype).max
+            d_energy[idx] = maxValue + d_energy[idx] - max_dtype
+        else:
+            idx = d_energy <= 0
+            d_energy[idx] = d_energy[idx] + maxValue
         total_energy = d_energy.sum()
 
         totalDeviceEnergy_kJ = float(total_energy) * mTransFactor

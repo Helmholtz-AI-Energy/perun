@@ -17,7 +17,7 @@ def init_logging(level: str):
             "console": {
                 "formatter": "std_out",
                 "class": "logging.StreamHandler",
-                "level": level,
+                "level": "DEBUG",
             }
         },
         "formatters": {
