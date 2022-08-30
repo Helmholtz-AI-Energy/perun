@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.12 (2022-08-30)
+### Feature
+* Energy conversion to euro and co2e ([#17](https://github.com/Helmholtz-AI-Energy/perun/issues/17)) ([`ee89583`](https://github.com/Helmholtz-AI-Energy/perun/commit/ee8958357298780e285412360c33856a13ee49d5))
+
 ## v0.1.0-beta.11 (2022-08-29)
 ### Feature
 * Configuration files ([#16](https://github.com/Helmholtz-AI-Energy/perun/issues/16)) ([`1035763`](https://github.com/Helmholtz-AI-Energy/perun/commit/1035763c2e66f2973180bceca52b7c0ef04d6f8b))
