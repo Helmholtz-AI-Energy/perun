@@ -53,7 +53,10 @@ Options:
   -l, --log_lvl [DEBUG|INFO|WARN|ERROR|CRITICAL]
                                   Loggging level
   --pue FLOAT                     Data center Power usage efficiency
-  --location TEXT                 Data center location
+  --emissions-factor FLOAT        Emissions factor at compute resource
+                                  location
+  --price-factor FLOAT            Electricity price factor at compute
+                                  resource location
   --help                          Show this message and exit.
 
 Commands:
@@ -134,23 +137,14 @@ Or decorate the function that you want analysed
 ```python
 import perun
 
-@perun.monitor(outDir="results/", format="txt")
+@perun.monitor(data_out="results/", format="txt")
 def training_loop(args, model, device, train_loader, test_loader, optimizer, scheduler):
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)
         test(model, device, test_loader)
         scheduler.step()
 ```
-
-
-Optional Arguments:
-
-|   |   |
-|---|---|
-|frequency: FLOAT             |sampling frequency (in Hz) |
-|format: [txt|yaml|yml|json]  |report print format |
-|outdir DIRECTORY:            |experiment data output directory |
-
+Optional arguments same as the command line.
 
 ## Configuration
 
@@ -169,7 +163,8 @@ Example:
 [report]
 format = txt
 pue = 1.58
-location = DE
+emissions-factor = 0.355, # kgCO2eq/kWh - source https://www.nowtricity.com/country/germany/
+price-factor = 41.59, # cent/kWh - source: https://www.stromauskunft.de/strompreise/ Baden-Württemberg lokare anbieter
 
 [monitor]
 frequency = 1

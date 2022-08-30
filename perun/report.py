@@ -58,7 +58,9 @@ def _textReport(expStrg: ExperimentStorage, expIdx: int = None) -> str:
         f"Run number: {expIdx}\n"
         f"Runtime: {run.attrs['totalRunRuntime_s']:.3f}s\n"
         f"Avg. Power draw: {run.attrs['runAvgPower_kW']:.3f}kW\n"
-        f"Energy Used: {run.attrs['totalRunEnergy_kJ']:.3f}kJ\n"
+        f"Energy Used: {run.attrs['totalRunEnergy_kWh']:.3f}kWh\n"
+        f"CO\N{SUBSCRIPT TWO}e : {run.attrs['totalRunCO2e_kg']:.3f}kg\n"
+        f"Cost €: {run.attrs['totalRunPrice_euro']:.3f}€\n"
         "\n"
     )
 
@@ -73,6 +75,8 @@ def _textReport(expStrg: ExperimentStorage, expIdx: int = None) -> str:
 
     # Print experiment info
     nRuns = len(expStrg.getExperimentRuns())
-    totalEnergy_kJ = expStrg.getRootObject().attrs["totalExpEnergy_kJ"]
-    reportStr += f"The script has been run a total {nRuns} times, and has used {totalEnergy_kJ:.3f}kJ in total."
+    totalEnergy_kWh = expStrg.getRootObject().attrs["totalExpEnergy_kWh"]
+    totalCO2_kg = expStrg.getRootObject().attrs["totalExpCO2e_kg"]
+    totalPrice_euro = expStrg.getRootObject().attrs["totalExpPrice_euro"]
+    reportStr += f"The script has been run a total {nRuns} times, has used {totalEnergy_kWh:.3f}kWh, generated {totalCO2_kg:.3f}kg of CO\N{SUBSCRIPT TWO}e and costed {totalPrice_euro:.3f}€"
     return reportStr
