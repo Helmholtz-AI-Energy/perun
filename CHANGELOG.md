@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.13 (2022-09-02)
+### Feature
+* Psutil backend ([`7d3aa61`](https://github.com/Helmholtz-AI-Energy/perun/commit/7d3aa61a4164463bec88343e2efb139464bc30ae))
+
 ## v0.1.0-beta.12 (2022-08-30)
 ### Feature
 * Energy conversion to euro and co2e ([#17](https://github.com/Helmholtz-AI-Energy/perun/issues/17)) ([`ee89583`](https://github.com/Helmholtz-AI-Energy/perun/commit/ee8958357298780e285412360c33856a13ee49d5))
