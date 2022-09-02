@@ -15,8 +15,8 @@ class Device:
     long_name: str
     unit: Unit
     mag: str
-    min: int
-    max: int
+    min: np.number
+    max: np.number
     dtype: str
     measureCallback: Callable[[], np.number]
 

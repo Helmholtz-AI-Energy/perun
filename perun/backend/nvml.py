@@ -25,6 +25,7 @@ class NVMLSource(Backend):
     def __init__(self) -> None:
         """Init NVIDIA ML Backend."""
         super().__init__()
+        log.info("Initialized NVIDIA SMI Backend")
 
     def close(self):
         """Backend shutdown code."""
@@ -74,8 +75,8 @@ class NVMLSource(Backend):
                         long_name,
                         Watt(),
                         "mili",
-                        0,
-                        max_power,
+                        np.uint32(0),
+                        np.uint32(max_power),
                         "uint32",
                         getCallback(handle),
                     )

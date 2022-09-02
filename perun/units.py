@@ -74,12 +74,28 @@ class Unit:
 
     symbol: str = "#"
     name: str = "Scalar"
+    printFactor: float = 1.0
 
     @classmethod
     def toString(cls, value: float, mag: str = None):
         """Return string value with magnitude prefix and unit symbol."""
         magSymbol = MagnitudePrefix.getSymbol(mag) if mag else ""
-        return f"{value:.3f}{magSymbol}{cls.symbol}"
+        return f"{value * cls.printFactor:.3f}{magSymbol}{cls.symbol}"
+
+
+class Byte(Unit):
+    """Byte unit class."""
+
+    symbol: str = "B"
+    name: str = "byte"
+
+
+class Percent(Unit):
+    """Percent unit class."""
+
+    symbol: str = "%"
+    name: str = "Percent"
+    printFactor: float = 100.0
 
 
 class Joule(Unit):

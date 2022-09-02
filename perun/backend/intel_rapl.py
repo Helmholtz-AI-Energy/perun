@@ -32,8 +32,7 @@ class IntelRAPLBackend(Backend):
     def __init__(self) -> None:
         """Init IntelRAPLBackend."""
         super().__init__()
-        log.debug("Initialized pyrapl")
-        self.setup()
+        log.info("Initialized Intel RAPL")
 
     def setup(self):
         """Check Intel RAPL access."""
@@ -115,8 +114,8 @@ class IntelRAPLBackend(Backend):
                         f"{self.cpu_name}:{device}",
                         Joule(),
                         "micro",
-                        0,
-                        deviceInfo["max_energy_uj"],
+                        np.uint64(0),
+                        np.uint64(deviceInfo["max_energy_uj"]),
                         "uint64",
                         getCallback(deviceInfo["energy_path"]),
                     )

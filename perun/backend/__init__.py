@@ -2,7 +2,7 @@
 
 Defines backends and devices used for energy measurements. Connects to different backends and provides a unified interface for them.
 """
-from . import intel_rapl, nvml
+from . import intel_rapl, nvml, psutil
 
 # flake8: noqa
 from .backend import Backend, backends

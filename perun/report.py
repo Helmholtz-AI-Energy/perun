@@ -69,7 +69,7 @@ def _textReport(expStrg: ExperimentStorage, expIdx: int = None) -> str:
     for node_id, node in run.items():
         reportStr += f"Node {node_id}\n"
         for device_id, device in node.items():
-            if device_id != "t_ns":
+            if device_id != "t_ns" and device.attrs["units"] in ["Joule", "Watt"]:
                 reportStr += f"    {device_id} - Energy: {device.attrs['totalDeviceEnergy_kJ']:.3f}kJ - AvgPower: {device.attrs['avgDevicePower_kW']:.3f}kW\n"
         reportStr += "\n"
 

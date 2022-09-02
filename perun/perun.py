@@ -267,7 +267,7 @@ def _postprocessNode(node: h5py.Group, reset: bool = False):
     node.attrs["totalNodeRuntime_s"] = (t_ns_ds[-1] - t_ns_ds[0]) * transformFactor
 
     for device in node.values():
-        if "/t_ns" not in device.name:
+        if "/t_ns" not in device.name and device.attrs["units"] in ["Joule", "Watt"]:
             if "totalDeviceEnergy_kJ" not in device.attrs or reset:
                 _postprocessDevice(device, t_ns_ds)
             totalNodeEnergy_kJ += device.attrs["totalDeviceEnergy_kJ"]
@@ -309,9 +309,8 @@ def _postprocessDevice(device: h5py.Dataset, t_ns: h5py.Dataset):
             (t_ns[-1] - t_ns[0]) * tTransFactor
         )
     elif device.attrs["units"] == "Watt":
-        power_v = device[:] * mTransFactor
-        t = t_ns[:] * tTransFactor
-        energy_v = np.diff(t) * (power_v[:-1] + power_v[1:]) / 1
-        energy_v = np.cumsum(energy_v)
-        device.attrs["totalDeviceEnergy_kJ"] = energy_v[-1]
-        device.attrs["avgDevicePower_kW"] = np.mean(power_v)
+        power_w = device[:] * mTransFactor
+        t_s = t_ns[:] * tTransFactor
+        energy_kj = np.trapz(power_w, t_s)
+        device.attrs["totalDeviceEnergy_kJ"] = energy_kj
+        device.attrs["avgDevicePower_kW"] = np.mean(power_w)

@@ -1,9 +1,9 @@
 """Backend module."""
 import functools
 from abc import ABC, abstractmethod
+from typing import List, Set
 
 from perun import log
-from typing import List, Set
 
 from .device import Device
 
@@ -66,11 +66,11 @@ def backend(cls):
                 backend_wrapper.instance = cls(*args, **kwargs)
                 backends.append(backend_wrapper.instance)
             except ImportError as ie:
-                log.debug(f"Missing dependencies for backend {cls.__name__}")
-                log.debug(ie)
+                log.warn(f"Missing dependencies for backend {cls.__name__}")
+                log.warn(ie)
             except Exception as e:
-                log.debug(f"Unknown error loading dependecy {cls.__name__}")
-                log.debug(e)
+                log.warn(f"Unknown error loading dependecy {cls.__name__}")
+                log.warn(e)
 
     backend_wrapper.instance = None
     return backend_wrapper
