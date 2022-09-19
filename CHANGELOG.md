@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.14 (2022-09-19)
+### Fix
+* Removed RAM_POWER from psutil backend ([`9ef751f`](https://github.com/Helmholtz-AI-Energy/perun/commit/9ef751f3784dcf1b065be79adc950d4bb0f0e22f))
+
 ## v0.1.0-beta.13 (2022-09-02)
 ### Feature
 * Psutil backend ([`7d3aa61`](https://github.com/Helmholtz-AI-Energy/perun/commit/7d3aa61a4164463bec88343e2efb139464bc30ae))
