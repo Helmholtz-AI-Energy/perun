@@ -7,7 +7,7 @@ import psutil
 from perun import config, log
 from perun.backend.backend import Backend, backend
 from perun.backend.device import Device
-from perun.units import Byte, Percent, Watt
+from perun.units import Byte, Percent
 
 
 @backend
@@ -34,7 +34,6 @@ class PSUTIL(Backend):
     def visibleDevices(self) -> Set[str]:
         """Return list of visible devices."""
         return {
-            "RAM_POWER",
             "RAM_USAGE",
             "CPU_USAGE",
             "DISK_READ_BYTES",
@@ -43,16 +42,7 @@ class PSUTIL(Backend):
 
     def _getCallback(self, device: str) -> Callable[[], np.number]:
         """Return measuring function for each device."""
-        if device == "RAM_POWER":
-            conversionFactor = self.conversion_factor
-            total_ram = self.total_ram
-
-            def func() -> np.number:
-                return np.float64(
-                    total_ram * conversionFactor * psutil.virtual_memory().percent / 100
-                )
-
-        elif device == "RAM_USAGE":
+        if device == "RAM_USAGE":
 
             def func() -> np.number:
                 return np.float32(psutil.virtual_memory().percent / 100)
@@ -80,20 +70,7 @@ class PSUTIL(Backend):
     def getDevices(self, deviceList: Set[str]) -> List[Device]:
         """Return desired device objects."""
         for device in deviceList:
-            if device == "RAM_POWER":
-                self.devices.append(
-                    Device(
-                        device,
-                        f"{device}_psutil",
-                        Watt(),
-                        "",
-                        np.float32(0),
-                        np.float32(np.finfo("float32").max),
-                        "float32",
-                        self._getCallback(device),
-                    )
-                )
-            elif device == "RAM_USAGE":
+            if device == "RAM_USAGE":
                 self.devices.append(
                     Device(
                         device,
