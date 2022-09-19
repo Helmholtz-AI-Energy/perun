@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.15 (2022-09-19)
+### Fix
+* Relaxed dependencies (will tighten them later) ([`6509481`](https://github.com/Helmholtz-AI-Energy/perun/commit/650948170150eee242ae9bc78d1ea6bb1e9285b4))
+
 ## v0.1.0-beta.14 (2022-09-19)
 ### Fix
 * Removed RAM_POWER from psutil backend ([`9ef751f`](https://github.com/Helmholtz-AI-Energy/perun/commit/9ef751f3784dcf1b065be79adc950d4bb0f0e22f))
