@@ -4,7 +4,7 @@ Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline
 """
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import click
 
@@ -48,7 +48,7 @@ from perun.configuration import config, read_custom_config, save_to_config_callb
     expose_value=False,
 )
 @click.option(
-    "--data_out",
+    "--data-out",
     type=click.Path(exists=False, dir_okay=True, file_okay=False),
     help="experiment data output directory",
     callback=save_to_config_callback,
@@ -56,7 +56,7 @@ from perun.configuration import config, read_custom_config, save_to_config_callb
 )
 @click.option(
     "-l",
-    "--log_lvl",
+    "--log-lvl",
     type=click.Choice(["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]),
     help="Loggging level",
     callback=save_to_config_callback,
@@ -174,7 +174,7 @@ def monitor(
 
     # Get node devices
     log.debug(f"Backends: {backends}")
-    lDeviceIds: List[str] = perun.getDeviceConfiguration(comm, backends)
+    nodeNames, lDeviceIds = perun.getDeviceConfiguration(comm, backends)
 
     for backend in backends:
         backend.close()
@@ -234,7 +234,7 @@ def monitor(
     log.debug("Passed first barrier")
 
     # Save raw data to hdf5
-    perun.save_data(comm, outPath, filePath, lStrg, start, stop)
+    perun.save_data(comm, outPath, filePath, lStrg, nodeNames, start, stop)
 
 
 def main():

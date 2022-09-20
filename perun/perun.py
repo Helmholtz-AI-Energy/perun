@@ -7,7 +7,7 @@ from datetime import datetime
 from functools import reduce
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Tuple
 
 import h5py
 import numpy as np
@@ -21,7 +21,9 @@ from perun.storage import ExperimentStorage, LocalStorage
 from perun.units import Joule, MagnitudePrefix
 
 
-def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]:
+def getDeviceConfiguration(
+    comm: MPI.Comm, backends: List[Backend]
+) -> Tuple[List[str], List[str]]:
     """
     Obtain a list with the assigned devices to the current rank.
 
@@ -38,7 +40,7 @@ def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]
 
     log.debug(f"Rank {comm.rank} : Visible devices {visibleDevices}")
     globalDeviceNames = comm.allgather(visibleDevices)
-    globalHostnames = comm.allgather(platform.node())
+    globalHostnames = comm.allgather(platform.node().replace(".localdomain", ""))
 
     previousHosts = {}
     for index, (hostname, globalDevices) in enumerate(
@@ -51,7 +53,7 @@ def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]
             globalDeviceNames[prevIndex] |= globalDevices
             globalDeviceNames[index] = set()
 
-    return globalDeviceNames[comm.rank]
+    return globalHostnames, globalDeviceNames[comm.rank]
 
 
 def monitor(
@@ -78,7 +80,7 @@ def monitor(
 
             # Get node devices
             log.debug(f"Backends: {backends}")
-            lDeviceIds: List[str] = getDeviceConfiguration(comm, backends)
+            nodeNames, lDeviceIds = getDeviceConfiguration(comm, backends)
 
             for backend in backends:
                 backend.close()
@@ -122,7 +124,7 @@ def monitor(
             comm.barrier()
 
             # Save raw data to hdf5
-            save_data(comm, outPath, filePath, lStrg, start, stop)
+            save_data(comm, outPath, filePath, lStrg, nodeNames, start, stop)
 
         return func_wrapper
 
@@ -134,6 +136,7 @@ def save_data(
     outPath: Path,
     filePath: Path,
     lStrg: Optional[LocalStorage],
+    nodeNames: List[str],
     start: datetime,
     stop: datetime,
 ):
@@ -157,12 +160,12 @@ def save_data(
     log.debug(f"Result path: {resultPath}")
     expStrg = ExperimentStorage(resultPath, comm, write=True)
     expId = expStrg.addExperimentRun(lStrg)
-    if lStrg and config.getboolean("horeka", "enabled"):
+    if config.getboolean("horeka", "enabled") and comm.rank == 0:
         try:
             from perun.extras.horeka import get_horeka_measurements
 
             get_horeka_measurements(
-                comm, outPath, expStrg.experimentName, expId, start, stop
+                comm, nodeNames, outPath, expStrg.experimentName, expId, start, stop
             )
         except Exception as E:
             log.error("Failed to get influxdb data from horeka")

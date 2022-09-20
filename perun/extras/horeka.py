@@ -1,5 +1,4 @@
 """Connection to HoreKa hardware measurements."""
-import platform
 from datetime import datetime
 from pathlib import Path
 from typing import List, Union
@@ -18,13 +17,20 @@ query = """from(bucket: "hk-collector")
 
 
 def get_horeka_measurements(
-    comm: Comm, outdir: Path, expName: str, expId: int, start: datetime, stop: datetime
+    comm: Comm,
+    nodeNames: List[str],
+    outdir: Path,
+    expName: str,
+    expId: int,
+    start: datetime,
+    stop: datetime,
 ):
     """
     Read hardware data from an Influx Database.
 
     Args:
         comm (Comm): MPI Communication Object
+        nodenames (List[str]): List of node names
         outdir (Path): Result location
         expName (str): Experiment config.get("horeka", "org")
         expId (int): Experiment Id
@@ -34,25 +40,29 @@ def get_horeka_measurements(
     URL = config.get("horeka", "url")
     TOKEN = config.get("horeka", "token")
     ORG = config.get("horeka", "org")
-    nodename = platform.node().replace(".localdomain", "")
 
-    idb = InfluxDBClient(url=URL, token=TOKEN, org=ORG)
-
-    now = datetime.now()
-    p = {"_start": start - now, "_stop": stop - now, "_node": nodename}
+    idb = InfluxDBClient(url=URL, token=TOKEN, org=ORG, timeout=10000, debug=True)
+    if not idb.ready():
+        raise Exception("InfluxDB not available/ready")
 
     outpath = outdir / "horeka" / expName / str(expId)
 
-    if comm.rank == 0:
+    for node in nodeNames:
+        now = datetime.now()
+
+        p = {"_start": start - now, "_stop": stop - now, "_node": node}
+        print(p)
+
         if not outpath.exists():
             outpath.mkdir(parents=True)
 
-    dfList: Union[List[pd.DataFrame], pd.DataFrame] = idb.query_api().query_data_frame(
-        query=query, params=p
-    )
+        dfList: Union[
+            List[pd.DataFrame], pd.DataFrame
+        ] = idb.query_api().query_data_frame(query=query, params=p)
+        print(dfList)
 
-    if isinstance(dfList, List):
-        for index, df in enumerate(dfList):
-            df.to_csv(outpath / f"{nodename}_{index}.csv")
-    else:
-        dfList.to_csv(outpath / f"{nodename}.csv")
+        if isinstance(dfList, List):
+            for index, df in enumerate(dfList):
+                df.to_csv(outpath / f"{node}_{index}.csv")
+        else:
+            dfList.to_csv(outpath / f"{node}.csv")
