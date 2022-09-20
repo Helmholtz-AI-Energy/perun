@@ -11,7 +11,13 @@ import os
 os.environ["IBV_FORK_SAFE"] = "1"
 os.environ["RDMAV_FORK_SAFE"] = "1"
 
-from perun.perun import getDeviceConfiguration, monitor, perunSubprocess, postprocessing
+from perun.perun import (
+    getDeviceConfiguration,
+    monitor,
+    perunSubprocess,
+    postprocessing,
+    save_data,
+)
 from perun.report import report
 from perun.storage import ExperimentStorage, LocalStorage
 
@@ -25,4 +31,5 @@ __all__ = [
     "report",
     "postprocessing",
     "config",
+    "save_data",
 ]

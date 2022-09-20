@@ -234,32 +234,7 @@ def monitor(
     log.debug("Passed first barrier")
 
     # Save raw data to hdf5
-
-    if comm.rank == 0:
-        if not outPath.exists():
-            outPath.mkdir(parents=True)
-
-    scriptName = filePath.name.replace(filePath.suffix, "")
-    resultPath = outPath / f"{scriptName}.hdf5"
-    log.debug(f"Result path: {resultPath}")
-    expStrg = perun.ExperimentStorage(resultPath, comm, write=True)
-    expId = expStrg.addExperimentRun(lStrg)
-    if lStrg and config.getboolean("horeka", "enabled"):
-        from perun.extras.horeka import get_horeka_measurements
-
-        get_horeka_measurements(
-            comm, outPath, expStrg.experimentName, expId, start, stop
-        )
-
-    # Post post-process
-    comm.barrier()
-    perun.postprocessing(expStorage=expStrg)
-    if comm.rank == 0:
-        print(
-            perun.report(expStrg, expIdx=expId, format=config.get("report", "format"))
-        )
-    comm.barrier()
-    expStrg.close()
+    perun.save_data(comm, outPath, filePath, lStrg, start, stop)
 
 
 def main():

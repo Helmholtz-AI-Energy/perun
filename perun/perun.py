@@ -122,36 +122,59 @@ def monitor(
             comm.barrier()
 
             # Save raw data to hdf5
-
-            if comm.rank == 0:
-                if not outPath.exists():
-                    outPath.mkdir(parents=True)
-
-            scriptName = filePath.name.replace(filePath.suffix, "")
-            resultPath = outPath / f"{scriptName}.hdf5"
-            log.debug(f"Result path: {resultPath}")
-            expStrg = ExperimentStorage(resultPath, comm, write=True)
-            expId = expStrg.addExperimentRun(lStrg)
-            if lStrg and config.getboolean("horeka", "enabled"):
-                from perun.extras.horeka import get_horeka_measurements
-
-                get_horeka_measurements(
-                    comm, outPath, expStrg.experimentName, expId, start, stop
-                )
-
-            # Post post-process
-            comm.barrier()
-            postprocessing(expStorage=expStrg)
-            if comm.rank == 0:
-                print(
-                    report(expStrg, expIdx=expId, format=config.get("report", "format"))
-                )
-            comm.barrier()
-            expStrg.close()
+            save_data(comm, outPath, filePath, lStrg, start, stop)
 
         return func_wrapper
 
     return inner_function
+
+
+def save_data(
+    comm: MPI.Comm,
+    outPath: Path,
+    filePath: Path,
+    lStrg: Optional[LocalStorage],
+    start: datetime,
+    stop: datetime,
+):
+    """
+    Save subprocess data in the locations defined on the configuration.
+
+    Args:
+        comm (MPI.Comm): MPI communication object
+        outPath (Path): Result path
+        filePath (Path): HDF5 path
+        lStrg (Optional[LocalStorage]): LocalStorage object (if available)
+        start (datetime): Start time of the run
+        stop (datetime): Stop time of the run
+    """
+    if comm.rank == 0:
+        if not outPath.exists():
+            outPath.mkdir(parents=True)
+
+    scriptName = filePath.name.replace(filePath.suffix, "")
+    resultPath = outPath / f"{scriptName}.hdf5"
+    log.debug(f"Result path: {resultPath}")
+    expStrg = ExperimentStorage(resultPath, comm, write=True)
+    expId = expStrg.addExperimentRun(lStrg)
+    if lStrg and config.getboolean("horeka", "enabled"):
+        try:
+            from perun.extras.horeka import get_horeka_measurements
+
+            get_horeka_measurements(
+                comm, outPath, expStrg.experimentName, expId, start, stop
+            )
+        except Exception as E:
+            log.error("Failed to get influxdb data from horeka")
+            log.error(E)
+
+    # Post post-process
+    comm.barrier()
+    postprocessing(expStorage=expStrg)
+    if comm.rank == 0:
+        print(report(expStrg, expIdx=expId, format=config.get("report", "format")))
+    comm.barrier()
+    expStrg.close()
 
 
 def perunSubprocess(
