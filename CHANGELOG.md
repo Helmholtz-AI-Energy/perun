@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.16 (2022-09-20)
+### Fix
+* Catching influxdb import error ([`851bfb4`](https://github.com/Helmholtz-AI-Energy/perun/commit/851bfb4a574b8cab91ff08540b3090c3af337efe))
+
 ## v0.1.0-beta.15 (2022-09-19)
 ### Fix
 * Relaxed dependencies (will tighten them later) ([`6509481`](https://github.com/Helmholtz-AI-Energy/perun/commit/650948170150eee242ae9bc78d1ea6bb1e9285b4))
