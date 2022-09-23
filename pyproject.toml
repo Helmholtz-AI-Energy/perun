@@ -45,7 +45,15 @@ mayor_on_zero = false
 build_command = "pip install poetry && poetry build"
 
 [tool.pytest.ini_options]
-testspaths = ["tests"]
+testpaths = ["tests"]
+
+[tool.isort]
+skip = ["perun/__init__.py"]
+known_third_party = ["click", "cpuinfo", "h5py", "influxdb_client", "mpi4py", "numpy", "pandas", "psutil", "pynvml", "yaml"]
+profile = "black"
+
+[tool.pydocstyle]
+match = '(test_)!.*\.py'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

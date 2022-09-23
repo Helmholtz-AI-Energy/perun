@@ -119,9 +119,12 @@ def postprocess(exp_hdf5: str):
     """
     from mpi4py import MPI
 
+    from perun.perun import postprocessing
+    from perun.storage import ExperimentStorage
+
     expPath = Path(exp_hdf5)
-    expStrg = perun.ExperimentStorage(expPath, MPI.COMM_WORLD, write=True)
-    perun.postprocessing(expStrg, reset=True)
+    expStrg = ExperimentStorage(expPath, MPI.COMM_WORLD, write=True)
+    postprocessing(expStrg, reset=True)
     expStrg.close()
 
 
@@ -134,9 +137,12 @@ def report(exp_hdf5: str):
     """
     from mpi4py import MPI
 
+    from perun.report import report as _report
+    from perun.storage import ExperimentStorage
+
     expPath = Path(exp_hdf5)
-    expStrg = perun.ExperimentStorage(expPath, MPI.COMM_WORLD)
-    print(perun.report(expStrg, format=config.get("report", "format")))
+    expStrg = ExperimentStorage(expPath, MPI.COMM_WORLD)
+    print(_report(expStrg, format=config.get("report", "format")))
     expStrg.close()
 
 
@@ -159,6 +165,8 @@ def monitor(
 
     from perun import log
     from perun.backend import backends
+    from perun.perun import getDeviceConfiguration, perunSubprocess, save_data
+    from perun.storage import LocalStorage
 
     comm = MPI.COMM_WORLD
     start_event = Event()
@@ -174,7 +182,7 @@ def monitor(
 
     # Get node devices
     log.debug(f"Backends: {backends}")
-    lDeviceIds: List[str] = perun.getDeviceConfiguration(comm, backends)
+    lDeviceIds: List[str] = getDeviceConfiguration(comm, backends)
 
     for backend in backends:
         backend.close()
@@ -185,7 +193,7 @@ def monitor(
     if len(lDeviceIds) > 0:
         queue: Queue = Queue()
         perunSP = Process(
-            target=perun.perunSubprocess,
+            target=perunSubprocess,
             args=[
                 queue,
                 start_event,
@@ -215,7 +223,7 @@ def monitor(
     log.debug("Set closed event")
     stop = datetime.now()
 
-    lStrg: Optional[perun.LocalStorage]
+    lStrg: Optional[LocalStorage]
     # Obtain perun subprocess results
     if len(lDeviceIds) > 0:
         log.debug("Getting queue contents")
@@ -234,7 +242,7 @@ def monitor(
     log.debug("Passed first barrier")
 
     # Save raw data to hdf5
-    perun.save_data(comm, outPath, filePath, lStrg, start, stop)
+    save_data(comm, outPath, filePath, lStrg, start, stop)
 
 
 def main():
