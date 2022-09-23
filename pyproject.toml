@@ -30,6 +30,9 @@ mypy = "*"
 black = "*"
 pre-commit = "*"
 
+[tool.poetry.group.dev.dependencies]
+pytest-cov = "^3.0.0"
+
 [tool.semantic_release]
 version_variable = [
     "perun/__init__.py:__version__",
@@ -40,6 +43,9 @@ upload_to_pypi = true
 upload_to_release = true
 mayor_on_zero = false
 build_command = "pip install poetry && poetry build"
+
+[tool.pytest.ini_options]
+testspaths = ["tests"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

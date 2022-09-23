@@ -1,4 +1,4 @@
-default_stages: [commit]
+default_stages: [push]
 fail_fast: true
 repos:
 - repo: https://github.com/commitizen-tools/commitizen
@@ -38,3 +38,11 @@ repos:
   - id: check-added-large-files
   - id: flake8
     args: [--ignore, E501]
+- repo: local
+  hooks:
+  - id: pytest-check
+    name: pytest-check
+    entry: pytest -c pyproject.toml
+    language: system
+    pass_filenames: false
+    always_run: true
