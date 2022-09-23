@@ -1,4 +1,3 @@
-import os
 from click.testing import CliRunner, Result
 
 import perun
