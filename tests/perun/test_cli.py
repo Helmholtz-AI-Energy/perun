@@ -1,4 +1,5 @@
 from click.testing import CliRunner, Result
+from configparser import ConfigParser
 
 import perun
 from perun.cli import cli
@@ -11,8 +12,7 @@ def test_cli():
     assert output.output.strip() == f"cli, version {perun.__version__}"
 
 
-def test_showconf():
-    from configparser import ConfigParser
+def test_cli_showconf():
 
     # Test default option on the default filesystem
     runner = CliRunner()
@@ -65,7 +65,9 @@ def test_showconf():
     assert config.getfloat("report", "pue") == 0.1
 
     # # Test env variables
-    # output: Result = runner.invoke(cli, ["showconf", "--default"], env={"PERUN_PUE": "0.1"})
+    # monkeypatch.setenv("PERUN_PUE", "0.1")
+    # runner = CliRunner()
+    # output: Result = runner.invoke(cli, ["showconf", "--default"])
     # config = ConfigParser()
     # config.read_string(output.output)
     #
@@ -74,9 +76,11 @@ def test_showconf():
     #         assert str(value) == config.get(section, option)
     #
     # # Test configuration did change
-    # output: Result = runner.invoke(cli, ["showconf"], env={"PERUN_PUE": "0.1"})
-    # config = ConfigParser()
-    # config.read_string(output.output)
+    # with monkeypatch.context() as m:
+    #     m.setenv("PERUN_PUE", "0.1")
+    #     output: Result = runner.invoke(cli, ["showconf"])
+    #     config = ConfigParser()
+    #     config.read_string(output.output)
     #
-    # assert config.getfloat("report", "pue") != _default_config["report"]["pue"]
-    # assert config.getfloat("report", "pue") == 0.1
+    #     assert config.getfloat("report", "pue") != _default_config["report"]["pue"]
+    #     assert config.getfloat("report", "pue") == 0.1
