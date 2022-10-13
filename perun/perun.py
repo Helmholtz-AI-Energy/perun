@@ -37,21 +37,26 @@ def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]
     )
 
     log.debug(f"Rank {comm.rank} : Visible devices {visibleDevices}")
-    globalDeviceNames = comm.allgather(visibleDevices)
+    globalVisibleDevices = comm.allgather(visibleDevices)
     globalHostnames = comm.allgather(platform.node())
 
-    previousHosts = {}
-    for index, (hostname, globalDevices) in enumerate(
-        zip(globalHostnames, globalDeviceNames)
-    ):
-        if hostname not in previousHosts:
-            previousHosts[hostname] = index
-        else:
-            prevIndex = previousHosts[hostname]
-            globalDeviceNames[prevIndex] |= globalDevices
-            globalDeviceNames[index] = set()
+    globalVisibleDevices = assignDevices(globalVisibleDevices, globalHostnames)
 
-    return globalDeviceNames[comm.rank]
+    return globalVisibleDevices[comm.rank]
+
+
+def assignDevices(hostDevices: List[Set[str]], hostNames: List[str]) -> List[List[str]]:
+    previousHosts = {}
+    for index, (name, devices) in enumerate(
+        zip(hostNames, hostDevices)
+    ):
+        if name not in previousHosts:
+            previousHosts[name] = index
+        else:
+            prevIndex = previousHosts[name]
+            hostDevices[prevIndex] |= devices
+            hostDevices[index] = set()
+    return hostDevices
 
 
 def monitor(
