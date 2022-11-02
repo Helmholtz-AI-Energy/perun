@@ -1,5 +1,6 @@
-from click.testing import CliRunner, Result
 from configparser import ConfigParser
+
+from click.testing import CliRunner, Result
 
 import perun
 from perun.cli import cli

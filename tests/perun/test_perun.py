@@ -1,9 +1,11 @@
 from typing import Any, List
 
 import numpy as np
-from pytest import MonkeyPatch
 
 from perun.perun import assignDevices
+
+# from pytest import MonkeyPatch
+
 
 def compareNestedList(l1: List[List[Any]], l2: List[List[Any]]) -> bool:
     if len(l1) != len(l2):
@@ -66,4 +68,3 @@ def test_assignDevices():
 
 # def test_perunSubprocess(monkeypatch: MonkeyPatch, backends):
 #     monkeypatch.setattr(target="perun.backend.backend", name="backends", )
-    

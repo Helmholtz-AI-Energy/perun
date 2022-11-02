@@ -1,4 +1,4 @@
-default_stages: [push]
+default_stages: [commit]
 fail_fast: true
 repos:
 - repo: https://github.com/commitizen-tools/commitizen
@@ -40,6 +40,7 @@ repos:
 - repo: local
   hooks:
   - id: pytest-check
+    stages: [push]
     name: pytest-check
     entry: pytest -c pyproject.toml
     language: system
