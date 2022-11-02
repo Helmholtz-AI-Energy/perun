@@ -45,11 +45,9 @@ def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]
     return globalVisibleDevices[comm.rank]
 
 
-def assignDevices(hostDevices: List[Set[str]], hostNames: List[str]) -> List[List[str]]:
+def assignDevices(hostDevices: List[Set[str]], hostNames: List[str]) -> List[Set[str]]:
     previousHosts = {}
-    for index, (name, devices) in enumerate(
-        zip(hostNames, hostDevices)
-    ):
+    for index, (name, devices) in enumerate(zip(hostNames, hostDevices)):
         if name not in previousHosts:
             previousHosts[name] = index
         else:

@@ -1,7 +1,9 @@
-from unittest.mock import Mock
-import pytest
-from perun.units import Joule, Watt 
 import random
+from unittest.mock import Mock
+
+import pytest
+
+from perun.units import Joule, Watt
 
 
 def fake_energy():
@@ -33,9 +35,10 @@ def cpu():
         "unit": cpu.unit,
         "mag": cpu.mag,
         "min": cpu.max,
-        "max": cpu.dtype
+        "max": cpu.dtype,
     }
     return cpu
+
 
 @pytest.fixture
 def gpu():
@@ -44,7 +47,7 @@ def gpu():
     gpu.long_name = "Fake GPU"
     gpu.unit = Watt()
     gpu.mag = ""
-    gpu.min = 0 
+    gpu.min = 0
     gpu.max = 1000
     gpu.dtype = "uint32"
     gpu.measureCallback = fake_power
@@ -55,7 +58,7 @@ def gpu():
         "unit": gpu.unit,
         "mag": gpu.mag,
         "min": gpu.max,
-        "max": gpu.dtype
+        "max": gpu.dtype,
     }
     return gpu
 
