@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 
+import perun.backend
 from perun.units import Joule, Watt
 
 
@@ -81,6 +82,8 @@ def gpu_backend(gpu):
     return gpuBackend
 
 
-@pytest.fixture
-def backends(cpu_backend, gpu_backend):
-    return [cpu_backend, gpu_backend]
+@pytest.fixture(autouse=True)
+def backends(monkeypatch: pytest.MonkeyPatch, cpu_backend, gpu_backend):
+    backends = [cpu_backend, gpu_backend]
+    monkeypatch.setattr(perun.backend, "backends", backends)
+    return backends
