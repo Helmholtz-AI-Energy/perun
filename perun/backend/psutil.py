@@ -38,6 +38,8 @@ class PSUTIL(Backend):
             "CPU_USAGE",
             "DISK_READ_BYTES",
             "DISK_WRITE_BYTES",
+            "NET_SENT_BYTES",
+            "NET_RECV_BYTES",
         }
 
     def _getCallback(self, device: str) -> Callable[[], np.number]:
@@ -61,6 +63,16 @@ class PSUTIL(Backend):
 
             def func() -> np.number:
                 return np.uint64(psutil.disk_io_counters().write_bytes)
+
+        elif device == "NET_SENT_BYTES":
+
+            def func() -> np.number:
+                return np.uint64(psutil.net_io_counters().bytes_sent)
+
+        elif device == "NET_RECV_BYTES":
+
+            def func() -> np.number:
+                return np.uint64(psutil.net_io_counters().bytes_recv)
 
         else:
             raise ValueError("Invalid device name")
@@ -110,6 +122,33 @@ class PSUTIL(Backend):
                     )
                 )
             elif device == "DISK_WRITE_BYTES":
+                self.devices.append(
+                    Device(
+                        device,
+                        f"{device}_psutil",
+                        Byte(),
+                        "",
+                        np.uint64(0),
+                        np.uint64(np.iinfo("uint64").max),
+                        "uint64",
+                        self._getCallback(device),
+                    )
+                )
+            elif device == "NET_SENT_BYTES":
+                self.devices.append(
+                    Device(
+                        device,
+                        f"{device}_psutil",
+                        Byte(),
+                        "",
+                        np.uint64(0),
+                        np.uint64(np.iinfo("uint64").max),
+                        "uint64",
+                        self._getCallback(device),
+                    )
+                )
+
+            elif device == "NET_RECV_BYTES":
                 self.devices.append(
                     Device(
                         device,
