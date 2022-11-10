@@ -176,7 +176,7 @@ def monitor(
     filePath: Path = Path(script)
     outPath: Path = Path(config.get("monitor", "data_out"))
     log.debug(f"Script path: {filePath}")
-    argIndex = sys.argv.index(str(filePath))
+    argIndex = sys.argv.index(script)
     sys.argv = sys.argv[argIndex:]
     log.debug(f"Script args: { sys.argv }")
 
