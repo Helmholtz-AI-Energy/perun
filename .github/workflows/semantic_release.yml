@@ -3,7 +3,7 @@ name: Semantic Release
 on:
   push:
     branches:
-      - main
+      - pre-release
 
 jobs:
   release:
