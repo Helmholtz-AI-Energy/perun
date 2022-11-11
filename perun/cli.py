@@ -180,6 +180,8 @@ def monitor(
     sys.argv = sys.argv[argIndex:]
     log.debug(f"Script args: { sys.argv }")
 
+    sys.path.insert(0, str(filePath.parent.absolute()))
+
     # Get node devices
     log.debug(f"Backends: {backends}")
     lDeviceIds: List[str] = getDeviceConfiguration(comm, backends)
