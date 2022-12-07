@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0-beta.17 (2022-12-07)
+### Feature
+* Poetry hooks and installer configuration ([`6b222e1`](https://github.com/Helmholtz-AI-Energy/perun/commit/6b222e150a4ba179bf10178c36ceb7372c9d8e69))
+* Net io counters from psutil ([`341c186`](https://github.com/Helmholtz-AI-Energy/perun/commit/341c1869c4cf4f1284068aadfb87422cc93a52b7))
+
+### Fix
+* Missing system path on cli monitor ([`c2b7b31`](https://github.com/Helmholtz-AI-Energy/perun/commit/c2b7b3131b3940c0c8b0092e75c0412bc5e8fa99))
+* README title image url ([`fd5b2b8`](https://github.com/Helmholtz-AI-Energy/perun/commit/fd5b2b880bcbf176ea3fe1f02275d86188ea48db))
+* Cmd line argument parsing for monitor subcommand ([`57e8744`](https://github.com/Helmholtz-AI-Energy/perun/commit/57e87440ccdd86a673f0769ad73abf4512025e73))
+
 ## v0.1.0-beta.16 (2022-09-20)
 ### Fix
 * Catching influxdb import error ([`851bfb4`](https://github.com/Helmholtz-AI-Energy/perun/commit/851bfb4a574b8cab91ff08540b3090c3af337efe))
