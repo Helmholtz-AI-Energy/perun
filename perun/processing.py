@@ -8,7 +8,7 @@ from perun.units import Joule, MagnitudePrefix
 
 def postprocessing(expStorage: ExperimentStorage, reset: bool = False):
     """Process the obtained data."""
-    if (expStorage.serial and expStorage.comm.rank == 0) or not expStorage.serial:
+    if (expStorage.serial and expStorage.comm.Get_rank() == 0) or not expStorage.serial:
         expRuns = expStorage.getExperimentRuns()
         totalExpEnergy_kWh = 0
         totalExpRuntime_s = 0

@@ -1,6 +1,4 @@
 """Configuration module."""
-
-# Watt/GB (from : https://www.crucial.com/support/articles-faq-memory/how-much-power-does-memory-use)
 # kgCO2eq/kWh - source https://www.nowtricity.com/country/germany/
 # cent/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ Baden-Württemberg lokare anbieter
 
@@ -16,9 +14,6 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "pue": 1.58,
         "emissions-factor": 0.355,
         "price-factor": 41.59,
-    },
-    "devices": {
-        "ram2watt": 3 / 8.0,
     },
     "monitor": {"frequency": 1, "data_out": "./results"},
     "perun": {"log_lvl": "WARN"},
