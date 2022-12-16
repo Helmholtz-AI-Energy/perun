@@ -14,11 +14,17 @@ From Github:
 
 ```$ pip install git+https://github.com/Helmholtz-AI-Energy/perun```
 
+### MPI Support
+
+If your python program makes use of MPI, make sure mpi4py is installed.
+
+```pip install mpi4py```
+
 ### Parallel h5py
 
-To build h5py with mpi support:
+To build h5py with mpi support (not necessary, but nice to have):
 
-```CC=mpicc HDF5_MPI="ON" pip install --no-binary h5py h5py```
+```CC=mpicc HDF5_MPI="ON" pip install --no-binary h5py mpi4py h5py ```
 
 ## Usage
 
