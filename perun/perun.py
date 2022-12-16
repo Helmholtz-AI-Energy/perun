@@ -10,17 +10,17 @@ from pathlib import Path
 from typing import List, Optional, Set
 
 import numpy as np
-from mpi4py import MPI
 
 from perun import log
 from perun.backend import Backend, Device, backends
+from perun.comm import Comm
 from perun.configuration import config, read_custom_config, save_to_config
 from perun.processing import postprocessing
 from perun.report import report
 from perun.storage import ExperimentStorage, LocalStorage
 
 
-def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]:
+def getDeviceConfiguration(comm: Comm, backends: List[Backend]) -> Set[str]:
     """
     Obtain a list with the assigned devices to the current rank.
 
@@ -35,13 +35,13 @@ def getDeviceConfiguration(comm: MPI.Comm, backends: List[Backend]) -> List[str]
         lambda a, b: a | b, [backend.visibleDevices() for backend in backends]
     )
 
-    log.debug(f"Rank {comm.rank} : Visible devices {visibleDevices}")
+    log.debug(f"Rank {comm.Get_rank()} : Visible devices {visibleDevices}")
     globalVisibleDevices = comm.allgather(visibleDevices)
     globalHostnames = comm.allgather(platform.node())
 
     globalVisibleDevices = assignDevices(globalVisibleDevices, globalHostnames)
 
-    return globalVisibleDevices[comm.rank]
+    return globalVisibleDevices[comm.Get_rank()]
 
 
 def assignDevices(hostDevices: List[Set[str]], hostNames: List[str]) -> List[Set[str]]:
@@ -67,11 +67,12 @@ def monitor(
         def func_wrapper(*args, **kwargs):
 
             # Get custom config and kwargs
+            from perun import COMM_WORLD
+
             read_custom_config(None, None, configuration)
             for key, value in conf_kwargs.items():
                 save_to_config(key, value)
 
-            comm = MPI.COMM_WORLD
             start_event = Event()
             stop_event = Event()
 
@@ -80,12 +81,12 @@ def monitor(
 
             # Get node devices
             log.debug(f"Backends: {backends}")
-            lDeviceIds: List[str] = getDeviceConfiguration(comm, backends)
+            lDeviceIds: List[str] = getDeviceConfiguration(COMM_WORLD, backends)
 
             for backend in backends:
                 backend.close()
 
-            log.debug(f"Rank {comm.rank} - lDeviceIds : {lDeviceIds}")
+            log.debug(f"Rank {COMM_WORLD.Get_rank()} - lDeviceIds : {lDeviceIds}")
 
             # If assigned devices, start subprocess
             if len(lDeviceIds) > 0:
@@ -104,7 +105,7 @@ def monitor(
                 start_event.wait()
 
             # Sync everyone
-            comm.barrier()
+            COMM_WORLD.barrier()
             start = datetime.now()
 
             func(*args, **kwargs)
@@ -121,10 +122,10 @@ def monitor(
                 lStrg = None
 
             # Sync
-            comm.barrier()
+            COMM_WORLD.barrier()
 
             # Save raw data to hdf5
-            save_data(comm, outPath, filePath, lStrg, start, stop)
+            save_data(COMM_WORLD, outPath, filePath, lStrg, start, stop)
 
         return func_wrapper
 
@@ -132,7 +133,7 @@ def monitor(
 
 
 def save_data(
-    comm: MPI.Comm,
+    comm: Comm,
     outPath: Path,
     filePath: Path,
     lStrg: Optional[LocalStorage],
@@ -143,14 +144,14 @@ def save_data(
     Save subprocess data in the locations defined on the configuration.
 
     Args:
-        comm (MPI.Comm): MPI communication object
+        comm (Comm): Communication Object
         outPath (Path): Result path
         filePath (Path): HDF5 path
         lStrg (Optional[LocalStorage]): LocalStorage object (if available)
         start (datetime): Start time of the run
         stop (datetime): Stop time of the run
     """
-    if comm.rank == 0:
+    if comm.Get_rank() == 0:
         if not outPath.exists():
             outPath.mkdir(parents=True)
 
@@ -173,7 +174,7 @@ def save_data(
     # Post post-process
     comm.barrier()
     postprocessing(expStorage=expStrg)
-    if comm.rank == 0:
+    if comm.Get_rank() == 0:
         print(report(expStrg, expIdx=expId, format=config.get("report", "format")))
     comm.barrier()
     expStrg.close()

@@ -6,10 +6,10 @@ from typing import Any, Dict, List, Union
 import h5py
 import numpy as np
 from h5py import Group
-from mpi4py.MPI import Comm
 
 from perun import log
 from perun.backend.device import Device
+from perun.comm import Comm
 from perun.units import MagnitudePrefix
 
 
@@ -54,13 +54,13 @@ class ExperimentStorage:
 
         # Write new data
         if write:
-            if self.comm.size > 1:
+            if self.comm.Get_size() > 1:
                 try:
                     self.file = h5py.File(filePath, "a", driver="mpio", comm=self.comm)
                 except ValueError as e:
                     log.warn(e)
                     self.serial = True
-                    if self.comm.rank == 0:
+                    if self.comm.Get_rank() == 0:
                         self.file = h5py.File(filePath, "a")
             else:
                 self.file = h5py.File(filePath, "a")
@@ -75,7 +75,7 @@ class ExperimentStorage:
                 lStrg.toDict(data=True) if lStrg else None
             )
             runIdx: Union[int, None] = None
-            if self.comm.rank == 0:
+            if self.comm.Get_rank() == 0:
                 runIdx = self._serialCreate(storageDicts)
             idx: int = self.comm.bcast(runIdx, root=0)
             return idx
@@ -210,7 +210,7 @@ class ExperimentStorage:
 
     def close(self):
         """Close hdf5 file."""
-        if (self.serial and self.comm.rank == 0) or not self.serial:
+        if (self.serial and self.comm.Get_rank() == 0) or not self.serial:
             self.file.close()
 
     def getLastExperimentIndex(self) -> int:

@@ -6,9 +6,9 @@ from typing import List, Union
 
 import pandas as pd
 from influxdb_client import InfluxDBClient
-from mpi4py.MPI import Comm
 
 from perun import config
+from perun.comm import Comm
 
 query = """from(bucket: "hk-collector")
 |> range(start: _start, stop: _stop)
@@ -43,7 +43,7 @@ def get_horeka_measurements(
 
     outpath = outdir / "horeka" / expName / str(expId)
 
-    if comm.rank == 0:
+    if comm.Get_rank() == 0:
         if not outpath.exists():
             outpath.mkdir(parents=True)
 
