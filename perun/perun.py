@@ -118,7 +118,10 @@ def monitor_application(
         try:
             with open(str(app), "r") as scriptFile:
                 start_event.set()
-                exec(scriptFile.read(), {"__name__": "__main__"})
+                exec(
+                    scriptFile.read(),
+                    {"__name__": "__main__", "__file__": app.name},
+                )
                 stop_event.set()
         except Exception as e:
             log.error(f"Found error on monitored script: {str(app)}")
