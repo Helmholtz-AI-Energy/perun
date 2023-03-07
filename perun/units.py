@@ -1,4 +1,6 @@
 """Unit module."""
+from typing import Optional
+
 from perun import log
 
 
@@ -77,7 +79,7 @@ class Unit:
     printFactor: float = 1.0
 
     @classmethod
-    def toString(cls, value: float, mag: str = None):
+    def toString(cls, value: float, mag: Optional[str] = None):
         """Return string value with magnitude prefix and unit symbol."""
         magSymbol = MagnitudePrefix.getSymbol(mag) if mag else ""
         return f"{value * cls.printFactor:.3f}{magSymbol}{cls.symbol}"

@@ -1,3 +1,4 @@
+"""Processing Module."""
 import h5py
 import numpy as np
 
@@ -10,10 +11,10 @@ def postprocessing(expStorage: ExperimentStorage, reset: bool = False):
     """Process the obtained data."""
     if (expStorage.serial and expStorage.comm.Get_rank() == 0) or not expStorage.serial:
         expRuns = expStorage.getExperimentRuns()
-        totalExpEnergy_kWh = 0
-        totalExpRuntime_s = 0
-        totalExpCO2e_kg = 0
-        totalExpPrice_euro = 0
+        totalExpEnergy_kWh: float = 0.0
+        totalExpRuntime_s: float = 0.0
+        totalExpCO2e_kg: float = 0.0
+        totalExpPrice_euro: float = 0.0
         for run in expRuns:
             if "totalRunEnergy_kWh" not in run.attrs or reset:
                 _postprocessRun(run, reset)
@@ -50,16 +51,16 @@ def _postprocessRun(run: h5py.Group, reset: bool = False):
 
     totalRunEnergy_kWh = Joule.to_kWh(
         totalRunEnergy_kJ * MagnitudePrefix.transformFactor("kilo", "")
-    ) * config.getfloat("report", "pue")
+    ) * config.getfloat("post-processing", "pue")
     run.attrs["totalRunEnergy_kWh"] = totalRunEnergy_kWh
     run.attrs["totalRunRuntime_s"] = totalRunRuntime_s
     run.attrs["runAvgPower_kW"] = runAvgPower_kW
 
     run.attrs["totalRunCO2e_kg"] = totalRunEnergy_kWh * config.getfloat(
-        "report", "emissions-factor"
+        "post-processing", "emissions-factor"
     )
     run.attrs["totalRunPrice_euro"] = (
-        totalRunEnergy_kWh * config.getfloat("report", "price-factor") / 100
+        totalRunEnergy_kWh * config.getfloat("post-processing", "price-factor") / 100
     )
 
 

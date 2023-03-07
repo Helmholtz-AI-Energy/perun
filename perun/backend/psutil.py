@@ -4,7 +4,7 @@ from typing import Callable, List, Set
 import numpy as np
 import psutil
 
-from perun import config, log
+from perun import log
 from perun.backend.backend import Backend, backend
 from perun.backend.device import Device
 from perun.units import Byte, Percent
@@ -24,8 +24,7 @@ class PSUTIL(Backend):
 
     def setup(self):
         """Configure psutil backend."""
-        self.total_ram = psutil.virtual_memory().total / 1024.0**3  # byte
-        self.conversion_factor = config.getfloat("devices", "ram2watt")
+        self.total_ram = psutil.virtual_memory().total / 1024.0**3  # byte to GigaByte
 
     def close(self):
         """Close backend."""

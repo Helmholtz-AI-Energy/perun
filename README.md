@@ -8,23 +8,31 @@ Have you ever wondered how much energy is used when training your neural network
 
 From PyPI:
 
-```$ pip install perun```
+```console
+pip install perun
+```
 
 From Github:
 
-```$ pip install git+https://github.com/Helmholtz-AI-Energy/perun```
+```console
+pip install git+https://github.com/Helmholtz-AI-Energy/perun
+```
 
 ### MPI Support
 
 If your python program makes use of MPI, make sure mpi4py is installed.
 
-```pip install mpi4py```
+```console
+pip install mpi4py
+```
 
 ### Parallel h5py
 
 To build h5py with mpi support (not necessary, but nice to have):
 
-```CC=mpicc HDF5_MPI="ON" pip install --no-binary h5py mpi4py h5py ```
+```console
+CC=mpicc HDF5_MPI="ON" pip install --no-binary h5py mpi4py h5py
+```
 
 ## Usage
 
@@ -32,37 +40,51 @@ To build h5py with mpi support (not necessary, but nice to have):
 
 To get a quick report of the power usage of a python script simply run
 
-```$ perun monitor --format yaml path/to/your/script.py [args]```
+```console
+perun monitor --format yaml path/to/your/script.py [args]
+```
 
 Or
 
-```$ python -m perun monitor --format json -o results/ path/to/your/script.py [args]```
-
+```console
+python -m perun monitor --format json -o results/ path/to/your/script.py [args]
+```
 
 #### Subcommands
 
 Perun subcommands have some shared options that are typed before the subcommands.
 
-```
+```console
 Usage: perun [OPTIONS] COMMAND [ARGS]...
 
   Perun: Energy measuring and reporting tool.
 
 Options:
   --version                       Show the version and exit.
-  -c, --configuration FILE
+  -c, --configuration FILE        Path to configuration file
+  -n, --name TEXT                 Name of the monitored application. The name
+                                  is used to distinguish between multiple
+                                  applications in the same directory. If left
+                                  empty, the filename will be  used.
+  -i, --run_id TEXT               Unique id of the latest run of the
+                                  application. If left empty, perun will use
+                                  the SLURM job id, or the current date.
   -f, --format [txt|yaml|yml|json]
-                                  report print format
+                                  Report format.
+  --data_out DIRECTORY            Where to save the output files, defaults to
+                                  the current working directory.
+  --raw / --no-raw                Use the flag '--raw' if you need access to
+                                  all the raw data collected by perun. The
+                                  output will be saved on an hdf5 file on the
+                                  perun data output location.
   -f, --frequency FLOAT           sampling frequency (in Hz)
-  --format [txt|yaml|yml|json]    report print format
-  --data_out DIRECTORY            experiment data output directory
-  -l, --log_lvl [DEBUG|INFO|WARN|ERROR|CRITICAL]
-                                  Loggging level
   --pue FLOAT                     Data center Power usage efficiency
   --emissions-factor FLOAT        Emissions factor at compute resource
                                   location
-  --price-factor FLOAT            Electricity price factor at compute
-                                  resource location
+  --price-factor FLOAT            Electricity price factor at compute resource
+                                  location
+  -l, --log_lvl [DEBUG|INFO|WARN|ERROR|CRITICAL]
+                                  Loggging level
   --help                          Show this message and exit.
 
 Commands:
@@ -72,11 +94,11 @@ Commands:
   showconf     Print current perun configuration in INI format.
 ```
 
-**monitor**
+#### monitor
 
 Monitor energy usage of a python script.
 
-```
+```bash
 Usage: perun monitor [OPTIONS] SCRIPT [SCRIPT_ARGS]...
 
   Gather power consumption from hardware devices while SCRIPT [SCRIPT_ARGS] is
@@ -89,11 +111,11 @@ Options:
   --help                        Show this message and exit.
 ```
 
-**report**
+#### report
 
 Print a report from previous monitoring results.
 
-```
+```console
 Usage: perun report [OPTIONS] EXP_HDF5
 
   Print consumption report from EXP_HDF5 on the command line on the desired
@@ -106,11 +128,11 @@ Options:
   --help                          Show this message and exit.
 ```
 
-**postprocess**
+#### postprocess
 
 Apply postprocessing to existing perun experiment data.
 
-```
+```console
 Usage: perun postprocess [OPTIONS] EXP_HDF5
 
   Apply post-processing to EXP_HDF5 experiment file.
@@ -122,11 +144,11 @@ Options:
   --help  Show this message and exit.
 ```
 
-**showconf**
+#### showconf
 
 Prints the current option configurations based on the global, local configurations files and command line options.
 
-'''
+'''bash
 Usage: perun showconf [OPTIONS]
 
   Print current perun configuration in INI format.
@@ -150,42 +172,46 @@ def training_loop(args, model, device, train_loader, test_loader, optimizer, sch
         test(model, device, test_loader)
         scheduler.step()
 ```
+
 Optional arguments same as the command line.
 
 ## Configuration
 
 There are multiple ways to configure perun, with a different level of priorities.
 
-1. CMD Line options and Env Variables
+- CMD Line options and Env Variables
 
-The highest priority is given to command line options and environmental variables. The options are shown in the command line section. The options can also be passed as environmental variables by adding the prefix 'PERUN' to them. Ex. "--format txt" -> PERUN_FORMAT=txt
+  The highest priority is given to command line options and environmental variables. The options are shown in the command line section. The options can also be passed as environmental variables by adding the prefix 'PERUN' to them. Ex. "--format txt" -> PERUN_FORMAT=txt
 
-2. Local INI file
+- Local INI file
 
-Perun will look into the cwd for ".perun.ini" file, where options can be fixed for the directory.
+  Perun will look into the cwd for ".perun.ini" file, where options can be fixed for the directory.
 
-Example:
-```ini
-[report]
-format = txt
-pue = 1.58
-emissions-factor = 0.355, # kgCO2eq/kWh - source https://www.nowtricity.com/country/germany/
-price-factor = 41.59, # cent/kWh - source: https://www.stromauskunft.de/strompreise/ Baden-Württemberg lokare anbieter
+  Example:
 
-[monitor]
-frequency = 1
-data_out = ./results
+  ```ini
+  [post-processing]
+  pue = 1.58
+  emissions-factor = 0.355
+  price-factor = 41.59
 
-[perun]
-log_lvl = WARN
-```
+  [monitor]
+  frequency = 1
 
-The location of the file can be changed using the option "-c" or "PERUN_CONFIGURATION".
+  [output]
+  format = txt
+  data_out = ./
+  raw = False
 
-3. Global INI file
+  [debug]
+  log_lvl = WARN
+  ```
 
-If the file ~/.config/perun.ini is found, perun will override the default configuration with the contents of the file.
+  The location of the file can be changed using the option "-c" or "PERUN_CONFIGURATION".
 
+- Global INI file
+
+  If the file ~/.config/perun.ini is found, perun will override the default configuration with the contents of the file.
 
 ### Priority
 

@@ -1,5 +1,6 @@
 """Report module."""
 import json
+from typing import Optional
 
 import yaml
 
@@ -9,7 +10,7 @@ from perun.storage import ExperimentStorage
 def report(
     expStrg: ExperimentStorage,
     format: str = "txt",
-    expIdx: int = None,
+    expIdx: Optional[int] = None,
     rawData: bool = False,
 ) -> str:
     """
@@ -37,7 +38,7 @@ def report(
         raise ValueError("Invalid report format")
 
 
-def _textReport(expStrg: ExperimentStorage, expIdx: int = None) -> str:
+def _textReport(expStrg: ExperimentStorage, expIdx: Optional[int] = None) -> str:
     """
     Create text report from storage object.
 

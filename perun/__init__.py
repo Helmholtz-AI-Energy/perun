@@ -4,7 +4,7 @@ __version__ = "0.1.0-beta.18"
 from perun.configuration import config
 from perun.logging import init_logging
 
-log = init_logging(config.get("perun", "log_lvl"))
+log = init_logging(config.get("debug", "log_lvl"))
 
 import os
 
