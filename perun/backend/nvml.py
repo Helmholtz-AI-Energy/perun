@@ -6,10 +6,10 @@ import pynvml
 from pynvml import NVMLError
 
 from perun import log
-from perun.units import Watt
+from perun.data_model.measurement_type import Magnitude, MeasurementType, Unit
 
+from ..data_model.sensor import DeviceType, Sensor
 from .backend import Backend, backend
-from .device import Device
 
 
 @backend
@@ -25,7 +25,19 @@ class NVMLSource(Backend):
     def __init__(self) -> None:
         """Init NVIDIA ML Backend."""
         super().__init__()
-        log.info("Initialized NVIDIA SMI Backend")
+        log.info("Initialized NVML Backend")
+
+    def setup(self):
+        """Init pynvml and gather number of devices."""
+        pynvml.nvmlInit()
+        deviceCount = pynvml.nvmlDeviceGetCount()
+        self.metadata = {
+            "cuda_version": pynvml.nvmlSystemGetCudaDriverVersion(),
+            "driver_version": pynvml.nvmlSystemGetDriverVersion(),
+            "source": "Nvidia Managment Library",
+        }
+
+        log.debug(f"NVML Device count: {deviceCount}")
 
     def close(self):
         """Backend shutdown code."""
@@ -64,34 +76,36 @@ class NVMLSource(Backend):
         for device in deviceList:
             try:
                 handle = pynvml.nvmlDeviceGetHandleByUUID(device.encode())
+                index = pynvml.nvmlDeviceGetIndex(handle)
 
-                name = f"CUDA:{device}"
-                long_name = f"{pynvml.nvmlDeviceGetName(handle).decode('utf-8')}"
+                name = f"CUDA:{index}"
+                device_type = DeviceType.GPU
+                device_metadata = {
+                    "uuid": device,
+                    "name": pynvml.nvmlDeviceGetName(handle) ** self.metadata,
+                }
                 max_power = np.uint32(pynvml.nvmlDeviceGetPowerManagementLimit(handle))
 
-                self.devices.append(
-                    Device(
-                        name,
-                        long_name,
-                        Watt(),
-                        "mili",
-                        np.uint32(0),
-                        np.uint32(max_power),
-                        "uint32",
-                        getCallback(handle),
-                    )
+                data_type = MeasurementType(
+                    Unit.WATT,
+                    Magnitude.MILI,
+                    np.dtype("uint32"),
+                    np.uint32(0),
+                    np.uint32(max_power),
+                    np.uint32(0),
+                )
+                self.devices[name] = Sensor(
+                    name,
+                    device_type,
+                    device_metadata,
+                    data_type,
+                    getCallback(handle),
                 )
             except NVMLError as e:
                 log.debug(f"Could not find device {device}")
                 log.debug(e)
 
         return self.devices
-
-    def setup(self):
-        """Init pynvml and gather number of devices."""
-        pynvml.nvmlInit()
-        deviceCount = pynvml.nvmlDeviceGetCount()
-        log.debug(f"NVML Device count: {deviceCount}")
 
 
 NVMLSource()

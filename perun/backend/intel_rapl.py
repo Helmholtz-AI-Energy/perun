@@ -8,10 +8,10 @@ import cpuinfo
 import numpy as np
 
 from perun import log
-from perun.units import Joule
+from perun.data_model.measurement_type import Magnitude, MeasurementType, Unit
 
+from ..data_model.sensor import DeviceType, Sensor
 from .backend import Backend, backend
-from .device import Device
 
 RAPL_PATH = "/sys/class/powercap/"
 
@@ -37,11 +37,29 @@ class IntelRAPLBackend(Backend):
     def setup(self):
         """Check Intel RAPL access."""
         cpuInfo = cpuinfo.get_cpu_info()
-        self.cpu_name = cpuInfo["brand_raw"]
-        self.thread_count = cpuInfo["count"]
+        self.metadata = {
+            "vendor_id": cpuInfo["vendor_id_raw"],
+            "hardware": cpuInfo["hardware_raw"],
+            "brand": cpuInfo["brand_raw"],
+            "arch": cpuInfo["arch_string_raw"],
+            "hz_advertised": cpuInfo["hz_advertised_friendly"],
+            "hz_actual": cpuInfo["hz_actual_friendly"],
+            "l1_data_cache_size": cpuInfo["l1_data_cache_size"],
+            "l1_instruction_cache_size": cpuInfo["l1_instruction_cache_size"],
+            "l2_cache_size": cpuInfo["l2_cache_size"],
+            "l2_cache_line_size": cpuInfo["l2_cache_line_size"],
+            "l2_cache_associativity": cpuInfo["l2_cache_associativity"],
+            "l3_cache_size": cpuInfo["l3_cache_size"],
+            "source": "Intel RAPL",
+        }
 
         raplPath = Path(RAPL_PATH)
-        self._devices = {}
+
+        def getCallback(filePath) -> Callable[[], np.number]:
+            def func() -> np.number:
+                return np.uint64(open(filePath, "r").readline().strip())
+
+            return func
 
         if not raplPath.exists():
             raise ImportWarning("No powercap interface")
@@ -52,26 +70,73 @@ class IntelRAPLBackend(Backend):
                 if os.access(child / "energy_uj", os.R_OK):
                     socket = match.groups()[0]
                     device_name = open(child / "name", "r").readline().strip()
-                    self._devices[f"{socket}_{device_name}"] = {
-                        "max_energy_uj": np.uint64(
-                            open(child / "max_energy_range_uj", "r").readline().strip()
-                        ),
-                        "energy_path": str(child / "energy_uj"),
-                    }
+
+                    if "dram" in device_name:
+                        devType = DeviceType.RAM
+                    elif "package" in device_name:
+                        devType = DeviceType.CPU
+                    else:
+                        devType = DeviceType.OTHER
+
+                    max_energy = np.uint64(
+                        open(child / "max_energy_range_uj", "r").readline().strip()
+                    )
+                    dataType = MeasurementType(
+                        Unit.JOULE,
+                        Magnitude.MICRO,
+                        np.dtype("uint64"),
+                        np.uint64(0),
+                        max_energy,
+                        max_energy,
+                    )
+
+                    energy_path = str(child / "energy_uj")
+                    device = Sensor(
+                        f"{type}_{socket}_{device_name}",
+                        devType,
+                        self.metadata,
+                        dataType,
+                        getCallback(energy_path),
+                    )
+
+                    self.devices[device.id] = device
+
                     for grandchild in child.iterdir():
                         match = re.match(SUBDIR_RGX, grandchild.name)
                         if match:
                             device_name = (
                                 open(grandchild / "name", "r").readline().strip()
                             )
-                            self._devices[f"{socket}_{device_name}"] = {
-                                "max_energy_uj": np.uint64(
-                                    open(grandchild / "max_energy_range_uj", "r")
-                                    .readline()
-                                    .strip()
-                                ),
-                                "energy_path": str(grandchild / "energy_uj"),
-                            }
+                            if "dram" in device_name:
+                                devType = DeviceType.RAM
+                            elif "package" in device_name:
+                                devType = DeviceType.CPU
+                            else:
+                                devType = DeviceType.OTHER
+
+                            max_energy = np.uint64(
+                                open(child / "max_energy_range_uj", "r")
+                                .readline()
+                                .strip()
+                            )
+                            dataType = MeasurementType(
+                                Unit.JOULE,
+                                Magnitude.MICRO,
+                                np.dtype("uint64"),
+                                np.uint64(0),
+                                max_energy,
+                                max_energy,
+                            )
+
+                            energy_path = str(grandchild / "energy_uj")
+                            device = Sensor(
+                                f"{type}_{socket}_{device_name}",
+                                devType,
+                                self.metadata,
+                                dataType,
+                                getCallback(energy_path),
+                            )
+                            self.devices[device.id] = device
 
     def close(self) -> None:
         """Backend shutdown code (does nothing for intel rapl)."""
@@ -84,9 +149,9 @@ class IntelRAPLBackend(Backend):
         Returns:
             Set[str]: Set with device string ids
         """
-        return set(self._devices.keys())
+        return {device.id for device in self.devices}
 
-    def getDevices(self, deviceList: Set[str]) -> List[Device]:
+    def getDevices(self, deviceList: Set[str]) -> List[Sensor]:
         """
         Gather devive objects based on a set of device ids.
 
@@ -96,32 +161,7 @@ class IntelRAPLBackend(Backend):
         Returns:
             List[Device]: Device objects
         """
-
-        def getCallback(filePath) -> Callable[[], np.number]:
-            def func() -> np.number:
-                return np.uint64(open(filePath, "r").readline().strip())
-
-            return func
-
-        self.devices: List[Device] = []
-        for device in deviceList:
-            if device in self._devices:
-
-                deviceInfo = self._devices[device]
-                self.devices.append(
-                    Device(
-                        device,
-                        f"{self.cpu_name}:{device}",
-                        Joule(),
-                        "micro",
-                        np.uint64(0),
-                        np.uint64(deviceInfo["max_energy_uj"]),
-                        "uint64",
-                        getCallback(deviceInfo["energy_path"]),
-                    )
-                )
-
-        return self.devices
+        return [self.devices[deviceId] for deviceId in deviceList]
 
 
 IntelRAPLBackend()

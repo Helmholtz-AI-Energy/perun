@@ -6,8 +6,8 @@ import psutil
 
 from perun import log
 from perun.backend.backend import Backend, backend
-from perun.backend.device import Device
-from perun.units import Byte, Percent
+from perun.data_model.measurement_type import Magnitude, MeasurementType, Unit
+from perun.data_model.sensor import DeviceType, Sensor
 
 
 @backend
@@ -24,7 +24,57 @@ class PSUTIL(Backend):
 
     def setup(self):
         """Configure psutil backend."""
-        self.total_ram = psutil.virtual_memory().total / 1024.0**3  # byte to GigaByte
+        psutil.disk_io_counters.cache_clear()
+        psutil.net_io_counters.cache_clear()
+        self.metadata = {"source": f"psutil {psutil.__version__}"}
+
+        for deviceName in self.visibleDevices():
+            if deviceName == "RAM_USAGE":
+                mem = psutil.virtual_memory()
+                self.devices[deviceName] = Sensor(
+                    deviceName,
+                    DeviceType.RAM,
+                    {"total": mem.total, "available": mem.available, **self.metadata},
+                    MeasurementType(
+                        Unit.PERCENT,
+                        Magnitude.ONE,
+                        np.dtype("float32"),
+                        np.float32(0),
+                        np.float32(1.0),
+                        np.float32(-1),
+                    ),
+                    self._getCallback(deviceName),
+                )
+            elif deviceName == "CPU_USAGE":
+                self.devices[deviceName] = Sensor(
+                    deviceName,
+                    DeviceType.CPU,
+                    {**self.metadata},
+                    MeasurementType(
+                        Unit.PERCENT,
+                        Magnitude.ONE,
+                        np.dtype("float32"),
+                        np.float32(0),
+                        np.float32(1.0),
+                        np.float32(-1),
+                    ),
+                    self._getCallback(deviceName),
+                )
+            elif "BYTES" in deviceName:
+                self.devices[deviceName] = Sensor(
+                    deviceName,
+                    DeviceType.STORAGE,
+                    {**self.metadata},
+                    MeasurementType(
+                        Unit.BYTE,
+                        Magnitude.ONE,
+                        np.dtype("uint32"),
+                        np.uint32(0),
+                        np.uint32(np.iinfo("uint32").max),
+                        np.uint32(np.iinfo("uint32").max),
+                    ),
+                    self._getCallback(deviceName),
+                )
 
     def close(self):
         """Close backend."""
@@ -51,116 +101,36 @@ class PSUTIL(Backend):
         elif device == "CPU_USAGE":
 
             def func() -> np.number:
-                return np.float64(psutil.cpu_percent())
+                return np.float32(psutil.cpu_percent())
 
         elif device == "DISK_READ_BYTES":
 
             def func() -> np.number:
-                return np.uint64(psutil.disk_io_counters().read_bytes)
+                return np.uint32(psutil.disk_io_counters(nowrap=True).read_bytes)
 
         elif device == "DISK_WRITE_BYTES":
 
             def func() -> np.number:
-                return np.uint64(psutil.disk_io_counters().write_bytes)
+                return np.uint32(psutil.disk_io_counters(nowrap=True).write_bytes)
 
         elif device == "NET_SENT_BYTES":
 
             def func() -> np.number:
-                return np.uint64(psutil.net_io_counters().bytes_sent)
+                return np.uint32(psutil.net_io_counters(nowrap=True).bytes_sent)
 
         elif device == "NET_RECV_BYTES":
 
             def func() -> np.number:
-                return np.uint64(psutil.net_io_counters().bytes_recv)
+                return np.uint32(psutil.net_io_counters(nowrap=True).bytes_recv)
 
         else:
             raise ValueError("Invalid device name")
 
         return func
 
-    def getDevices(self, deviceList: Set[str]) -> List[Device]:
+    def getDevices(self, deviceList: Set[str]) -> List[Sensor]:
         """Return desired device objects."""
-        for device in deviceList:
-            if device == "RAM_USAGE":
-                self.devices.append(
-                    Device(
-                        device,
-                        f"{device}_psutil",
-                        Percent(),
-                        "",
-                        np.float32(0),
-                        np.float32(1.0),
-                        "float32",
-                        self._getCallback(device),
-                    )
-                )
-            elif device == "CPU_USAGE":
-                self.devices.append(
-                    Device(
-                        device,
-                        f"{device}_psutil",
-                        Percent(),
-                        "",
-                        np.float32(0),
-                        np.float32(1.0),
-                        "float32",
-                        self._getCallback(device),
-                    )
-                )
-            elif device == "DISK_READ_BYTES":
-                self.devices.append(
-                    Device(
-                        device,
-                        f"{device}_psutil",
-                        Byte(),
-                        "",
-                        np.uint64(0),
-                        np.uint64(np.iinfo("uint64").max),
-                        "uint64",
-                        self._getCallback(device),
-                    )
-                )
-            elif device == "DISK_WRITE_BYTES":
-                self.devices.append(
-                    Device(
-                        device,
-                        f"{device}_psutil",
-                        Byte(),
-                        "",
-                        np.uint64(0),
-                        np.uint64(np.iinfo("uint64").max),
-                        "uint64",
-                        self._getCallback(device),
-                    )
-                )
-            elif device == "NET_SENT_BYTES":
-                self.devices.append(
-                    Device(
-                        device,
-                        f"{device}_psutil",
-                        Byte(),
-                        "",
-                        np.uint64(0),
-                        np.uint64(np.iinfo("uint64").max),
-                        "uint64",
-                        self._getCallback(device),
-                    )
-                )
-
-            elif device == "NET_RECV_BYTES":
-                self.devices.append(
-                    Device(
-                        device,
-                        f"{device}_psutil",
-                        Byte(),
-                        "",
-                        np.uint64(0),
-                        np.uint64(np.iinfo("uint64").max),
-                        "uint64",
-                        self._getCallback(device),
-                    )
-                )
-        return self.devices
+        return [self.devices[deviceName] for deviceName in deviceList]
 
 
 PSUTIL()

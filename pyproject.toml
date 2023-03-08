@@ -57,7 +57,7 @@ testpaths = ["tests"]
 
 [tool.isort]
 skip = ["perun/__init__.py"]
-known_third_party = ["click", "cpuinfo", "h5py", "influxdb_client", "numpy", "pandas", "psutil", "pynvml", "pytest", "yaml"]
+known_third_party = ["click", "cpuinfo", "h5py", "influxdb_client", "numpy", "pandas", "psutil", "pynvml", "pytest", "typing_extensions", "yaml"]
 profile = "black"
 
 [tool.pydocstyle]
