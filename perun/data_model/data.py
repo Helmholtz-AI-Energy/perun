@@ -7,6 +7,7 @@ import numpy as np
 from typing_extensions import Self
 
 from perun.data_model.measurement_type import MeasurementType
+from perun.data_model.sensor import DeviceType
 
 
 class NodeType(enum.Enum):
@@ -37,6 +38,7 @@ class DataNode:
         type: NodeType,
         metadata: Dict,
         nodes: Dict[str, Self] = {},
+        deviceType: Optional[DeviceType] = None,
         raw_data: Optional[RawData] = None,
     ) -> None:
         """DataNode.
@@ -50,6 +52,7 @@ class DataNode:
         """
         self.id = id
         self.type = type
+        self.deviceType: Optional[DeviceType] = deviceType
         self.metadata: Dict[str, Any] = metadata
         self.nodes: Dict[str, Self] = nodes
         self.raw_data: Optional[RawData] = raw_data

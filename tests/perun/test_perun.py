@@ -1,13 +1,13 @@
-from typing import Any, List
+from typing import Any, List, Set
 
 import numpy as np
 
-from perun.perun import assignDevices
+from perun.coordination import assignSensors
 
 # from pytest import MonkeyPatch
 
 
-def compareNestedList(l1: List[List[Any]], l2: List[List[Any]]) -> bool:
+def compareNestedList(l1: List[Set[Any]], l2: List[Set[Any]]) -> bool:
     if len(l1) != len(l2):
         return False
     for nl1, nl2 in zip(l1, l2):
@@ -18,14 +18,14 @@ def compareNestedList(l1: List[List[Any]], l2: List[List[Any]]) -> bool:
     return True
 
 
-def test_assignDevices():
+def test_assignSensors():
     # Test single node
     # Input
     hosts = ["host0"]
     devices = [{"d0", "d1", "d2"}]
 
     result = devices
-    output = assignDevices(devices, hosts)
+    output = assignSensors(devices, hosts)
     assert compareNestedList(result, output)
 
     # Test single node with multiple ranks, equal devices
@@ -33,7 +33,7 @@ def test_assignDevices():
     devices = [{"d0", "d1", "d2"}, {"d0", "d1", "d2"}]
 
     result = [{"d0", "d1", "d2"}, {}]
-    output = assignDevices(devices, hosts)
+    output = assignSensors(devices, hosts)
     assert compareNestedList(output, result)
 
     # Test single node with multiple ranks, different devices devices
@@ -41,7 +41,7 @@ def test_assignDevices():
     devices = [{"d0", "d1", "d2"}, {"d1", "d2", "d3"}]
 
     result = [{"d0", "d1", "d2", "d3"}, {}]
-    output = assignDevices(devices, hosts)
+    output = assignSensors(devices, hosts)
     assert compareNestedList(output, result)
 
     # Test 2 nodes with single ranks, different devices devices
@@ -49,7 +49,7 @@ def test_assignDevices():
     devices = [{"d0", "d1", "d2"}, {"d0", "d1", "d2"}]
 
     result = [{"d0", "d1", "d2"}, {"d0", "d1", "d2"}]
-    output = assignDevices(devices, hosts)
+    output = assignSensors(devices, hosts)
     assert compareNestedList(output, result)
 
     # Test 2 nodes with single ranks, different devices devices
@@ -62,7 +62,7 @@ def test_assignDevices():
     ]
 
     result = [{"d0", "d1", "d2"}, {}, {"d0", "d1", "d2"}, {}]
-    output = assignDevices(devices, hosts)
+    output = assignSensors(devices, hosts)
     assert compareNestedList(output, result)
 
 

@@ -21,12 +21,12 @@ class Backend(ABC):
         self.setup()
 
     @abstractmethod
-    def visibleDevices(self) -> Set[str]:
+    def visibleSensors(self) -> Set[str]:
         """Get a string id of devices visible by the backend."""
         pass
 
     @abstractmethod
-    def getDevices(self, deviceList: Set[str]) -> List[Sensor]:
+    def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
         """
         Return device objects based on the provided list of device ids.
 

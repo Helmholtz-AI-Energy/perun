@@ -142,7 +142,7 @@ class IntelRAPLBackend(Backend):
         """Backend shutdown code (does nothing for intel rapl)."""
         return
 
-    def visibleDevices(self) -> Set[str]:
+    def visibleSensors(self) -> Set[str]:
         """
         Return string ids of visible devices.
 
@@ -151,7 +151,7 @@ class IntelRAPLBackend(Backend):
         """
         return {device.id for device in self.devices}
 
-    def getDevices(self, deviceList: Set[str]) -> List[Sensor]:
+    def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
         """
         Gather devive objects based on a set of device ids.
 

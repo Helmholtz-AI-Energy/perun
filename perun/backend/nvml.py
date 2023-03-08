@@ -43,7 +43,7 @@ class NVMLSource(Backend):
         """Backend shutdown code."""
         pynvml.nvmlShutdown()
 
-    def visibleDevices(self) -> Set[str]:
+    def visibleSensors(self) -> Set[str]:
         """
         Return string ids of visible devices.
 
@@ -56,7 +56,7 @@ class NVMLSource(Backend):
             devices.add(pynvml.nvmlDeviceGetUUID(handle).decode("utf-8"))
         return devices
 
-    def getDevices(self, deviceList: Set[str]):
+    def getSensors(self, deviceList: Set[str]):
         """
         Gather device objects based on a set of device ids.
 

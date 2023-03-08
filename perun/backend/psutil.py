@@ -28,7 +28,7 @@ class PSUTIL(Backend):
         psutil.net_io_counters.cache_clear()
         self.metadata = {"source": f"psutil {psutil.__version__}"}
 
-        for deviceName in self.visibleDevices():
+        for deviceName in self.visibleSensors():
             if deviceName == "RAM_USAGE":
                 mem = psutil.virtual_memory()
                 self.devices[deviceName] = Sensor(
@@ -80,7 +80,7 @@ class PSUTIL(Backend):
         """Close backend."""
         pass
 
-    def visibleDevices(self) -> Set[str]:
+    def visibleSensors(self) -> Set[str]:
         """Return list of visible devices."""
         return {
             "RAM_USAGE",
@@ -128,7 +128,7 @@ class PSUTIL(Backend):
 
         return func
 
-    def getDevices(self, deviceList: Set[str]) -> List[Sensor]:
+    def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
         """Return desired device objects."""
         return [self.devices[deviceName] for deviceName in deviceList]
 

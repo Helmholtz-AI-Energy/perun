@@ -8,20 +8,23 @@ from datetime import datetime
 from functools import reduce
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import numpy as np
 
 from perun import COMM_WORLD, log
-from perun.backend import Backend, Device, backends
+from perun.backend import Backend, Sensor, backends
 from perun.comm import Comm
 from perun.configuration import config, read_custom_config, save_to_config
-from perun.processing import postprocessing
-from perun.report import report
-from perun.storage import ExperimentStorage, LocalStorage
+from perun.coordination import assignSensors
+from perun.data_model.data import DataNode, NodeType, RawData
+from perun.data_model.measurement_type import Magnitude, MeasurementType, Unit
+
+# from perun.processing import postprocessing
+# from perun.report import report
 
 
-def getDeviceConfiguration(comm: Comm, backends: List[Backend]) -> Set[str]:
+def getSensorConfiguration(comm: Comm, backends: List[Backend]) -> Set[str]:
     """
     Obtain a list with the assigned devices to the current rank.
 
@@ -32,38 +35,17 @@ def getDeviceConfiguration(comm: Comm, backends: List[Backend]) -> Set[str]:
     Returns:
         List[str]: IDs of assigned devices to the current rank
     """
-    visibleDevices: Set[str] = reduce(
-        lambda a, b: a | b, [backend.visibleDevices() for backend in backends]
+    visibleSensors: Set[str] = reduce(
+        lambda a, b: a | b, [backend.visibleSensors() for backend in backends]
     )
 
-    log.debug(f"Rank {comm.Get_rank()} : Visible devices {visibleDevices}")
-    globalVisibleDevices = comm.allgather(visibleDevices)
+    log.debug(f"Rank {comm.Get_rank()} : Visible devices {visibleSensors}")
+    globalVisibleSensors = comm.allgather(visibleSensors)
     globalHostnames = comm.allgather(platform.node())
 
-    globalVisibleDevices = assignDevices(globalVisibleDevices, globalHostnames)
+    globalVisibleSensors = assignSensors(globalVisibleSensors, globalHostnames)
 
-    return globalVisibleDevices[comm.Get_rank()]
-
-
-def assignDevices(hostDevices: List[Set[str]], hostNames: List[str]) -> List[Set[str]]:
-    """Assign found devices to the lowest rank in each host.
-
-    Args:
-        hostDevices (List[Set[str]]): List with lenght of the mpi world size, with each index containing the devices of each rank.
-        hostNames (List[str]): Hostname of the mpi rank at the index.
-
-    Returns:
-        List[Set[str]]: New list with the devices assiged to each rank.
-    """
-    previousHosts = {}
-    for index, (name, devices) in enumerate(zip(hostNames, hostDevices)):
-        if name not in previousHosts:
-            previousHosts[name] = index
-        else:
-            prevIndex = previousHosts[name]
-            hostDevices[prevIndex] |= devices
-            hostDevices[index] = set()
-    return hostDevices
+    return globalVisibleSensors[comm.Get_rank()]
 
 
 def monitor_application(
@@ -82,12 +64,12 @@ def monitor_application(
 
     # Get node devices
     log.debug(f"Backends: {backends}")
-    lDeviceIds: Set[str] = getDeviceConfiguration(COMM_WORLD, backends)
+    lSensorIds: Set[str] = getSensorConfiguration(COMM_WORLD, backends)
 
     for backend in backends:
         backend.close()
 
-    log.debug(f"Rank {COMM_WORLD.Get_rank()} - lDeviceIds : {lDeviceIds}")
+    log.debug(f"Rank {COMM_WORLD.Get_rank()} - lSensorIds : {lSensorIds}")
 
     start_event = Event()
     stop_event = Event()
@@ -95,7 +77,7 @@ def monitor_application(
     queue: Optional[Queue] = None
     perunSP: Optional[Process] = None
     # If assigned devices, start subprocess
-    if len(lDeviceIds) > 0:
+    if len(lSensorIds) > 0:
         queue = Queue()
         perunSP = Process(
             target=perunSubprocess,
@@ -103,7 +85,7 @@ def monitor_application(
                 queue,
                 start_event,
                 stop_event,
-                lDeviceIds,
+                lSensorIds,
                 config.getfloat("monitor", "frequency"),
             ],
         )
@@ -141,7 +123,7 @@ def monitor_application(
     log.debug("Set closed event")
     stop = datetime.now()
 
-    lStrg: Optional[LocalStorage]
+    lStrg: Optional[DataNode]
     # Obtain perun subprocess results
     if queue and perunSP:
         log.debug("Getting queue contents")
@@ -193,7 +175,7 @@ def save_data(
     comm: Comm,
     outPath: Path,
     filePath: Path,
-    lStrg: Optional[LocalStorage],
+    lStrg: Optional[DataNode],
     start: datetime,
     stop: datetime,
 ):
@@ -215,26 +197,27 @@ def save_data(
     scriptName = filePath.name.replace(filePath.suffix, "")
     resultPath = outPath / f"{scriptName}.hdf5"
     log.debug(f"Result path: {resultPath}")
-    expStrg = ExperimentStorage(resultPath, comm, write=True)
-    expId = expStrg.addExperimentRun(lStrg)
-    if lStrg and config.getboolean("horeka", "enabled"):
-        try:
-            from perun.extras.horeka import get_horeka_measurements
 
-            get_horeka_measurements(
-                comm, outPath, expStrg.experimentName, expId, start, stop
-            )
-        except Exception as E:
-            log.error("Failed to get influxdb data from horeka")
-            log.error(E)
-
-    # Post post-process
-    comm.barrier()
-    postprocessing(expStorage=expStrg)
-    if comm.Get_rank() == 0:
-        print(report(expStrg, expIdx=expId, format=config.get("output", "format")))
-    comm.barrier()
-    expStrg.close()
+    # expStrg = ExperimentStorage(resultPath, comm, write=True) */
+    # expId = expStrg.addExperimentRun(lStrg)
+    # if lStrg and config.getboolean("horeka", "enabled"):
+    #     try:
+    #         from perun.extras.horeka import get_horeka_measurements
+    #
+    #         get_horeka_measurements(
+    #             comm, outPath, expStrg.experimentName, expId, start, stop
+    #         )
+    #     except Exception as E:
+    #         log.error("Failed to get influxdb data from horeka")
+    #         log.error(E)
+    #
+    # # Post post-process
+    # comm.barrier()
+    # postprocessing(expStorage=expStrg)
+    # if comm.Get_rank() == 0:
+    #     print(report(expStrg, expIdx=expId, format=config.get("output", "format")))
+    # comm.barrier()
+    # expStrg.close()
 
 
 def perunSubprocess(
@@ -252,26 +235,56 @@ def perunSubprocess(
     """
     from perun.backend import backends
 
-    lDevices: List[Device] = []
+    lSensors: List[Sensor] = []
     for backend in backends:
         backend.setup()
-        lDevices += backend.getDevices(deviceIds)
+        lSensors += backend.getSensors(deviceIds)
 
-    log.debug(f"Perun SP lDevices: {lDevices}")
-    lStrg = LocalStorage(platform.node(), lDevices)
+    timesteps = []
+    t_mT = MeasurementType(
+        Unit.SECOND,
+        Magnitude.ONE,
+        np.dtype("float32"),
+        np.float32(0),
+        np.finfo("float32").max,
+        np.float32(-1),
+    )
+    rawValues: List[List[np.number]] = []
+    for _ in lSensors:
+        rawValues.append([])
+
+    log.debug(f"perunSP lSensors: {lSensors}")
+
     start_event.wait()
 
     while not stop_event.wait(1.0 / frequency):
-        t = np.uint64(time.time_ns())
-        stepData = {}
-        for device in lDevices:
-            stepData[device.id] = device.read()
-        lStrg.addTimestep(t, stepData)
+        timesteps.append(np.float32(time.time()))
+        for idx, device in enumerate(lSensors):
+            rawValues[idx].append(device.read())
 
     log.debug("Subprocess: Stop event received.")
     for backend in backends:
         backend.close()
-    log.debug("Subprocess: Closed backends")
 
-    queue.put(lStrg, block=True)
+    log.debug("Subprocess: Closed backends")
+    deviceNodes: Dict = {}
+    t_s = np.array(timesteps)
+    for sensor, values in zip(lSensors, rawValues):
+        if sensor.type not in deviceNodes:
+            deviceNodes[sensor.type] = []
+
+        dn = DataNode(
+            sensor.id,
+            NodeType.SENSOR,
+            sensor.metadata,
+            deviceType=sensor.type,
+            raw_data=RawData(t_s, np.array(values), t_mT, sensor.dataType),
+        )
+        # Apply processing to sensor node
+        deviceNodes[sensor.type].append(dn)
+
+    log.debug("Subprocess: Preprocessed Device Data")
+
+    # This should send a single processed node for the current computational node
+    queue.put(deviceNodes, block=True)
     log.debug("Subprocess: Sent lStrg")
