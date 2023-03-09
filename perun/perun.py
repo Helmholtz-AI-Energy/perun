@@ -1,10 +1,11 @@
 """Core perun functionality."""
-import functools
 import platform
-import sys
+
+# import sys
 import time
 import types
-from datetime import datetime
+
+# from datetime import datetime
 from functools import reduce
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
@@ -15,12 +16,12 @@ import numpy as np
 from perun import COMM_WORLD, log
 from perun.backend import Backend, Sensor, backends
 from perun.comm import Comm
-from perun.configuration import config, read_custom_config, save_to_config
+from perun.configuration import config
 from perun.coordination import assignSensors
 from perun.data_model.data import DataNode, NodeType, RawData
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType
-from perun.processing import processSensorData
+from perun.processing import processDataNode, processSensorData
 
 # from perun.processing import postprocessing
 # from perun.report import report
@@ -62,7 +63,7 @@ def monitor_application(
     Returns:
         Optional[Any]: In decorator mode, return the output of the decorated method.
     """
-    outPath: Path = Path(config.get("output", "data_out"))
+    # outPath: Path = Path(config.get("output", "data_out"))
 
     # Get node devices
     log.debug(f"Backends: {backends}")
@@ -95,10 +96,10 @@ def monitor_application(
 
     app_result: Optional[Any] = None
     COMM_WORLD.barrier()
-    start = datetime.now()
+    # start = datetime.now()
 
     if isinstance(app, Path):
-        filePath = app
+        # filePath = app
         try:
             with open(str(app), "r") as scriptFile:
                 start_event.set()
@@ -113,7 +114,7 @@ def monitor_application(
             raise e
 
     elif isinstance(app, types.FunctionType):
-        filePath = Path(sys.argv[0])
+        # filePath = Path(sys.argv[0])
         start_event.set()
         try:
             app_result = app(*app_args, **app_kwargs)
@@ -123,13 +124,13 @@ def monitor_application(
         stop_event.set()
 
     log.debug("Set closed event")
-    stop = datetime.now()
+    # stop = datetime.now()
 
-    lStrg: Optional[DataNode]
+    # nodeData: Optional[DataNode]
     # Obtain perun subprocess results
     if queue and perunSP:
         log.debug("Getting queue contents")
-        lStrg = queue.get(block=True)
+        nodeData = queue.get(block=True)
         log.debug("Got queue contents")
         log.debug("Waiting for subprocess to close")
         perunSP.join()
@@ -137,89 +138,17 @@ def monitor_application(
         log.debug("Subprocess closed")
         queue.close()
     else:
-        lStrg = None
+        nodeData = None
 
+    print(nodeData)
     # Sync
     COMM_WORLD.barrier()
     log.debug("Passed first barrier")
 
     # Save raw data to hdf5
-    save_data(COMM_WORLD, outPath, filePath, lStrg, start, stop)
+    # save_data(COMM_WORLD, outPath, filePath, lStrg, start, stop)
+    # return app_result
     return app_result
-
-
-def monitor(
-    configuration: str = "./.perun.ini",
-    **conf_kwargs,
-):
-    """Decorate function to monitor its energy usage."""
-
-    def inner_function(func):
-        @functools.wraps(func)
-        def func_wrapper(*args, **kwargs):
-            # Get custom config and kwargs
-
-            read_custom_config(None, None, configuration)
-            for key, value in conf_kwargs.items():
-                save_to_config(key, value)
-
-            log.setLevel(config.get("debug", "log_lvl"))
-            func_result = monitor_application(func, args, kwargs)
-
-            return func_result
-
-        return func_wrapper
-
-    return inner_function
-
-
-def save_data(
-    comm: Comm,
-    outPath: Path,
-    filePath: Path,
-    lStrg: Optional[DataNode],
-    start: datetime,
-    stop: datetime,
-):
-    """
-    Save subprocess data in the locations defined on the configuration.
-
-    Args:
-        comm (Comm): Communication Object
-        outPath (Path): Result path
-        filePath (Path): HDF5 path
-        lStrg (Optional[LocalStorage]): LocalStorage object (if available)
-        start (datetime): Start time of the run
-        stop (datetime): Stop time of the run
-    """
-    if comm.Get_rank() == 0:
-        if not outPath.exists():
-            outPath.mkdir(parents=True)
-
-    scriptName = filePath.name.replace(filePath.suffix, "")
-    resultPath = outPath / f"{scriptName}.hdf5"
-    log.debug(f"Result path: {resultPath}")
-
-    # expStrg = ExperimentStorage(resultPath, comm, write=True) */
-    # expId = expStrg.addExperimentRun(lStrg)
-    # if lStrg and config.getboolean("horeka", "enabled"):
-    #     try:
-    #         from perun.extras.horeka import get_horeka_measurements
-    #
-    #         get_horeka_measurements(
-    #             comm, outPath, expStrg.experimentName, expId, start, stop
-    #         )
-    #     except Exception as E:
-    #         log.error("Failed to get influxdb data from horeka")
-    #         log.error(E)
-    #
-    # # Post post-process
-    # comm.barrier()
-    # postprocessing(expStorage=expStrg)
-    # if comm.Get_rank() == 0:
-    #     print(report(expStrg, expIdx=expId, format=config.get("output", "format")))
-    # comm.barrier()
-    # expStrg.close()
 
 
 def perunSubprocess(
@@ -260,7 +189,7 @@ def perunSubprocess(
     start_event.wait()
 
     while not stop_event.wait(1.0 / frequency):
-        timesteps.append(np.float32(time.time()))
+        timesteps.append(time.time_ns())
         for idx, device in enumerate(lSensors):
             rawValues[idx].append(device.read())
 
@@ -269,41 +198,56 @@ def perunSubprocess(
         backend.close()
 
     log.debug("Subprocess: Closed backends")
-    deviceNodes: Dict = {}
+    sensorNodes: Dict = {}
+
     t_s = np.array(timesteps)
+    t_s -= t_s[0]
+    t_s = t_s.astype("float32")
+    t_s *= 1e-9
+
     for sensor, values in zip(lSensors, rawValues):
-        if sensor.type not in deviceNodes:
-            deviceNodes[sensor.type] = []
+        if sensor.type not in sensorNodes:
+            sensorNodes[sensor.type] = []
 
         dn = DataNode(
-            sensor.id,
-            NodeType.SENSOR,
-            sensor.metadata,
+            id=sensor.id,
+            type=NodeType.SENSOR,
+            metadata=sensor.metadata,
             deviceType=sensor.type,
             raw_data=RawData(t_s, np.array(values), t_mT, sensor.dataType),
         )
         # Apply processing to sensor node
-        processSensorData(dn)
-        deviceNodes[sensor.type].append(dn)
+        dn = processSensorData(dn)
+        sensorNodes[sensor.type].append(dn)
 
     log.debug("Subprocess: Preprocessed Sensor Data")
     deviceGroupNodes = []
-    for deviceType, sensorNodes in deviceNodes.items():
+    for deviceType, sensorNodes in sensorNodes.items():
         if deviceType != DeviceType.NODE:
             dn = DataNode(
-                deviceType.value,
-                NodeType.DEVICE_GROUP,
-                {},
-                {sensor.id: sensor for sensor in sensorNodes},
-                deviceType,
+                id=deviceType.value,
+                type=NodeType.DEVICE_GROUP,
+                metadata={},
+                nodes={sensor.id: sensor for sensor in sensorNodes},
+                deviceType=deviceType,
             )
 
+            dn = processDataNode(dn)
             deviceGroupNodes.append(dn)
         else:
             deviceGroupNodes.extend(sensorNodes)
 
     log.debug("Subprocess: Preprocessed Device Data")
 
+    hostNode = DataNode(
+        id=platform.node(),
+        type=NodeType.NODE,
+        metadata={},
+        nodes={node.id: node for node in deviceGroupNodes},
+    )
+    processDataNode(hostNode)
+    print(hostNode.toDict())
+
     # This should send a single processed node for the current computational node
-    queue.put(deviceGroupNodes, block=True)
+    queue.put(hostNode, block=True)
     log.debug("Subprocess: Sent lStrg")

@@ -1,4 +1,6 @@
 """Processing Module."""
+from typing import Dict, List
+
 import numpy as np
 
 from perun.data_model.data import AggregateType, DataNode, Metric, MetricType, NodeType
@@ -6,7 +8,7 @@ from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType
 
 
-def processSensorData(sensorData: DataNode):
+def processSensorData(sensorData: DataNode) -> DataNode:
     """Calculate metrics based on the data found on sensor nodes.
 
     Args:
@@ -15,8 +17,8 @@ def processSensorData(sensorData: DataNode):
     if sensorData.type == NodeType.SENSOR and sensorData.raw_data:
         rawData = sensorData.raw_data
 
-        runtime = rawData.timesteps[-1] - rawData.timesteps[0]
-        sensorData.addMetric(
+        runtime = rawData.timesteps[-1]
+        sensorData.metrics.append(
             Metric(MetricType.RUNTIME, runtime, rawData.t_md, AggregateType.MAX)
         )
 
@@ -40,7 +42,7 @@ def processSensorData(sensorData: DataNode):
             magFactor = rawData.v_md.mag.value / Magnitude.ONE.value
             energy_J = np.float32(total_energy) * magFactor
 
-            sensorData.addMetric(
+            sensorData.metrics.append(
                 Metric(
                     MetricType.ENERGY,
                     energy_J,
@@ -55,7 +57,7 @@ def processSensorData(sensorData: DataNode):
                     AggregateType.SUM,
                 )
             )
-            sensorData.addMetric(
+            sensorData.metrics.append(
                 Metric(
                     MetricType.POWER,
                     energy_J / runtime,
@@ -70,7 +72,6 @@ def processSensorData(sensorData: DataNode):
                     AggregateType.SUM,
                 )
             )
-
         elif rawData.v_md.unit == Unit.WATT:
             t_s = rawData.timesteps.astype("float32")
             t_s *= rawData.t_md.mag.value / Magnitude.ONE.value
@@ -78,7 +79,7 @@ def processSensorData(sensorData: DataNode):
             magFactor = rawData.v_md.mag.value / Magnitude.ONE.value
             power_W = rawData.values.astype("float32") * magFactor
             energy_J = np.trapz(power_W, t_s)
-            sensorData.addMetric(
+            sensorData.metrics.append(
                 Metric(
                     MetricType.ENERGY,
                     energy_J,
@@ -93,7 +94,7 @@ def processSensorData(sensorData: DataNode):
                     AggregateType.SUM,
                 )
             )
-            sensorData.addMetric(
+            sensorData.metrics.append(
                 Metric(
                     MetricType.POWER,
                     np.mean(power_W),
@@ -116,7 +117,7 @@ def processSensorData(sensorData: DataNode):
             else:
                 metricType = MetricType.MEM_UTIL
 
-            sensorData.addMetric(
+            sensorData.metrics.append(
                 Metric(
                     metricType,
                     np.mean(rawData.values),
@@ -125,19 +126,19 @@ def processSensorData(sensorData: DataNode):
                 )
             )
         elif rawData.v_md.unit == Unit.BYTE:
-            if sensorData.deviceType == DeviceType.NETWORK:
+            if sensorData.deviceType == DeviceType.NET:
                 if "READ" in sensorData.id:
                     metricType = MetricType.NET_READ
                 else:
                     metricType = MetricType.NET_WRITE
             else:
                 if "READ" in sensorData.id:
-                    metricType = MetricType.FS_READ
+                    metricType = MetricType.DISK_READ
                 else:
-                    metricType = MetricType.FS_WRITE
+                    metricType = MetricType.DISK_WRITE
 
             result = rawData.values[-1] - rawData.values[0]
-            sensorData.addMetric(
+            sensorData.metrics.append(
                 Metric(
                     metricType,
                     result.astype(rawData.v_md.dtype),
@@ -147,13 +148,44 @@ def processSensorData(sensorData: DataNode):
             )
 
         sensorData.processed = True
+    return sensorData
 
 
-# def processDeviceGroupData(deviceNode: DataNode, force_process: bool=True):
-#     pass
+def processDataNode(dataNode: DataNode, force_process=False) -> DataNode:
+    """Recursively calculate metrics of the current nodes, and of child nodes if necessary.
 
-# def processNodeData(deviceNode: DataNode, force_process: bool=True):
-#     pass
+    Args:
+        dataNode (DataNode): Root of the DataNode structure
+        force_process (bool, optional): If true, ignored processed flag in child DataNodes. Defaults to False.
+    """
+    aggregatedMetrics: Dict[MetricType, List[Metric]] = {}
+    for _, subNode in dataNode.nodes.items():
+        # Make sure sub nodes have their metrics ready
+        if not subNode.processed or force_process:
+            if subNode.type == NodeType.SENSOR:
+                subNode = processSensorData(subNode)
+            else:
+                subNode = processDataNode(subNode, force_process=force_process)
 
-# def processRunData(runNode: DataNode, force_process: bool=True):
-#     pass
+        for metric in subNode.metrics:
+            if metric.type in aggregatedMetrics:
+                aggregatedMetrics[metric.type].append(metric)
+            else:
+                aggregatedMetrics[metric.type] = [metric]
+
+    for metricType, metrics in aggregatedMetrics.items():
+        aggType = metrics[0].agg
+        metric_md = metrics[0].metric_md
+        if aggType == AggregateType.MEAN:
+            aggregatedValue = np.array([metric.value for metric in metrics]).mean()
+        elif aggType == AggregateType.MAX:
+            aggregatedValue = np.array([metric.value for metric in metrics]).max()
+        elif aggType == AggregateType.MIN:
+            aggregatedValue = np.array([metric.value for metric in metrics]).min()
+        else:
+            aggregatedValue = np.array([metric.value for metric in metrics]).sum()
+
+        dataNode.metrics.append(Metric(metricType, aggregatedValue, metric_md, aggType))
+
+    dataNode.processed = True
+    return dataNode

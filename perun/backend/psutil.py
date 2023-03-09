@@ -55,7 +55,7 @@ class PSUTIL(Backend):
                         Magnitude.ONE,
                         np.dtype("float32"),
                         np.float32(0),
-                        np.float32(1.0),
+                        np.float32(100.0),
                         np.float32(-1),
                     ),
                     self._getCallback(deviceName),
@@ -63,7 +63,7 @@ class PSUTIL(Backend):
             elif "BYTES" in deviceName:
                 self.devices[deviceName] = Sensor(
                     deviceName,
-                    DeviceType.STORAGE,
+                    DeviceType.DISK if "DISK" in deviceName else DeviceType.NET,
                     {**self.metadata},
                     MetricMetaData(
                         Unit.BYTE,
@@ -87,8 +87,8 @@ class PSUTIL(Backend):
             "CPU_USAGE",
             "DISK_READ_BYTES",
             "DISK_WRITE_BYTES",
-            "NET_SENT_BYTES",
-            "NET_RECV_BYTES",
+            "NET_WRITE_BYTES",
+            "NET_READ_BYTES",
         }
 
     def _getCallback(self, device: str) -> Callable[[], np.number]:
@@ -113,12 +113,12 @@ class PSUTIL(Backend):
             def func() -> np.number:
                 return np.uint32(psutil.disk_io_counters(nowrap=True).write_bytes)
 
-        elif device == "NET_SENT_BYTES":
+        elif device == "NET_WRITE_BYTES":
 
             def func() -> np.number:
                 return np.uint32(psutil.net_io_counters(nowrap=True).bytes_sent)
 
-        elif device == "NET_RECV_BYTES":
+        elif device == "NET_READ_BYTES":
 
             def func() -> np.number:
                 return np.uint32(psutil.net_io_counters(nowrap=True).bytes_recv)
