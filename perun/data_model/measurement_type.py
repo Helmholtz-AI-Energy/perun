@@ -4,6 +4,7 @@ import enum
 from typing import Dict
 
 import numpy as np
+from typing_extensions import Self
 
 
 class Unit(enum.Enum):
@@ -66,8 +67,8 @@ class Magnitude(enum.Enum):
 
 
 @dataclasses.dataclass
-class MeasurementType:
-    """Collects a measurements metadata."""
+class MetricMetaData:
+    """Collects a metric metadata."""
 
     unit: Unit
     mag: Magnitude
@@ -75,3 +76,16 @@ class MeasurementType:
     min: np.number
     max: np.number
     fill: np.number
+
+    @classmethod
+    def fromDict(cls, mdDict: Dict) -> Self:
+        """Create MetricMetadata from a dictionary."""
+        dtype = np.dtype(mdDict["dtype"])
+        return cls(
+            Unit(mdDict["unit"]),
+            Magnitude(mdDict["mag"]),
+            dtype,
+            dtype.type(mdDict["min"]),
+            dtype.type(mdDict["max"], dtype=dtype),
+            dtype.type(mdDict["fill"], dtype=dtype),
+        )

@@ -18,7 +18,9 @@ from perun.comm import Comm
 from perun.configuration import config, read_custom_config, save_to_config
 from perun.coordination import assignSensors
 from perun.data_model.data import DataNode, NodeType, RawData
-from perun.data_model.measurement_type import Magnitude, MeasurementType, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.sensor import DeviceType
+from perun.processing import processSensorData
 
 # from perun.processing import postprocessing
 # from perun.report import report
@@ -241,7 +243,7 @@ def perunSubprocess(
         lSensors += backend.getSensors(deviceIds)
 
     timesteps = []
-    t_mT = MeasurementType(
+    t_mT = MetricMetaData(
         Unit.SECOND,
         Magnitude.ONE,
         np.dtype("float32"),
@@ -281,10 +283,27 @@ def perunSubprocess(
             raw_data=RawData(t_s, np.array(values), t_mT, sensor.dataType),
         )
         # Apply processing to sensor node
+        processSensorData(dn)
         deviceNodes[sensor.type].append(dn)
+
+    log.debug("Subprocess: Preprocessed Sensor Data")
+    deviceGroupNodes = []
+    for deviceType, sensorNodes in deviceNodes.items():
+        if deviceType != DeviceType.NODE:
+            dn = DataNode(
+                deviceType.value,
+                NodeType.DEVICE_GROUP,
+                {},
+                {sensor.id: sensor for sensor in sensorNodes},
+                deviceType,
+            )
+
+            deviceGroupNodes.append(dn)
+        else:
+            deviceGroupNodes.extend(sensorNodes)
 
     log.debug("Subprocess: Preprocessed Device Data")
 
     # This should send a single processed node for the current computational node
-    queue.put(deviceNodes, block=True)
+    queue.put(deviceGroupNodes, block=True)
     log.debug("Subprocess: Sent lStrg")

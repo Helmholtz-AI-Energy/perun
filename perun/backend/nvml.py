@@ -6,7 +6,7 @@ import pynvml
 from pynvml import NVMLError
 
 from perun import log
-from perun.data_model.measurement_type import Magnitude, MeasurementType, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 
 from ..data_model.sensor import DeviceType, Sensor
 from .backend import Backend, backend
@@ -86,7 +86,7 @@ class NVMLSource(Backend):
                 }
                 max_power = np.uint32(pynvml.nvmlDeviceGetPowerManagementLimit(handle))
 
-                data_type = MeasurementType(
+                data_type = MetricMetaData(
                     Unit.WATT,
                     Magnitude.MILI,
                     np.dtype("uint32"),

@@ -1,12 +1,12 @@
 """Storage Module."""
 import dataclasses
 import enum
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from typing_extensions import Self
 
-from perun.data_model.measurement_type import MeasurementType
+from perun.data_model.measurement_type import MetricMetaData
 from perun.data_model.sensor import DeviceType
 
 
@@ -15,8 +15,51 @@ class NodeType(enum.Enum):
 
     RUN = "run"
     NODE = "node"
-    DEVICE = "device"
+    DEVICE_GROUP = "device group"
     SENSOR = "sensor"
+
+
+class MetricType(enum.Enum):
+    """Metric Type enum."""
+
+    RUNTIME = "runtime"
+    ENERGY = "energy"
+    POWER = "power"
+    CPU_UTIL = "cpu util"
+    GPU_UTIL = "gpu util"
+    MEM_UTIL = "mem util"
+    NET_READ = "net read"
+    NET_WRITE = "net write"
+    FS_READ = "fs read"
+    FS_WRITE = "fs write"
+
+
+class AggregateType(enum.Enum):
+    """Types of data aggregation."""
+
+    SUM = "sum"
+    MEAN = "mean"
+    MAX = "max"
+
+
+@dataclasses.dataclass
+class Metric:
+    """Struct with resulting metrics and the metadata."""
+
+    type: MetricType
+    value: np.number
+    metric_md: MetricMetaData
+    agg: AggregateType
+
+    @classmethod
+    def fromDict(cls, metricDict: Dict) -> Self:
+        """Create RawData object from a dictionary."""
+        return cls(
+            MetricType(metricDict["type"]),
+            np.float32(metricDict["value"]),
+            MetricMetaData.fromDict(metricDict["metric_md"]),
+            AggregateType(metricDict["agg"]),
+        )
 
 
 @dataclasses.dataclass
@@ -25,8 +68,20 @@ class RawData:
 
     timesteps: np.ndarray
     values: np.ndarray
-    t_measurementType: MeasurementType
-    v_measurementType: MeasurementType
+    t_md: MetricMetaData
+    v_md: MetricMetaData
+
+    @classmethod
+    def fromDict(cls, rawDataDict: Dict) -> Self:
+        """Create RawData object from a dictionary."""
+        t_md = MetricMetaData.fromDict(rawDataDict["t_md"])
+        v_md = MetricMetaData.fromDict(rawDataDict["v_md"])
+        return cls(
+            np.array(rawDataDict["timesteps"], dtype=t_md.dtype),
+            np.array(rawDataDict["values"], dtype=t_md.dtype),
+            t_md,
+            v_md,
+        )
 
 
 class DataNode:
@@ -38,8 +93,10 @@ class DataNode:
         type: NodeType,
         metadata: Dict,
         nodes: Dict[str, Self] = {},
+        metrics: List[Metric] = [],
         deviceType: Optional[DeviceType] = None,
         raw_data: Optional[RawData] = None,
+        processed: bool = False,
     ) -> None:
         """DataNode.
 
@@ -52,13 +109,12 @@ class DataNode:
         """
         self.id = id
         self.type = type
-        self.deviceType: Optional[DeviceType] = deviceType
         self.metadata: Dict[str, Any] = metadata
         self.nodes: Dict[str, Self] = nodes
+        self.metrics: List[Metric] = metrics
+        self.deviceType: Optional[DeviceType] = deviceType
         self.raw_data: Optional[RawData] = raw_data
-        self.energy_J = np.float32(0)
-        self.avg_power_W = np.float32(0)
-        self.processed = False
+        self.processed = processed
 
     def addMetadata(self, newMetadata: Dict):
         """Add new metadata entries.
@@ -76,6 +132,10 @@ class DataNode:
         """
         self.nodes.update(newNodes)
 
+    def addMetric(self, newMetric: Metric):
+        """Add new metric to DataNode."""
+        self.metrics.append(newMetric)
+
     def toDict(self, include_raw_data: bool = False) -> Dict:
         """Transform object to dictionary."""
         resultsDict = {
@@ -84,12 +144,11 @@ class DataNode:
             "nodes": {
                 key: value.toDict(include_raw_data) for key, value in self.nodes.items()
             },
-            "energy_J": self.energy_J,
-            "avg_power_W": self.avg_power_W,
+            "metrics": [dataclasses.asdict(metric) for metric in self.metrics],
             "processed": self.processed,
         }
-        if include_raw_data:
-            resultsDict["raw_data"] = self.raw_data
+        if include_raw_data and self.raw_data:
+            resultsDict["raw_data"] = dataclasses.asdict(self.raw_data)
 
         return resultsDict
 
@@ -97,14 +156,22 @@ class DataNode:
     def fromDict(cls, resultsDict: Dict) -> Self:
         """Build object from dictionary."""
         newResults = cls(
-            resultsDict["id"],
-            resultsDict["metadata"],
-            resultsDict["sub_results"],
-            resultsDict["raw_data"],
+            id=resultsDict["id"],
+            type=NodeType(resultsDict["type"]),
+            metadata=resultsDict["metadata"],
+            nodes={
+                key: DataNode.fromDict(node)
+                for key, node in resultsDict["nodes"].items()
+            },
+            processed=resultsDict["processed"],
         )
-        newResults.energy_J = resultsDict["energy_J"]
-        newResults.avg_power_W = resultsDict["avg_power_W"]
-        newResults.processed = resultsDict["processed"]
+        if "deviceType" in resultsDict:
+            newResults.deviceType = DeviceType(resultsDict["deviceType"])
+
+        if "raw_data" in resultsDict:
+            newResults.metrics = [
+                Metric.fromDict(metricDict) for metricDict in resultsDict["metrics"]
+            ]
         return newResults
 
 

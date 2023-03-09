@@ -6,7 +6,7 @@ import psutil
 
 from perun import log
 from perun.backend.backend import Backend, backend
-from perun.data_model.measurement_type import Magnitude, MeasurementType, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 
 
@@ -35,7 +35,7 @@ class PSUTIL(Backend):
                     deviceName,
                     DeviceType.RAM,
                     {"total": mem.total, "available": mem.available, **self.metadata},
-                    MeasurementType(
+                    MetricMetaData(
                         Unit.PERCENT,
                         Magnitude.ONE,
                         np.dtype("float32"),
@@ -50,7 +50,7 @@ class PSUTIL(Backend):
                     deviceName,
                     DeviceType.CPU,
                     {**self.metadata},
-                    MeasurementType(
+                    MetricMetaData(
                         Unit.PERCENT,
                         Magnitude.ONE,
                         np.dtype("float32"),
@@ -65,7 +65,7 @@ class PSUTIL(Backend):
                     deviceName,
                     DeviceType.STORAGE,
                     {**self.metadata},
-                    MeasurementType(
+                    MetricMetaData(
                         Unit.BYTE,
                         Magnitude.ONE,
                         np.dtype("uint32"),

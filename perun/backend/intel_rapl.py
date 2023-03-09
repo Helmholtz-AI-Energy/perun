@@ -8,7 +8,7 @@ import cpuinfo
 import numpy as np
 
 from perun import log
-from perun.data_model.measurement_type import Magnitude, MeasurementType, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 
 from ..data_model.sensor import DeviceType, Sensor
 from .backend import Backend, backend
@@ -81,7 +81,7 @@ class IntelRAPLBackend(Backend):
                     max_energy = np.uint64(
                         open(child / "max_energy_range_uj", "r").readline().strip()
                     )
-                    dataType = MeasurementType(
+                    dataType = MetricMetaData(
                         Unit.JOULE,
                         Magnitude.MICRO,
                         np.dtype("uint64"),
@@ -119,7 +119,7 @@ class IntelRAPLBackend(Backend):
                                 .readline()
                                 .strip()
                             )
-                            dataType = MeasurementType(
+                            dataType = MetricMetaData(
                                 Unit.JOULE,
                                 Magnitude.MICRO,
                                 np.dtype("uint64"),

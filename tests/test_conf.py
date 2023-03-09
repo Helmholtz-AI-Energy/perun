@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-from perun.data_model.measurement_type import Magnitude, MeasurementType, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 
 # import perun.backend
 from perun.data_model.sensor import DeviceType
@@ -28,7 +28,7 @@ def cpu():
     cpu.id = "FPU"
     cpu.type = DeviceType.CPU
     cpu.metadata = {"long_name": "long_cpu"}
-    cpu.dataType = MeasurementType(
+    cpu.dataType = MetricMetaData(
         Unit.JOULE,
         Magnitude.ONE,
         np.dtype("int32"),
@@ -53,7 +53,7 @@ def gpu():
     gpu.id = "FPU"
     gpu.type = DeviceType.CPU
     gpu.metadata = {"long_name": "long_gpu"}
-    gpu.dataType = MeasurementType(
+    gpu.dataType = MetricMetaData(
         Unit.WATT,
         Magnitude.MICRO,
         np.dtype("float32"),
