@@ -59,7 +59,7 @@ class Magnitude(enum.Enum):
             "GIGA": "G",
             "TERA": "T",
         }
-        return _symbols[self.value]
+        return _symbols[self.name]
 
     def __str__(self) -> str:
         """Convert object to string."""

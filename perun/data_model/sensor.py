@@ -11,15 +11,15 @@ from perun.data_model.measurement_type import MetricMetaData
 class DeviceType(enum.Enum):
     """DeviceType enum."""
 
-    OTHER = "OTHER"
-    CPU = "CPU"
-    GPU = "GPU"
-    RAM = "RAM"
-    DISK = "DISK"
-    NET = "NET"
-    NODE = "NODE"
-    RACK = "RACK"
-    FAN = "FAN"
+    RACK = enum.auto()
+    NODE = enum.auto()
+    CPU = enum.auto()
+    GPU = enum.auto()
+    RAM = enum.auto()
+    DISK = enum.auto()
+    NET = enum.auto()
+    FAN = enum.auto()
+    OTHER = enum.auto()
 
 
 @dataclass

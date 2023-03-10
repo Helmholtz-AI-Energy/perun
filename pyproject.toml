@@ -19,6 +19,7 @@ PyYAML = "*"
 numpy = "*"
 psutil = "*"
 h5py = "*"
+prettytable = "^3.6.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
@@ -57,7 +58,7 @@ testpaths = ["tests"]
 
 [tool.isort]
 skip = ["perun/__init__.py"]
-known_third_party = ["click", "cpuinfo", "influxdb_client", "numpy", "pandas", "psutil", "pynvml", "pytest", "typing_extensions", "yaml"]
+known_third_party = ["click", "cpuinfo", "influxdb_client", "numpy", "pandas", "prettytable", "psutil", "pynvml", "pytest", "typing_extensions"]
 profile = "black"
 
 [tool.pydocstyle]

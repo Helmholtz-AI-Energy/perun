@@ -9,6 +9,7 @@ import click
 import perun
 from perun import log
 from perun.configuration import config, read_custom_config, save_to_config_callback
+from perun.io.io import IOFormat
 
 
 @click.group()
@@ -26,8 +27,7 @@ from perun.configuration import config, read_custom_config, save_to_config_callb
 # Output option
 @click.option(
     "-n",
-    "--name",
-    default=None,
+    "--app_name",
     help="Name of the monitored application. The name is used to distinguish between multiple applications in the same directory. If left empty, the filename will be  used.",
     callback=save_to_config_callback,
     expose_value=False,
@@ -35,7 +35,6 @@ from perun.configuration import config, read_custom_config, save_to_config_callb
 @click.option(
     "-i",
     "--run_id",
-    default=None,
     help="Unique id of the latest run of the application. If left empty, perun will use the SLURM job id, or the current date.",
     callback=save_to_config_callback,
     expose_value=False,
@@ -43,14 +42,13 @@ from perun.configuration import config, read_custom_config, save_to_config_callb
 @click.option(
     "-f",
     "--format",
-    type=click.Choice(["txt", "yaml", "yml", "json"]),
+    type=click.Choice([format.value for format in IOFormat]),
     help="Report format.",
     callback=save_to_config_callback,
     expose_value=False,
 )
 @click.option(
     "--data_out",
-    default=".",
     type=click.Path(exists=False, dir_okay=True, file_okay=False),
     help="Where to save the output files, defaults to the current working directory.",
     callback=save_to_config_callback,

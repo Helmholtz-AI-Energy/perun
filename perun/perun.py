@@ -4,8 +4,7 @@ import platform
 # import sys
 import time
 import types
-
-# from datetime import datetime
+from datetime import datetime
 from functools import reduce
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
@@ -21,7 +20,9 @@ from perun.coordination import assignSensors
 from perun.data_model.data import DataNode, NodeType, RawData
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType
+from perun.io.io import IOFormat, exportTo
 from perun.processing import processDataNode, processSensorData
+from perun.util import getRunId, getRunName
 
 # from perun.processing import postprocessing
 # from perun.report import report
@@ -96,7 +97,7 @@ def monitor_application(
 
     app_result: Optional[Any] = None
     COMM_WORLD.barrier()
-    # start = datetime.now()
+    start = datetime.now()
 
     if isinstance(app, Path):
         # filePath = app
@@ -140,14 +141,30 @@ def monitor_application(
     else:
         nodeData = None
 
-    print(nodeData)
     # Sync
     COMM_WORLD.barrier()
-    log.debug("Passed first barrier")
+    log.debug("Everyone exited the subprocess")
 
-    # Save raw data to hdf5
-    # save_data(COMM_WORLD, outPath, filePath, lStrg, start, stop)
-    # return app_result
+    # Collect data from everyone on the first rank
+    dataNodes: Optional[List[DataNode]] = COMM_WORLD.gather(nodeData, root=0)
+    if dataNodes:
+        runNode = DataNode(
+            id=getRunId(start),
+            type=NodeType.RUN,
+            metadata={
+                "app_name": getRunName(app),
+                "startime": start.isoformat(),
+            },
+            nodes={node.id: node for node in dataNodes if node},
+        )
+        runNode = processDataNode(runNode)
+
+        data_out = Path(config.get("output", "data_out"))
+        format = IOFormat(config.get("output", "format"))
+        includeRawData = config.getboolean("output", "raw")
+        depth = NodeType(config.getint("output", "depth"))
+        exportTo(data_out, runNode, format, includeRawData, depth)
+
     return app_result
 
 
@@ -187,6 +204,9 @@ def perunSubprocess(
     log.debug(f"perunSP lSensors: {lSensors}")
 
     start_event.wait()
+    timesteps.append(time.time_ns())
+    for idx, device in enumerate(lSensors):
+        rawValues[idx].append(device.read())
 
     while not stop_event.wait(1.0 / frequency):
         timesteps.append(time.time_ns())
@@ -246,8 +266,7 @@ def perunSubprocess(
         nodes={node.id: node for node in deviceGroupNodes},
     )
     processDataNode(hostNode)
-    print(hostNode.toDict())
 
     # This should send a single processed node for the current computational node
     queue.put(hostNode, block=True)
-    log.debug("Subprocess: Sent lStrg")
+    log.debug("Subprocess: Sent data")

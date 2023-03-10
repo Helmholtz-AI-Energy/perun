@@ -1,11 +1,12 @@
 """Storage Module."""
 import dataclasses
 import enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 from typing_extensions import Self
 
+from perun import log
 from perun.data_model.measurement_type import MetricMetaData
 from perun.data_model.sensor import DeviceType
 
@@ -13,34 +14,35 @@ from perun.data_model.sensor import DeviceType
 class NodeType(enum.Enum):
     """DataNode type enum."""
 
-    RUN = "run"
-    NODE = "node"
-    DEVICE_GROUP = "device group"
-    SENSOR = "sensor"
+    MULTI_RUN = enum.auto()
+    RUN = enum.auto()
+    NODE = enum.auto()
+    DEVICE_GROUP = enum.auto()
+    SENSOR = enum.auto()
 
 
 class MetricType(enum.Enum):
     """Metric Type enum."""
 
-    RUNTIME = "runtime"
-    ENERGY = "energy"
-    POWER = "power"
-    CPU_UTIL = "cpu util"
-    GPU_UTIL = "gpu util"
-    MEM_UTIL = "mem util"
-    NET_READ = "net read"
-    NET_WRITE = "net write"
-    DISK_READ = "disk read"
-    DISK_WRITE = "disk write"
+    RUNTIME = enum.auto()
+    POWER = enum.auto()
+    CPU_UTIL = enum.auto()
+    GPU_UTIL = enum.auto()
+    MEM_UTIL = enum.auto()
+    NET_READ = enum.auto()
+    NET_WRITE = enum.auto()
+    DISK_READ = enum.auto()
+    DISK_WRITE = enum.auto()
+    ENERGY = enum.auto()
 
 
 class AggregateType(enum.Enum):
     """Types of data aggregation."""
 
-    SUM = "sum"
-    MEAN = "mean"
-    MAX = "max"
-    MIN = "min"
+    SUM = enum.auto()
+    MEAN = enum.auto()
+    MAX = enum.auto()
+    MIN = enum.auto()
 
 
 @dataclasses.dataclass
@@ -60,6 +62,57 @@ class Metric:
             np.float32(metricDict["value"]),
             MetricMetaData.fromDict(metricDict["metric_md"]),
             AggregateType(metricDict["agg"]),
+        )
+
+
+@dataclasses.dataclass
+class Stats:
+    """Collects statistics based on multiple metrics of the same type."""
+
+    type: MetricType
+    metric_md: MetricMetaData
+    mean: np.number
+    std: np.number
+    max: np.number
+    min: np.number
+
+    @classmethod
+    def fromMetrics(cls, metrics: List[Metric]) -> Self:
+        """Create a stats object based on the metric's values."""
+        type = metrics[0].type
+        metric_md = metrics[0].metric_md
+
+        for m in metrics:
+            if m.type != type:
+                log.error("Metrics given to Stats class do not match")
+                raise Exception("Metrics type don't match. Invalid Stats")
+
+        values = np.array([metric.value for metric in metrics])
+        mean = values.mean()
+        std = values.std()
+        max = values.max()
+        min = values.min()
+        return cls(type, metric_md, mean, std, max, min)
+
+    @property
+    def value(self):
+        """
+        Value property.
+
+        For compatibility with Metric dataclass.
+        """
+        return self.mean
+
+    @classmethod
+    def fromDict(cls, statsDict: Dict) -> Self:
+        """Stats constructor from a dictionory."""
+        return cls(
+            MetricType(statsDict["type"]),
+            MetricMetaData.fromDict(statsDict["metric_md"]),
+            statsDict["mean"],
+            statsDict["std"],
+            statsDict["max"],
+            statsDict["min"],
         )
 
 
@@ -94,7 +147,7 @@ class DataNode:
         type: NodeType,
         metadata: Dict,
         nodes: Optional[Dict[str, Self]] = None,
-        metrics: Optional[List[Metric]] = None,
+        metrics: Optional[Dict[MetricType, Union[Metric, Stats]]] = None,
         deviceType: Optional[DeviceType] = None,
         raw_data: Optional[RawData] = None,
         processed: bool = False,
@@ -112,7 +165,9 @@ class DataNode:
         self.type = type
         self.metadata: Dict[str, Any] = metadata
         self.nodes: Dict[str, Self] = nodes if nodes else {}
-        self.metrics: List[Metric] = metrics if metrics else []
+        self.metrics: Dict[MetricType, Union[Metric, Stats]] = (
+            metrics if metrics else {}
+        )
         self.deviceType: Optional[DeviceType] = deviceType
         self.raw_data: Optional[RawData] = raw_data
         self.processed = processed
@@ -121,11 +176,16 @@ class DataNode:
         """Transform object to dictionary."""
         resultsDict = {
             "id": self.id,
+            "type": self.type.value,
             "metadata": self.metadata,
             "nodes": {
                 key: value.toDict(include_raw_data) for key, value in self.nodes.items()
             },
-            "metrics": [dataclasses.asdict(metric) for metric in self.metrics],
+            "metrics": {
+                type.value: dataclasses.asdict(metric)
+                for type, metric in self.metrics.items()
+            },
+            "deviceType": self.deviceType,
             "processed": self.processed,
         }
         if include_raw_data and self.raw_data:
@@ -136,9 +196,10 @@ class DataNode:
     @classmethod
     def fromDict(cls, resultsDict: Dict) -> Self:
         """Build object from dictionary."""
+        type = NodeType(resultsDict["type"])
         newResults = cls(
             id=resultsDict["id"],
-            type=NodeType(resultsDict["type"]),
+            type=type,
             metadata=resultsDict["metadata"],
             nodes={
                 key: DataNode.fromDict(node)
@@ -149,8 +210,18 @@ class DataNode:
         if "deviceType" in resultsDict:
             newResults.deviceType = DeviceType(resultsDict["deviceType"])
 
+        if "metrics" in resultsDict:
+            if type == NodeType.MULTI_RUN:
+                newResults.metrics = {
+                    MetricType(type): Stats.fromDict(metricDict)
+                    for type, metricDict in resultsDict["metrics"].items()
+                }
+            else:
+                newResults.metrics = {
+                    MetricType(type): Metric.fromDict(metricDict)
+                    for type, metricDict in resultsDict["metrics"].items()
+                }
         if "raw_data" in resultsDict:
-            newResults.metrics = [
-                Metric.fromDict(metricDict) for metricDict in resultsDict["metrics"]
-            ]
+            newResults.raw_data = RawData.fromDict(resultsDict["raw_data"])
+
         return newResults

@@ -98,7 +98,7 @@ Commands:
 
 Monitor energy usage of a python script.
 
-```bash
+```console
 Usage: perun monitor [OPTIONS] SCRIPT [SCRIPT_ARGS]...
 
   Gather power consumption from hardware devices while SCRIPT [SCRIPT_ARGS] is
@@ -148,7 +148,7 @@ Options:
 
 Prints the current option configurations based on the global, local configurations files and command line options.
 
-'''bash
+```confg
 Usage: perun showconf [OPTIONS]
 
   Print current perun configuration in INI format.
@@ -156,7 +156,7 @@ Usage: perun showconf [OPTIONS]
 Options:
   --default  Print default configuration
   --help     Show this message and exit.
-'''
+```
 
 ### Decorator
 

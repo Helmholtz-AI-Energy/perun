@@ -18,13 +18,14 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "frequency": 1,
     },
     "output": {
-        "name": None,
-        "id": None,
-        "format": "txt",
-        "data_out": "./",
+        "app_name": None,
+        "run_id": None,
+        "format": "text",
+        "data_out": "./perun_results",
+        "depth": 3,
         "raw": False,
     },
-    "debug": {"log_lvl": "WARN"},
+    "debug": {"log_lvl": "ERROR"},
     "horeka": {"enabled": False, "url": "", "token": "", "org": ""},
 }
 
