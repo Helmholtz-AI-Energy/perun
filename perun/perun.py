@@ -1,11 +1,11 @@
 """Core perun functionality."""
 import platform
+import pprint as pp
 
 # import sys
 import time
 import types
 from datetime import datetime
-from functools import reduce
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Union
@@ -13,43 +13,15 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union
 import numpy as np
 
 from perun import COMM_WORLD, log
-from perun.backend import Backend, Sensor, backends
-from perun.comm import Comm
+from perun.backend import Sensor, backends
 from perun.configuration import config
-from perun.coordination import assignSensors
+from perun.coordination import getLocalSensorRankConfiguration
 from perun.data_model.data import DataNode, NodeType, RawData
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType
 from perun.io.io import IOFormat, exportTo
 from perun.processing import processDataNode, processSensorData
 from perun.util import getRunId, getRunName
-
-# from perun.processing import postprocessing
-# from perun.report import report
-
-
-def getSensorConfiguration(comm: Comm, backends: List[Backend]) -> Set[str]:
-    """
-    Obtain a list with the assigned devices to the current rank.
-
-    Args:
-        comm (Comm): MPI communicator object
-        backends (List[Backend]): List of available backend objects
-
-    Returns:
-        List[str]: IDs of assigned devices to the current rank
-    """
-    visibleSensors: Set[str] = reduce(
-        lambda a, b: a | b, [backend.visibleSensors() for backend in backends]
-    )
-
-    log.debug(f"Rank {comm.Get_rank()} : Visible devices {visibleSensors}")
-    globalVisibleSensors = comm.allgather(visibleSensors)
-    globalHostnames = comm.allgather(platform.node())
-
-    globalVisibleSensors = assignSensors(globalVisibleSensors, globalHostnames)
-
-    return globalVisibleSensors[comm.Get_rank()]
 
 
 def monitor_application(
@@ -68,12 +40,10 @@ def monitor_application(
 
     # Get node devices
     log.debug(f"Backends: {backends}")
-    lSensorIds: Set[str] = getSensorConfiguration(COMM_WORLD, backends)
+    mpiRanks, localBackends = getLocalSensorRankConfiguration(COMM_WORLD, backends)
 
     for backend in backends:
         backend.close()
-
-    log.debug(f"Rank {COMM_WORLD.Get_rank()} - lSensorIds : {lSensorIds}")
 
     start_event = Event()
     stop_event = Event()
@@ -81,7 +51,10 @@ def monitor_application(
     queue: Optional[Queue] = None
     perunSP: Optional[Process] = None
     # If assigned devices, start subprocess
-    if len(lSensorIds) > 0:
+    if len(localBackends.keys()) > 0:
+        log.debug(
+            f"Rank {COMM_WORLD.Get_rank()} - Local Backendens : {pp.pformat(localBackends)}"
+        )
         queue = Queue()
         perunSP = Process(
             target=perunSubprocess,
@@ -89,7 +62,7 @@ def monitor_application(
                 queue,
                 start_event,
                 stop_event,
-                lSensorIds,
+                localBackends,
                 config.getfloat("monitor", "frequency"),
             ],
         )
@@ -154,6 +127,7 @@ def monitor_application(
             metadata={
                 "app_name": getRunName(app),
                 "startime": start.isoformat(),
+                "mpi_ranks": mpiRanks,
             },
             nodes={node.id: node for node in dataNodes if node},
         )
@@ -169,7 +143,11 @@ def monitor_application(
 
 
 def perunSubprocess(
-    queue: Queue, start_event, stop_event, deviceIds: Set[str], frequency: float
+    queue: Queue,
+    start_event,
+    stop_event,
+    backendConfig: Dict[str, Set[str]],
+    frequency: float,
 ):
     """
     Parallel function that samples energy values from hardware libraries.
@@ -186,7 +164,8 @@ def perunSubprocess(
     lSensors: List[Sensor] = []
     for backend in backends:
         backend.setup()
-        lSensors += backend.getSensors(deviceIds)
+        if backend.name in backendConfig:
+            lSensors += backend.getSensors(backendConfig[backend.name])
 
     timesteps = []
     t_mT = MetricMetaData(

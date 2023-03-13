@@ -53,7 +53,7 @@ class NVMLSource(Backend):
         devices = set()
         for i in range(pynvml.nvmlDeviceGetCount()):
             handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-            devices.add(pynvml.nvmlDeviceGetUUID(handle).decode("utf-8"))
+            devices.add(pynvml.nvmlDeviceGetUUID(handle))
         return devices
 
     def getSensors(self, deviceList: Set[str]):
@@ -73,16 +73,18 @@ class NVMLSource(Backend):
 
             return func
 
-        for device in deviceList:
+        devices = []
+        for deviceId in deviceList:
             try:
-                handle = pynvml.nvmlDeviceGetHandleByUUID(device.encode())
+                handle = pynvml.nvmlDeviceGetHandleByUUID(deviceId.encode())
                 index = pynvml.nvmlDeviceGetIndex(handle)
 
                 name = f"CUDA:{index}"
                 device_type = DeviceType.GPU
                 device_metadata = {
-                    "uuid": device,
-                    "name": pynvml.nvmlDeviceGetName(handle) ** self.metadata,
+                    "uuid": deviceId,
+                    "name": pynvml.nvmlDeviceGetName(handle),
+                    **self.metadata,
                 }
                 max_power = np.uint32(pynvml.nvmlDeviceGetPowerManagementLimit(handle))
 
@@ -94,18 +96,20 @@ class NVMLSource(Backend):
                     np.uint32(max_power),
                     np.uint32(0),
                 )
-                self.devices[name] = Sensor(
-                    name,
-                    device_type,
-                    device_metadata,
-                    data_type,
-                    getCallback(handle),
+                devices.append(
+                    Sensor(
+                        name,
+                        device_type,
+                        device_metadata,
+                        data_type,
+                        getCallback(handle),
+                    )
                 )
             except NVMLError as e:
-                log.debug(f"Could not find device {device}")
+                log.debug(f"Could not find device {deviceId}")
                 log.debug(e)
 
-        return self.devices
+        return devices
 
 
 NVMLSource()

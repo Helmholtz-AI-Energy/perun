@@ -3,6 +3,7 @@
 Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline configurations.
 """
 from pathlib import Path
+from pprint import pprint
 
 import click
 
@@ -125,6 +126,25 @@ def showconf(default: bool):
         config.write(sys.stdout)
     else:
         config.write(sys.stdout)
+
+
+@cli.command()
+def sensors():
+    """Print sensors assigned to each rank by perun."""
+    from perun import COMM_WORLD
+    from perun.backend import backends
+    from perun.coordination import getGlobalSensorRankConfiguration
+
+    globalHostRank, globalSensorConfig = getGlobalSensorRankConfiguration(
+        COMM_WORLD, backends
+    )
+    if COMM_WORLD.Get_rank() == 0:
+        for rank, bes in enumerate(globalSensorConfig):
+            click.echo(f"Rank: {rank}")
+            click.echo(pprint(bes))
+
+        click.echo("Hostnames: ")
+        click.echo(pprint(globalHostRank))
 
 
 @cli.command()
