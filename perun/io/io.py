@@ -2,30 +2,54 @@
 
 import enum
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from perun import log
-from perun.data_model.data import DataNode, NodeType
+from perun.data_model.data import DataNode
+from perun.io.json import exportJson, importJson
+from perun.io.pickle import exportPickle, importPickle
 from perun.io.text_report import textReport
+
+_suffixes = {
+    "text": "txt",
+    "yaml": "yaml",
+    "json": "json",
+    "hdf5": "hdf5",
+    "pickle": "pkl",
+    "pandas": "csv",
+}
 
 
 class IOFormat(enum.Enum):
     """Available IO file formats."""
 
     TEXT = "text"
-    YAML = "yaml"
+    # YAML = "yaml"
     JSON = "json"
     HDF5 = "hdf5"
     PICKLE = "pickle"
     PANDAS = "pandas"
 
+    @property
+    def suffix(self):
+        """Return file suffix from format."""
+        return _suffixes[self.value]
+
+    @classmethod
+    def fromSuffix(cls, suffix: str):
+        """Return format from suffix."""
+        for key, value in _suffixes.items():
+            if value in suffix:
+                return cls(key)
+        raise ValueError("Invalid file format.")
+
 
 def exportTo(
     data_out: Path,
     dataNode: DataNode,
-    format: IOFormat = IOFormat.TEXT,
+    format: IOFormat,
     rawData: bool = False,
-    depth: NodeType = NodeType.RUN,
+    depth: Optional[int] = None,
 ):
     """Export DataNode structure to the selected format.
 
@@ -42,28 +66,54 @@ def exportTo(
         log.info(f"{data_out} does not exists. So lets make it.")
         data_out.mkdir()
 
-    if format == IOFormat.YAML:
-        pass
-    elif format == IOFormat.JSON:
-        pass
+    filename = f"{dataNode.metadata['app_name']}_{dataNode.id}"
+
+    reportStr: Union[str, bytes]
+    if format == IOFormat.JSON:
+        filename += ".json"
+        fileType = "w"
+        reportStr = exportJson(dataNode, depth, rawData)
+    # elif format == IOFormat.YAML:
+    #     filename += ".yaml"
+    #     reportStr = exportYaml(dataNode, depth, rawData)
     elif format == IOFormat.HDF5:
         pass
     elif format == IOFormat.PICKLE:
-        pass
+        filename += ".pkl"
+        fileType = "wb"
+        reportStr = exportPickle(dataNode)
     elif format == IOFormat.PANDAS:
         pass
     else:
-        filename = f"{dataNode.metadata['app_name']}_{dataNode.id}.txt"
+        filename += ".txt"
+        fileType = "w"
         reportStr = textReport(dataNode)
-        with open(data_out / filename, "w") as file:
-            file.write(reportStr)
+
+    with open(data_out / filename, fileType) as file:
+        file.write(reportStr)
 
 
-def importFrom(filePath: Path, format: Optional[IOFormat] = None):
+def importFrom(filePath: Path, format: IOFormat) -> DataNode:
     """Import DataNode structure from path. If no format is given, it is inferred form path sufix.
 
     Args:
         filePath (Path): Path to file
         format (Optional[IOFormat], optional): File format. Defaults to None.
     """
-    pass
+    if format == IOFormat.JSON:
+        with open(filePath, "r") as file:
+            dataNode = importJson(file.read())
+    # elif format == IOFormat.YAML:
+    #     filename += ".yaml"
+    #     reportStr = exportYaml(dataNode, depth, rawData)
+    elif format == IOFormat.HDF5:
+        pass
+    elif format == IOFormat.PICKLE:
+        with open(filePath, "rb") as file:
+            dataNode = importPickle(file.read())
+    elif format == IOFormat.PANDAS:
+        pass
+    else:
+        raise ValueError("File format is not supported.")
+
+    return dataNode

@@ -8,18 +8,18 @@ import numpy as np
 from perun.data_model.measurement_type import MetricMetaData
 
 
-class DeviceType(enum.Enum):
+class DeviceType(str, enum.Enum):
     """DeviceType enum."""
 
-    RACK = enum.auto()
-    NODE = enum.auto()
-    CPU = enum.auto()
-    GPU = enum.auto()
-    RAM = enum.auto()
-    DISK = enum.auto()
-    NET = enum.auto()
-    FAN = enum.auto()
-    OTHER = enum.auto()
+    RACK = "rack"
+    NODE = "node"
+    CPU = "cpu"
+    GPU = "gpu"
+    RAM = "ram"
+    DISK = "disk"
+    NET = "net"
+    FAN = "fan"
+    OTHER = "other"
 
 
 @dataclass

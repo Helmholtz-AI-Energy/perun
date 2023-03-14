@@ -22,7 +22,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "run_id": None,
         "format": "text",
         "data_out": "./perun_results",
-        "depth": 3,
+        "depth": None,
         "raw": False,
     },
     "debug": {"log_lvl": "ERROR"},

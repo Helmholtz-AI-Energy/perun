@@ -7,7 +7,7 @@ import numpy as np
 from typing_extensions import Self
 
 
-class Unit(enum.Enum):
+class Unit(str, enum.Enum):
     """Unit enum."""
 
     JOULE = "J"
@@ -29,7 +29,7 @@ class Unit(enum.Enum):
         return self.symbol()
 
 
-class Magnitude(enum.Enum):
+class Magnitude(float, enum.Enum):
     """Magnitude prefix enum."""
 
     PICO = 1e-12

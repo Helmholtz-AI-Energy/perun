@@ -21,28 +21,28 @@ class NodeType(enum.Enum):
     SENSOR = enum.auto()
 
 
-class MetricType(enum.Enum):
+class MetricType(str, enum.Enum):
     """Metric Type enum."""
 
-    RUNTIME = enum.auto()
-    POWER = enum.auto()
-    CPU_UTIL = enum.auto()
-    GPU_UTIL = enum.auto()
-    MEM_UTIL = enum.auto()
-    NET_READ = enum.auto()
-    NET_WRITE = enum.auto()
-    DISK_READ = enum.auto()
-    DISK_WRITE = enum.auto()
-    ENERGY = enum.auto()
+    RUNTIME = "runtime"
+    POWER = "power"
+    CPU_UTIL = "cpu_util"
+    GPU_UTIL = "gpu_util"
+    MEM_UTIL = "mem_util"
+    NET_READ = "net_read"
+    NET_WRITE = "net_write"
+    DISK_READ = "disk_read"
+    DISK_WRITE = "disk_write"
+    ENERGY = "energy"
 
 
-class AggregateType(enum.Enum):
+class AggregateType(str, enum.Enum):
     """Types of data aggregation."""
 
-    SUM = enum.auto()
-    MEAN = enum.auto()
-    MAX = enum.auto()
-    MIN = enum.auto()
+    SUM = "sum"
+    MEAN = "mean"
+    MAX = "max"
+    MIN = "min"
 
 
 @dataclasses.dataclass
@@ -172,15 +172,14 @@ class DataNode:
         self.raw_data: Optional[RawData] = raw_data
         self.processed = processed
 
-    def toDict(self, include_raw_data: bool = False) -> Dict:
+    def toDict(
+        self, depth: Optional[int] = None, include_raw_data: bool = False
+    ) -> Dict:
         """Transform object to dictionary."""
         resultsDict = {
             "id": self.id,
             "type": self.type.value,
             "metadata": self.metadata,
-            "nodes": {
-                key: value.toDict(include_raw_data) for key, value in self.nodes.items()
-            },
             "metrics": {
                 type.value: dataclasses.asdict(metric)
                 for type, metric in self.metrics.items()
@@ -188,6 +187,21 @@ class DataNode:
             "deviceType": self.deviceType,
             "processed": self.processed,
         }
+        if depth is None:
+            resultsDict["nodes"] = (
+                {
+                    key: value.toDict(depth, include_raw_data)
+                    for key, value in self.nodes.items()
+                },
+            )
+        elif depth > 1:
+            resultsDict["nodes"] = (
+                {
+                    key: value.toDict(depth - 1, include_raw_data)
+                    for key, value in self.nodes.items()
+                },
+            )
+
         if include_raw_data and self.raw_data:
             resultsDict["raw_data"] = dataclasses.asdict(self.raw_data)
 

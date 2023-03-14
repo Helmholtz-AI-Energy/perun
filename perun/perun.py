@@ -136,7 +136,11 @@ def monitor_application(
         data_out = Path(config.get("output", "data_out"))
         format = IOFormat(config.get("output", "format"))
         includeRawData = config.getboolean("output", "raw")
-        depth = NodeType(config.getint("output", "depth"))
+        depthStr = config.get("output", "depth")
+        if depthStr:
+            depth = int(depthStr)
+        else:
+            depth = None
         exportTo(data_out, runNode, format, includeRawData, depth)
 
     return app_result
