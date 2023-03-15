@@ -20,6 +20,7 @@ numpy = "*"
 psutil = "*"
 h5py = "*"
 prettytable = "^3.6.0"
+pandas = "^1.5.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

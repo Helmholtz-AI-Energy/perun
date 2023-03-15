@@ -8,6 +8,7 @@ from perun import log
 from perun.data_model.data import DataNode
 from perun.io.hdf5 import exportHDF5, importHDF5
 from perun.io.json import exportJson, importJson
+from perun.io.pandas import exportCSV
 from perun.io.pickle import exportPickle, importPickle
 from perun.io.text_report import textReport
 
@@ -17,7 +18,7 @@ _suffixes = {
     "json": "json",
     "hdf5": "hdf5",
     "pickle": "pkl",
-    "pandas": "csv",
+    "csv": "csv",
 }
 
 
@@ -29,7 +30,7 @@ class IOFormat(enum.Enum):
     JSON = "json"
     HDF5 = "hdf5"
     PICKLE = "pickle"
-    PANDAS = "pandas"
+    CSV = "csv"
 
     @property
     def suffix(self):
@@ -88,8 +89,9 @@ def exportTo(
         reportStr = exportPickle(dataNode)
         with open(data_out / filename, fileType) as file:
             file.write(reportStr)
-    # elif format == IOFormat.PANDAS:
-    #     pass
+    elif format == IOFormat.CSV:
+        filename += ".cvs"
+        exportCSV(data_out / filename, dataNode)
     else:
         filename += ".txt"
         fileType = "w"
@@ -116,8 +118,6 @@ def importFrom(filePath: Path, format: IOFormat) -> DataNode:
     elif format == IOFormat.PICKLE:
         with open(filePath, "rb") as file:
             dataNode = importPickle(file.read())
-    # elif format == IOFormat.PANDAS:
-    #     pass
     else:
         raise ValueError("File format is not supported.")
 
