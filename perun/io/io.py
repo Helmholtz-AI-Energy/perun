@@ -6,6 +6,7 @@ from typing import Optional, Union
 
 from perun import log
 from perun.data_model.data import DataNode
+from perun.io.hdf5 import exportHDF5, importHDF5
 from perun.io.json import exportJson, importJson
 from perun.io.pickle import exportPickle, importPickle
 from perun.io.text_report import textReport
@@ -73,24 +74,28 @@ def exportTo(
         filename += ".json"
         fileType = "w"
         reportStr = exportJson(dataNode, depth, rawData)
+        with open(data_out / filename, fileType) as file:
+            file.write(reportStr)
     # elif format == IOFormat.YAML:
     #     filename += ".yaml"
     #     reportStr = exportYaml(dataNode, depth, rawData)
     elif format == IOFormat.HDF5:
-        pass
+        filename += ".hdf5"
+        exportHDF5(data_out / filename, dataNode)
     elif format == IOFormat.PICKLE:
         filename += ".pkl"
         fileType = "wb"
         reportStr = exportPickle(dataNode)
-    elif format == IOFormat.PANDAS:
-        pass
+        with open(data_out / filename, fileType) as file:
+            file.write(reportStr)
+    # elif format == IOFormat.PANDAS:
+    #     pass
     else:
         filename += ".txt"
         fileType = "w"
         reportStr = textReport(dataNode)
-
-    with open(data_out / filename, fileType) as file:
-        file.write(reportStr)
+        with open(data_out / filename, fileType) as file:
+            file.write(reportStr)
 
 
 def importFrom(filePath: Path, format: IOFormat) -> DataNode:
@@ -107,12 +112,12 @@ def importFrom(filePath: Path, format: IOFormat) -> DataNode:
     #     filename += ".yaml"
     #     reportStr = exportYaml(dataNode, depth, rawData)
     elif format == IOFormat.HDF5:
-        pass
+        dataNode = importHDF5(filePath)
     elif format == IOFormat.PICKLE:
         with open(filePath, "rb") as file:
             dataNode = importPickle(file.read())
-    elif format == IOFormat.PANDAS:
-        pass
+    # elif format == IOFormat.PANDAS:
+    #     pass
     else:
         raise ValueError("File format is not supported.")
 

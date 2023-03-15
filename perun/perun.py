@@ -12,7 +12,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import numpy as np
 
-from perun import COMM_WORLD, log
+from perun import COMM_WORLD, __version__, log
 from perun.backend import Sensor, backends
 from perun.configuration import config
 from perun.coordination import getLocalSensorRankConfiguration
@@ -114,6 +114,8 @@ def monitor_application(
     else:
         nodeData = None
 
+    if nodeData:
+        nodeData.metadata["mpi_ranks"] = mpiRanks
     # Sync
     COMM_WORLD.barrier()
     log.debug("Everyone exited the subprocess")
@@ -127,7 +129,7 @@ def monitor_application(
             metadata={
                 "app_name": getRunName(app),
                 "startime": start.isoformat(),
-                "mpi_ranks": mpiRanks,
+                "perun_version": __version__,
             },
             nodes={node.id: node for node in dataNodes if node},
         )
