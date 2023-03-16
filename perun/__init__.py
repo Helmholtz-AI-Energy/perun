@@ -15,25 +15,4 @@ from perun.comm import Comm
 
 COMM_WORLD = Comm()
 
-# from perun.perun import (
-#     getDeviceConfiguration,
-#     monitor,
-#     perunSubprocess,
-#     postprocessing,
-#     save_data,
-# )
-# from perun.report import report
-# from perun.storage import ExperimentStorage, LocalStorage
-#
-# __all__ = [
-#     "perunSubprocess",
-#     "getDeviceConfiguration",
-#     "LocalStorage",
-#     "ExperimentStorage",
-#     "log",
-#     "monitor",
-#     "report",
-#     "postprocessing",
-#     "config",
-#     "save_data",
-# ]
+from perun.decorator import monitor

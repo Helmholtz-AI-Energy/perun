@@ -153,13 +153,7 @@ def sensors():
     type=click.Choice([format.value for format in IOFormat]),
 )
 def export(input_file: str, output_path: str, output_format: str):
-    """Export existing perun output file to another format.
-
-    Args:
-        input_file (str): Exisiting perun output file.
-        output_path (str): Location of the new file.
-        output_format (str): Format of the new file.
-    """
+    """Export existing perun output file to another format."""
     in_file = Path(input_file)
     if not in_file.exists():
         click.echo("File does not exist.", err=True)
