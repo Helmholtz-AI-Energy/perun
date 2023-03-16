@@ -8,7 +8,7 @@ import types
 from datetime import datetime
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 
@@ -41,112 +41,188 @@ def monitor_application(
     from perun.backend import backends
 
     log.debug(f"Backends: {backends}")
-    mpiRanks, localBackends = getLocalSensorRankConfiguration(COMM_WORLD, backends)
+
+    starttime = datetime.utcnow()
+    app_results: Optional[Any] = None
+    data_out = Path(config.get("output", "data_out"))
+    format = IOFormat(config.get("output", "format"))
+    includeRawData = config.getboolean("output", "raw")
+    depthStr = config.get("output", "depth")
+    if depthStr:
+        depth = int(depthStr)
+    else:
+        depth = None
+
+    if not config.getboolean("benchmarking", "bench_enable"):
+        app_results, dataNode = _run_application(
+            backends, app, app_args, app_kwargs, record=True
+        )
+        if dataNode:
+            # Only on first rank, export data
+            exportTo(data_out, dataNode, format, includeRawData, depth)
+    else:
+        # Start with warmup rounds
+        log.info("Started warmup rounds")
+        for i in range(config.getint("benchmarking", "bench_warmup_rounds")):
+            log.debug(f"Warmup run: {i}")
+            app_results, _ = _run_application(
+                backends, app, app_args, app_kwargs, record=False
+            )
+
+        log.info("Started bench rounds")
+        runNodes: List[DataNode] = []
+        for i in range(config.getint("benchmarking", "bench_rounds")):
+            log.debug(f"Bench run: {i}")
+            app_results, runNode = _run_application(
+                backends, app, app_args, app_kwargs, record=True, run_id=str(i)
+            )
+            if runNode:
+                runNodes.append(runNode)
+
+        if len(runNodes) > 0:
+            benchNode = DataNode(
+                id=getRunId(starttime),
+                type=NodeType.MULTI_RUN,
+                metadata={
+                    "app_name": getRunName(app),
+                    "startime": starttime.isoformat(),
+                    "perun_version": __version__,
+                },
+                nodes={node.id: node for node in runNodes},
+            )
+            benchNode = processDataNode(benchNode)
+
+            exportTo(data_out, benchNode, format, includeRawData, depth)
 
     for backend in backends:
         backend.close()
 
-    start_event = Event()
-    stop_event = Event()
+    return app_results
 
-    queue: Optional[Queue] = None
-    perunSP: Optional[Process] = None
-    # If assigned devices, start subprocess
-    if len(localBackends.keys()) > 0:
-        log.debug(
-            f"Rank {COMM_WORLD.Get_rank()} - Local Backendens : {pp.pformat(localBackends)}"
-        )
-        queue = Queue()
-        perunSP = Process(
-            target=perunSubprocess,
-            args=[
-                queue,
-                start_event,
-                stop_event,
-                localBackends,
-                config.getfloat("monitor", "frequency"),
-            ],
-        )
-        perunSP.start()
 
+def _run_application(
+    backends: List,
+    app: Union[Path, Callable],
+    app_args: tuple = tuple(),
+    app_kwargs: dict = dict(),
+    record: bool = True,
+    run_id: Optional[str] = None,
+) -> Tuple[Optional[Any], Optional[DataNode]]:
     app_result: Optional[Any] = None
-    COMM_WORLD.barrier()
-    start = datetime.now()
+    if record:
+        # 1) Get sensor configuration
+        mpiRanks, localBackends = getLocalSensorRankConfiguration(COMM_WORLD, backends)
 
-    if isinstance(app, Path):
-        # filePath = app
-        try:
-            with open(str(app), "r") as scriptFile:
-                start_event.set()
-                exec(
-                    scriptFile.read(),
-                    {"__name__": "__main__", "__file__": app.name},
-                )
+        start_event = Event()
+        stop_event = Event()
+
+        queue: Optional[Queue] = None
+        perunSP: Optional[Process] = None
+
+        # 2) If assigned devices, create subprocess
+        if len(localBackends.keys()) > 0:
+            log.debug(
+                f"Rank {COMM_WORLD.Get_rank()} - Local Backendens : {pp.pformat(localBackends)}"
+            )
+            queue = Queue()
+            perunSP = Process(
+                target=perunSubprocess,
+                args=[
+                    queue,
+                    start_event,
+                    stop_event,
+                    localBackends,
+                    config.getfloat("monitor", "frequency"),
+                ],
+            )
+            perunSP.start()
+
+        # 3) Start application
+        COMM_WORLD.barrier()
+        run_starttime = datetime.utcnow()
+
+        if isinstance(app, Path):
+            try:
+                with open(str(app), "r") as scriptFile:
+                    start_event.set()
+                    exec(
+                        scriptFile.read(),
+                        {"__name__": "__main__", "__file__": app.name},
+                    )
+                    stop_event.set()
+            except Exception as e:
+                log.error(f"Found error on monitored script: {str(app)}")
                 stop_event.set()
-        except Exception as e:
-            log.error(f"Found error on monitored script: {str(app)}")
+                raise e
+
+        elif isinstance(app, types.FunctionType):
+            start_event.set()
+            try:
+                app_result = app(*app_args, **app_kwargs)
+            except Exception as e:
+                stop_event.set()
+                raise e
             stop_event.set()
-            raise e
 
-    elif isinstance(app, types.FunctionType):
-        # filePath = Path(sys.argv[0])
-        start_event.set()
-        try:
-            app_result = app(*app_args, **app_kwargs)
-        except Exception as e:
-            stop_event.set()
-            raise e
-        stop_event.set()
-
-    log.debug("Set closed event")
-    # stop = datetime.now()
-
-    # nodeData: Optional[DataNode]
-    # Obtain perun subprocess results
-    if queue and perunSP:
-        log.debug("Getting queue contents")
-        nodeData = queue.get(block=True)
-        log.debug("Got queue contents")
-        log.debug("Waiting for subprocess to close")
-        perunSP.join()
-        perunSP.close()
-        log.debug("Subprocess closed")
-        queue.close()
-    else:
-        nodeData = None
-
-    if nodeData:
-        nodeData.metadata["mpi_ranks"] = mpiRanks
-    # Sync
-    COMM_WORLD.barrier()
-    log.debug("Everyone exited the subprocess")
-
-    # Collect data from everyone on the first rank
-    dataNodes: Optional[List[DataNode]] = COMM_WORLD.gather(nodeData, root=0)
-    if dataNodes:
-        runNode = DataNode(
-            id=getRunId(start),
-            type=NodeType.RUN,
-            metadata={
-                "app_name": getRunName(app),
-                "startime": start.isoformat(),
-                "perun_version": __version__,
-            },
-            nodes={node.id: node for node in dataNodes if node},
-        )
-        runNode = processDataNode(runNode)
-
-        data_out = Path(config.get("output", "data_out"))
-        format = IOFormat(config.get("output", "format"))
-        includeRawData = config.getboolean("output", "raw")
-        depthStr = config.get("output", "depth")
-        if depthStr:
-            depth = int(depthStr)
+        # 4) App finished, stop subrocess and get data
+        if queue and perunSP:
+            log.debug("Getting queue contents")
+            nodeData = queue.get(block=True)
+            log.debug("Got queue contents")
+            log.debug("Waiting for subprocess to close")
+            perunSP.join()
+            perunSP.close()
+            log.debug("Subprocess closed")
+            queue.close()
         else:
-            depth = None
-        exportTo(data_out, runNode, format, includeRawData, depth)
+            nodeData = None
 
-    return app_result
+        COMM_WORLD.barrier()
+        log.debug("Everyone exited the subprocess")
+
+        if nodeData:
+            nodeData.metadata["mpi_ranks"] = mpiRanks
+
+        # 5) Collect data from everyone on the first rank
+        dataNodes: Optional[List[DataNode]] = COMM_WORLD.gather(nodeData, root=0)
+        if dataNodes:
+            # 6) On the first rank, create run node
+            runNode = DataNode(
+                id=run_id if run_id is not None else getRunId(run_starttime),
+                type=NodeType.RUN,
+                metadata={
+                    "app_name": getRunName(app),
+                    "startime": run_starttime.isoformat(),
+                    "perun_version": __version__,
+                },
+                nodes={node.id: node for node in dataNodes if node},
+            )
+            runNode = processDataNode(runNode)
+
+            return app_result, runNode
+        return app_result, None
+
+    else:
+        if isinstance(app, Path):
+            # filePath = app
+            try:
+                with open(str(app), "r") as scriptFile:
+                    exec(
+                        scriptFile.read(),
+                        {"__name__": "__main__", "__file__": app.name},
+                    )
+            except Exception as e:
+                log.error(f"Found error on monitored script: {str(app)}")
+                raise e
+
+        elif isinstance(app, types.FunctionType):
+            # filePath = Path(sys.argv[0])
+            try:
+                app_result = app(*app_args, **app_kwargs)
+            except Exception as e:
+                raise e
+
+        return app_result, None
 
 
 def perunSubprocess(
@@ -256,3 +332,6 @@ def perunSubprocess(
     # This should send a single processed node for the current computational node
     queue.put(hostNode, block=True)
     log.debug("Subprocess: Sent data")
+
+    for backend in backends:
+        backend.close()

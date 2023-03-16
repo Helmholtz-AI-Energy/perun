@@ -32,7 +32,7 @@ def textReport(dataNode: DataNode) -> str:
         raise Exception("Cannot generate report from unprocessed data node.")
 
     reportStr = (
-        "\n------------------------------------------\n"
+        "------------------------------------------\n"
         "PERUN REPORT\n"
         "\n"
         f"App name: {dataNode.metadata['app_name']}\n"
@@ -40,8 +40,10 @@ def textReport(dataNode: DataNode) -> str:
     )
 
     if dataNode.type == NodeType.MULTI_RUN:
-        table = PrettyTable()
+        table = PrettyTable(float_format="1.3f")
         table.field_names = ["Name", "mean", "std", "max", "min"]
+        table.align = "r"
+        table.align["Name"] = "l"  # type: ignore
         for metricType in MetricType:
             if metricType in dataNode.metrics:
                 metric = dataNode.metrics[metricType]
@@ -50,14 +52,14 @@ def textReport(dataNode: DataNode) -> str:
                     table.add_row(
                         [
                             f"{metricType.name} [{mag.symbol()}{metric.metric_md.unit.value}]",
-                            metric.mean / tfactor,
-                            metric.std / tfactor,
-                            metric.max / tfactor,
-                            metric.min / tfactor,
+                            f"{metric.mean / tfactor:.3f}",
+                            f"{metric.std / tfactor:.3f}",
+                            f"{metric.max / tfactor:.3f}",
+                            f"{metric.min / tfactor:.3f}",
                         ]
                     )
         reportStr += "\n"
-        reportStr += table.get_string()
+        reportStr += table.get_string(float_format=".3")
 
     else:
         for metricType in MetricType:

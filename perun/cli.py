@@ -55,9 +55,10 @@ from perun.io.io import IOFormat, exportTo, importFrom
     expose_value=False,
 )
 @click.option(
-    "--raw/--no-raw",
+    "--raw",
     default=False,
     help="Use the flag '--raw' if you need access to all the raw data collected by perun. The output will be saved on an hdf5 file on the perun data output location.",
+    is_flag=True,
     callback=save_to_config_callback,
     expose_value=False,
 )
@@ -65,7 +66,7 @@ from perun.io.io import IOFormat, exportTo, importFrom
 @click.option(
     "--frequency",
     type=float,
-    help="sampling frequency (in Hz)",
+    help="Sampling frequency (in Hz)",
     callback=save_to_config_callback,
     expose_value=False,
 )
@@ -78,19 +79,49 @@ from perun.io.io import IOFormat, exportTo, importFrom
     expose_value=False,
 )
 @click.option(
-    "--emissions-factor",
+    "--emissions_factor",
     type=float,
     help="Emissions factor at compute resource location",
     callback=save_to_config_callback,
     expose_value=False,
 )
 @click.option(
-    "--price-factor",
+    "--price_factor",
     type=float,
     help="Electricity price factor at compute resource location",
     callback=save_to_config_callback,
     expose_value=False,
 )
+# Benchmarking
+@click.option(
+    "--bench",
+    "bench_enable",
+    is_flag=True,
+    help="Activate benchmarking mode.",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+@click.option(
+    "--bench_rounds",
+    type=int,
+    help="Number of rounds per function/app.",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+@click.option(
+    "--bench_warmup_rounds",
+    type=int,
+    help="Number of warmup rounds per function/app.",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+# @click.option(
+#     "--bench_metrics",
+#     multiple=True,
+#     help="Metrics to output. Only relevant with bench_minimal_format enabled",
+#     callback=save_to_config_callback,
+#     expose_value=False,
+# )
 # Debug Options
 @click.option(
     "-l",

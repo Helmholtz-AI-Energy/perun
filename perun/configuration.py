@@ -11,8 +11,8 @@ import click
 _default_config: Mapping[str, Mapping[str, Any]] = {
     "post-processing": {
         "pue": 1.58,
-        "emissions-factor": 0.355,
-        "price-factor": 41.59,
+        "emissions_factor": 0.355,
+        "price_factor": 41.59,
     },
     "monitor": {
         "frequency": 1,
@@ -25,8 +25,15 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "depth": None,
         "raw": False,
     },
+    "benchmarking": {
+        "bench_enable": False,
+        "bench_rounds": 10,
+        "bench_warmup_rounds": 5,
+        # "bench_metrics": ["ENERGY", "RUNTIME"],
+        # "bench_minimal_format": False
+    },
     "debug": {"log_lvl": "ERROR"},
-    "horeka": {"enabled": False, "url": "", "token": "", "org": ""},
+    # "horeka": {"enabled": False, "url": "", "token": "", "org": ""},
 }
 
 config: configparser.ConfigParser = configparser.ConfigParser(allow_no_value=True)
