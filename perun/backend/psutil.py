@@ -11,7 +11,7 @@ from perun.data_model.sensor import DeviceType, Sensor
 
 
 @backend
-class PSUTIL(Backend):
+class PSUTILBackend(Backend):
     """PSUTIL Backend class."""
 
     name: str = "PSUTIL"
@@ -133,4 +133,4 @@ class PSUTIL(Backend):
         return [self.devices[deviceName] for deviceName in deviceList]
 
 
-PSUTIL()
+PSUTILBackend()

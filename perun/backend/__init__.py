@@ -1,11 +1,6 @@
-"""Backend module.
-
-Defines backends and devices used for energy measurements. Connects to different backends and provides a unified interface for them.
-"""
-from ..data_model.sensor import Sensor
-from . import intel_rapl, nvml, psutil
-
+"""Backend module."""
 # flake8: noqa
-from .backend import Backend, backends
-
-__all__ = ["backends", "Sensor", "Backend"]
+from .backend import Backend, backend, backends
+from .intel_rapl import IntelRAPLBackend
+from .nvml import NVMLBackend
+from .psutil import PSUTILBackend

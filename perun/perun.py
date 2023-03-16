@@ -13,12 +13,11 @@ from typing import Any, Callable, Dict, List, Optional, Set, Union
 import numpy as np
 
 from perun import COMM_WORLD, __version__, log
-from perun.backend import Sensor, backends
 from perun.configuration import config
 from perun.coordination import getLocalSensorRankConfiguration
 from perun.data_model.data import DataNode, NodeType, RawData
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
-from perun.data_model.sensor import DeviceType
+from perun.data_model.sensor import DeviceType, Sensor
 from perun.io.io import IOFormat, exportTo
 from perun.processing import processDataNode, processSensorData
 from perun.util import getRunId, getRunName
@@ -39,6 +38,8 @@ def monitor_application(
     # outPath: Path = Path(config.get("output", "data_out"))
 
     # Get node devices
+    from perun.backend import backends
+
     log.debug(f"Backends: {backends}")
     mpiRanks, localBackends = getLocalSensorRankConfiguration(COMM_WORLD, backends)
 

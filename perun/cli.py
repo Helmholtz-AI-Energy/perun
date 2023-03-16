@@ -144,6 +144,9 @@ def sensors():
         click.echo("Hostnames: ")
         click.echo(pprint(globalHostRank))
 
+    for b in backends:
+        b.close()
+
 
 @cli.command()
 @click.argument("input_file", type=click.Path(exists=True))

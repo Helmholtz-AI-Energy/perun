@@ -14,5 +14,3 @@ os.environ["RDMAV_FORK_SAFE"] = "1"
 from perun.comm import Comm
 
 COMM_WORLD = Comm()
-
-from perun.decorator import monitor

@@ -154,9 +154,9 @@ Options:
 Or decorate the function that you want analysed
 
 ```python
-import perun
+from perun.decorator import monitor
 
-@perun.monitor(data_out="results/", format="txt")
+@monitor(format="hdf5", data_out="results/")
 def training_loop(args, model, device, train_loader, test_loader, optimizer, scheduler):
     for epoch in range(1, args.epochs + 1):
         train(args, model, device, train_loader, optimizer, epoch)

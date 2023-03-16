@@ -13,7 +13,7 @@ from .backend import Backend, backend
 
 
 @backend
-class NVMLSource(Backend):
+class NVMLBackend(Backend):
     """NVMLSource class.
 
     Setups connection to NVML and creates relevant devices
@@ -112,4 +112,4 @@ class NVMLSource(Backend):
         return devices
 
 
-NVMLSource()
+NVMLBackend()
