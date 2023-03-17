@@ -66,11 +66,11 @@ def backend(cls):
                 backend_wrapper.instance = cls(*args, **kwargs)
                 backends.append(backend_wrapper.instance)
             except ImportError as ie:
-                log.warning(f"Missing dependencies for backend {cls.__name__}")
-                log.warning(ie)
+                log.warninging(f"Missing dependencies for backend {cls.__name__}")
+                log.warninging(ie)
             except Exception as e:
-                log.warning(f"Unknown error loading dependecy {cls.__name__}")
-                log.warning(e)
+                log.warninging(f"Unknown error loading dependecy {cls.__name__}")
+                log.warninging(e)
 
     backend_wrapper.instance = None
     return backend_wrapper

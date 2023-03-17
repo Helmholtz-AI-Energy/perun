@@ -20,8 +20,8 @@ class Comm:
                 self._enabled = True
 
         except ImportError as e:
-            log.warn("Missing mpi4py, multi-node monitoring disabled")
-            log.warn(e)
+            log.warning("Missing mpi4py, multi-node monitoring disabled")
+            log.warning(e)
 
     def Get_rank(self) -> int:
         """Return MPI rank.

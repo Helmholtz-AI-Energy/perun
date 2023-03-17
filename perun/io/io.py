@@ -64,7 +64,9 @@ def exportTo(
         rawData (bool, optional): If raw data should be included. Limits available formats. Defaults to False.
     """
     if not dataNode.processed:
-        log.warning("Data has not been processed before import. Proceed with caution.")
+        log.warninging(
+            "Data has not been processed before import. Proceed with caution."
+        )
         raise Exception("DataNode needs to be processed before it can be exported.")
 
     if not data_out.exists():
@@ -72,7 +74,7 @@ def exportTo(
         data_out.mkdir()
 
     if format == IOFormat.BENCH and dataNode.type != NodeType.MULTI_RUN:
-        log.warning(
+        log.warninging(
             "BENCH format can only be used with 'bench' mode enabled. Using pickle instead."
         )
         format = IOFormat.PICKLE
