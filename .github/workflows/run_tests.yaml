@@ -19,6 +19,7 @@ jobs:
         run: |
           pip install poetry
           poetry install --with dev
+          poetry shell
       - name: Test with pytest
         run: |
           pytest
