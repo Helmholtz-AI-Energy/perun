@@ -1,10 +1,14 @@
+# noqa
 import random
 from unittest.mock import Mock
 
+import numpy as np
 import pytest
 
-import perun.backend
-from perun.units import Joule, Watt
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+
+# import perun.backend
+from perun.data_model.sensor import DeviceType
 
 
 def fake_energy():
@@ -22,21 +26,23 @@ def fake_power():
 def cpu():
     cpu = Mock()
     cpu.id = "FPU"
-    cpu.long_name = "Fake CPU"
-    cpu.unit = Joule()
-    cpu.mag = ""
-    cpu.min = 0
-    cpu.max = 1000
-    cpu.dtype = "uint32"
+    cpu.type = DeviceType.CPU
+    cpu.metadata = {"long_name": "long_cpu"}
+    cpu.dataType = MetricMetaData(
+        Unit.JOULE,
+        Magnitude.ONE,
+        np.dtype("int32"),
+        np.int32(0),
+        np.int32(1000),
+        np.int32(-1),
+    )
     cpu.measureCallback = fake_energy
     cpu.read.return_value = lambda: fake_energy()
     cpu.toDict.return_value = {
         "id": cpu.id,
-        "long_name": cpu.long_name,
-        "unit": cpu.unit,
-        "mag": cpu.mag,
-        "min": cpu.max,
-        "max": cpu.dtype,
+        "type": cpu.type,
+        "metadata": cpu.metadata,
+        "dataType": cpu.dataType,
     }
     return cpu
 
@@ -44,22 +50,24 @@ def cpu():
 @pytest.fixture
 def gpu():
     gpu = Mock()
-    gpu.id = "FGPU"
-    gpu.long_name = "Fake GPU"
-    gpu.unit = Watt()
-    gpu.mag = ""
-    gpu.min = 0
-    gpu.max = 1000
-    gpu.dtype = "uint32"
+    gpu.id = "FPU"
+    gpu.type = DeviceType.CPU
+    gpu.metadata = {"long_name": "long_gpu"}
+    gpu.dataType = MetricMetaData(
+        Unit.WATT,
+        Magnitude.MICRO,
+        np.dtype("float32"),
+        np.float32(0.0),
+        np.float32(1.0),
+        np.float32(-1),
+    )
     gpu.measureCallback = fake_power
     gpu.read.return_value = lambda: fake_power()
     gpu.toDict.return_value = {
         "id": gpu.id,
-        "long_name": gpu.long_name,
-        "unit": gpu.unit,
-        "mag": gpu.mag,
-        "min": gpu.max,
-        "max": gpu.dtype,
+        "type": gpu.type,
+        "metadata": gpu.metadata,
+        "dataType": gpu.dataType,
     }
     return gpu
 
@@ -82,8 +90,8 @@ def gpu_backend(gpu):
     return gpuBackend
 
 
-@pytest.fixture(autouse=True)
-def backends(monkeypatch: pytest.MonkeyPatch, cpu_backend, gpu_backend):
-    backends = [cpu_backend, gpu_backend]
-    monkeypatch.setattr(perun.backend, "backends", backends)
-    return backends
+# @pytest.fixture(autouse=True)
+# def backends(monkeypatch: pytest.MonkeyPatch, cpu_backend, gpu_backend):
+#     backends = [cpu_backend, gpu_backend]
+#     monkeypatch.setattr(perun.backend, "backends", backends)
+#     return backends

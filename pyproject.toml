@@ -19,6 +19,8 @@ PyYAML = "*"
 numpy = "*"
 psutil = "*"
 h5py = "*"
+prettytable = "^3.6.0"
+pandas = "^1.5.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
@@ -46,10 +48,10 @@ version_variable = [
     "perun/__init__.py:__version__",
     "pyproject.toml:version"
 ]
-branch = "pre-release"
+branch = "release"
 upload_to_pypi = true
 upload_to_release = true
-mayor_on_zero = false
+commit_message = "{version} [skip ci]"
 build_command = "pip install poetry && poetry build"
 
 [tool.pytest.ini_options]
@@ -57,7 +59,7 @@ testpaths = ["tests"]
 
 [tool.isort]
 skip = ["perun/__init__.py"]
-known_third_party = ["click", "cpuinfo", "h5py", "influxdb_client", "numpy", "pandas", "psutil", "pynvml", "pytest", "yaml"]
+known_third_party = ["click", "cpuinfo", "h5py", "influxdb_client", "numpy", "pandas", "prettytable", "psutil", "pynvml", "pytest", "typing_extensions"]
 profile = "black"
 
 [tool.pydocstyle]
@@ -66,3 +68,8 @@ match = '(test_)!.*\.py'
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+exclude = [
+    'tests/**/*'
+]

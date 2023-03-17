@@ -1,11 +1,11 @@
 """Backend module."""
 import functools
 from abc import ABC, abstractmethod
-from typing import List, Set
+from typing import Dict, List, Set
 
 from perun import log
 
-from .device import Device
+from ..data_model.sensor import Sensor
 
 
 class Backend(ABC):
@@ -17,16 +17,16 @@ class Backend(ABC):
     def __init__(self) -> None:
         """Import and setup backend."""
         super().__init__()
-        self.devices: List[Device] = []
+        self.devices: Dict = {}
         self.setup()
 
     @abstractmethod
-    def visibleDevices(self) -> Set[str]:
+    def visibleSensors(self) -> Set[str]:
         """Get a string id of devices visible by the backend."""
         pass
 
     @abstractmethod
-    def getDevices(self, deviceList: Set[str]) -> List[Device]:
+    def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
         """
         Return device objects based on the provided list of device ids.
 

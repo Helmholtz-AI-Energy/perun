@@ -3,13 +3,13 @@ name: Semantic Release
 on:
   push:
     branches:
-      - pre-release
+      - release
 
 jobs:
-  release:
+  Release:
+    needs: Test
     runs-on: ubuntu-latest
     concurrency: release
-    if: contains(github.event.head_commit.message, 'feat:') == true || contains(github.event.head_commit.message, 'fix:') == true || contains(github.event.head_commit.message, 'perf:') == true
     steps:
     - uses: actions/checkout@v2
       with:
@@ -22,4 +22,3 @@ jobs:
         github_token: ${{ secrets.GH_TOKEN }}
         repository_username: __token__
         repository_password: ${{ secrets.PYPI_TOKEN }}
-        additional_options: "--prerelease"

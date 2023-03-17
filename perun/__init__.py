@@ -4,7 +4,7 @@ __version__ = "0.1.0-beta.18"
 from perun.configuration import config
 from perun.logging import init_logging
 
-log = init_logging(config.get("perun", "log_lvl"))
+log = init_logging(config.get("debug", "log_lvl"))
 
 import os
 
@@ -14,26 +14,3 @@ os.environ["RDMAV_FORK_SAFE"] = "1"
 from perun.comm import Comm
 
 COMM_WORLD = Comm()
-
-# from perun.perun import (
-#     getDeviceConfiguration,
-#     monitor,
-#     perunSubprocess,
-#     postprocessing,
-#     save_data,
-# )
-# from perun.report import report
-# from perun.storage import ExperimentStorage, LocalStorage
-#
-# __all__ = [
-#     "perunSubprocess",
-#     "getDeviceConfiguration",
-#     "LocalStorage",
-#     "ExperimentStorage",
-#     "log",
-#     "monitor",
-#     "report",
-#     "postprocessing",
-#     "config",
-#     "save_data",
-# ]

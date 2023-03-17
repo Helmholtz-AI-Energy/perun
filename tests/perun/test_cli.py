@@ -14,56 +14,72 @@ def test_cli():
 
 
 def test_cli_showconf():
-
     # Test default option on the default filesystem
     runner = CliRunner()
     output: Result = runner.invoke(cli, ["showconf", "--default"])
-    config = ConfigParser()
-    config.read_string(output.output)
+    config = ConfigParser(allow_no_value=True)
+    config.read_string(
+        output.output,
+    )
 
     for section in _default_config.keys():
         for option, value in _default_config[section].items():
-            assert str(value) == config.get(section, option)
+            if value is not None:
+                assert str(value) == config.get(section, option)
+            else:
+                assert value == config.get(section, option)
 
     # Test local config file
     with runner.isolated_filesystem():
         with open(".perun.ini", "w") as localConfig:
-            localConfig.write("[report]\npue=0.1")
+            localConfig.write("[post-processing]\npue=0.1")
             localConfig.close()
 
         # Test default is still correct
         output: Result = runner.invoke(cli, ["showconf", "--default"])
-        config = ConfigParser()
+        config = ConfigParser(allow_no_value=True)
         config.read_string(output.output)
 
         for section in _default_config.keys():
             for option, value in _default_config[section].items():
-                assert str(value) == config.get(section, option)
+                if value is not None:
+                    assert str(value) == config.get(section, option)
+                else:
+                    assert value == config.get(section, option)
 
         # Test configuration did change
         output: Result = runner.invoke(cli, ["showconf"])
-        config = ConfigParser()
+        config = ConfigParser(allow_no_value=True)
         config.read_string(output.output)
 
-        assert config.getfloat("report", "pue") != _default_config["report"]["pue"]
-        assert config.getfloat("report", "pue") == 0.1
+        assert (
+            config.getfloat("post-processing", "pue")
+            != _default_config["post-processing"]["pue"]
+        )
+        assert config.getfloat("post-processing", "pue") == 0.1
 
     # Test cmdline
     output: Result = runner.invoke(cli, ["--pue", "0.1", "showconf", "--default"])
-    config = ConfigParser()
+    config = ConfigParser(allow_no_value=True)
     config.read_string(output.output)
 
     for section in _default_config.keys():
         for option, value in _default_config[section].items():
-            assert str(value) == config.get(section, option)
+            if value is not None:
+                assert str(value) == config.get(section, option)
+            else:
+                assert value == config.get(section, option)
 
     # Test configuration did change
     output: Result = runner.invoke(cli, ["--pue", "0.1", "showconf"])
-    config = ConfigParser()
+    config = ConfigParser(allow_no_value=True)
     config.read_string(output.output)
 
-    assert config.getfloat("report", "pue") != _default_config["report"]["pue"]
-    assert config.getfloat("report", "pue") == 0.1
+    assert (
+        config.getfloat("post-processing", "pue")
+        != _default_config["post-processing"]["pue"]
+    )
+    assert config.getfloat("post-processing", "pue") == 0.1
 
     # # Test env variables
     # monkeypatch.setenv("PERUN_PUE", "0.1")
@@ -83,5 +99,5 @@ def test_cli_showconf():
     #     config = ConfigParser()
     #     config.read_string(output.output)
     #
-    #     assert config.getfloat("report", "pue") != _default_config["report"]["pue"]
-    #     assert config.getfloat("report", "pue") == 0.1
+    #     assert config.getfloat("post-processing", "pue") != _default_config["report"]["pue"]
+    #     assert config.getfloat("post-processing", "pue") == 0.1

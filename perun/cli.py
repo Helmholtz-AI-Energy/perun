@@ -2,15 +2,15 @@
 
 Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline configurations.
 """
-from datetime import datetime
 from pathlib import Path
-from typing import Optional, Set
+from pprint import pprint
 
 import click
 
 import perun
 from perun import log
 from perun.configuration import config, read_custom_config, save_to_config_callback
+from perun.io.io import IOFormat, exportTo, importFrom
 
 
 @click.group()
@@ -19,41 +19,110 @@ from perun.configuration import config, read_custom_config, save_to_config_callb
     "-c",
     "--configuration",
     default="./.perun.ini",
+    help="Path to configuration file",
     type=click.Path(exists=False, dir_okay=False, readable=True),
     is_eager=True,
     callback=read_custom_config,
     expose_value=False,
 )
+# Output option
 @click.option(
-    "-f",
-    "--format",
-    type=click.Choice(["txt", "yaml", "yml", "json"]),
-    help="report print format",
+    "-n",
+    "--app_name",
+    help="Name of the monitored application. The name is used to distinguish between multiple applications in the same directory. If left empty, the filename will be  used.",
     callback=save_to_config_callback,
     expose_value=False,
 )
 @click.option(
-    "-f",
-    "--frequency",
-    type=float,
-    help="sampling frequency (in Hz)",
+    "-i",
+    "--run_id",
+    help="Unique id of the latest run of the application. If left empty, perun will use the SLURM job id, or the current date.",
     callback=save_to_config_callback,
     expose_value=False,
 )
 @click.option(
     "--format",
-    type=click.Choice(["txt", "yaml", "yml", "json"]),
-    help="report print format",
+    type=click.Choice([format.value for format in IOFormat]),
+    help="Report format.",
     callback=save_to_config_callback,
     expose_value=False,
 )
 @click.option(
     "--data_out",
     type=click.Path(exists=False, dir_okay=True, file_okay=False),
-    help="experiment data output directory",
+    help="Where to save the output files, defaults to the current working directory.",
     callback=save_to_config_callback,
     expose_value=False,
 )
+@click.option(
+    "--raw",
+    default=False,
+    help="Use the flag '--raw' if you need access to all the raw data collected by perun. The output will be saved on an hdf5 file on the perun data output location.",
+    is_flag=True,
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+# Sampling Options
+@click.option(
+    "--sampling_rate",
+    type=float,
+    help="Sampling rate in seconds.",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+# Post processing options
+@click.option(
+    "--pue",
+    type=float,
+    help="Data center Power Usage Efficiency.",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+@click.option(
+    "--emissions_factor",
+    type=float,
+    help="Emissions factor at compute resource location.",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+@click.option(
+    "--price_factor",
+    type=float,
+    help="Electricity price factor at compute resource location.",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+# Benchmarking
+@click.option(
+    "--bench",
+    "bench_enable",
+    is_flag=True,
+    help="Activate benchmarking mode.",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+@click.option(
+    "--bench_rounds",
+    type=int,
+    help="Number of rounds per function/app.",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+@click.option(
+    "--bench_warmup_rounds",
+    type=int,
+    help="Number of warmup rounds per function/app.",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+# @click.option(
+#     "--bench_metrics",
+#     multiple=True,
+#     help="Metrics to output. Only relevant with bench_minimal_format enabled",
+#     callback=save_to_config_callback,
+#     expose_value=False,
+# )
+# Debug Options
 @click.option(
     "-l",
     "--log_lvl",
@@ -62,30 +131,9 @@ from perun.configuration import config, read_custom_config, save_to_config_callb
     callback=save_to_config_callback,
     expose_value=False,
 )
-@click.option(
-    "--pue",
-    type=float,
-    help="Data center Power usage efficiency",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.option(
-    "--emissions-factor",
-    type=float,
-    help="Emissions factor at compute resource location",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.option(
-    "--price-factor",
-    type=float,
-    help="Electricity price factor at compute resource location",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
 def cli():
     """Perun: Energy measuring and reporting tool."""
-    log.setLevel(config.get("perun", "log_lvl"))
+    log.setLevel(config.get("debug", "log_lvl"))
 
 
 @cli.command()
@@ -110,38 +158,50 @@ def showconf(default: bool):
 
 
 @cli.command()
-@click.argument("exp_hdf5", type=click.Path(exists=True))
-def postprocess(exp_hdf5: str):
-    """
-    Apply post-processing to EXP_HDF5 experiment file.
-
-    EXP_HDF5 is an hdf5 file generated by perun after monitoring a script, containing data gathered from hardware devices.
-    """
+def sensors():
+    """Print sensors assigned to each rank by perun."""
     from perun import COMM_WORLD
-    from perun.perun import postprocessing
-    from perun.storage import ExperimentStorage
+    from perun.backend import backends
+    from perun.coordination import getGlobalSensorRankConfiguration
 
-    expPath = Path(exp_hdf5)
-    expStrg = ExperimentStorage(expPath, COMM_WORLD, write=True)
-    postprocessing(expStrg, reset=True)
-    expStrg.close()
+    globalHostRank, globalSensorConfig = getGlobalSensorRankConfiguration(
+        COMM_WORLD, backends
+    )
+    if COMM_WORLD.Get_rank() == 0:
+        for rank, bes in enumerate(globalSensorConfig):
+            click.echo(f"Rank: {rank}")
+            click.echo(pprint(bes))
+
+        click.echo("Hostnames: ")
+        click.echo(pprint(globalHostRank))
+
+    for b in backends:
+        b.close()
 
 
 @cli.command()
-@click.argument("exp_hdf5", type=click.Path(exists=True))
-def report(exp_hdf5: str):
-    """Print consumption report from EXP_HDF5 on the command line on the desired format.
+@click.argument("input_file", type=click.Path(exists=True))
+@click.argument("output_path", type=click.Path(exists=True))
+@click.argument(
+    "output_format",
+    type=click.Choice([format.value for format in IOFormat]),
+)
+def export(input_file: str, output_path: str, output_format: str):
+    """Export existing perun output file to another format."""
+    in_file = Path(input_file)
+    if not in_file.exists():
+        click.echo("File does not exist.", err=True)
+        return
 
-    EXP_HDF5 is an hdf5 file generated by perun after monitoring a script, containing data gathered from hardware devices.
-    """
-    from perun import COMM_WORLD
-    from perun.report import report as _report
-    from perun.storage import ExperimentStorage
+    out_path = Path(output_path)
+    if not out_path.parent.exists():
+        click.echo("Output path does not exist", err=True)
+        return
 
-    expPath = Path(exp_hdf5)
-    expStrg = ExperimentStorage(expPath, COMM_WORLD)
-    print(_report(expStrg, format=config.get("report", "format")))
-    expStrg.close()
+    inputFormat = IOFormat.fromSuffix(in_file.suffix)
+    out_format = IOFormat(output_format)
+    dataNode = importFrom(in_file, inputFormat)
+    exportTo(out_path, dataNode, out_format, rawData=True)
 
 
 @cli.command(context_settings={"ignore_unknown_options": True})
@@ -156,20 +216,12 @@ def monitor(
 
     SCRIPT is a path to the python script to monitor, run with arguments SCRIPT_ARGS.
     """
-    import sys
-    from multiprocessing import Event, Process, Queue
-
-    from perun import COMM_WORLD, log
-    from perun.backend import backends
-    from perun.perun import getDeviceConfiguration, perunSubprocess, save_data
-    from perun.storage import LocalStorage
-
-    start_event = Event()
-    stop_event = Event()
-
     # Setup script arguments
+    import sys
+
+    from perun.perun import monitor_application
+
     filePath: Path = Path(script)
-    outPath: Path = Path(config.get("monitor", "data_out"))
     log.debug(f"Script path: {filePath}")
     argIndex = sys.argv.index(script)
     sys.argv = sys.argv[argIndex:]
@@ -177,69 +229,7 @@ def monitor(
 
     sys.path.insert(0, str(filePath.parent.absolute()))
 
-    # Get node devices
-    log.debug(f"Backends: {backends}")
-    lDeviceIds: Set[str] = getDeviceConfiguration(COMM_WORLD, backends)
-
-    for backend in backends:
-        backend.close()
-
-    log.debug(f"Rank {COMM_WORLD.Get_rank()} - lDeviceIds : {lDeviceIds}")
-
-    # If assigned devices, start subprocess
-    if len(lDeviceIds) > 0:
-        queue: Queue = Queue()
-        perunSP = Process(
-            target=perunSubprocess,
-            args=[
-                queue,
-                start_event,
-                stop_event,
-                lDeviceIds,
-                config.getfloat("monitor", "frequency"),
-            ],
-        )
-        perunSP.start()
-        start_event.wait()
-
-    # Sync everyone
-    COMM_WORLD.barrier()
-    start = datetime.now()
-
-    # Start script
-    try:
-        with open(str(filePath), "r") as scriptFile:
-            exec(scriptFile.read(), {"__name__": "__main__"})
-    except Exception as e:
-        log.error("Failed to open file ", filePath)
-        log.error(e)
-        stop_event.set()
-        return
-
-    stop_event.set()
-    log.debug("Set closed event")
-    stop = datetime.now()
-
-    lStrg: Optional[LocalStorage]
-    # Obtain perun subprocess results
-    if len(lDeviceIds) > 0:
-        log.debug("Getting queue contents")
-        lStrg = queue.get(block=True)
-        log.debug("Got queue contents")
-        log.debug("Waiting for subprocess to close")
-        perunSP.join()
-        perunSP.close()
-        log.debug("Subprocess closed")
-        queue.close()
-    else:
-        lStrg = None
-
-    # Sync
-    COMM_WORLD.barrier()
-    log.debug("Passed first barrier")
-
-    # Save raw data to hdf5
-    save_data(COMM_WORLD, outPath, filePath, lStrg, start, stop)
+    monitor_application(filePath)
 
 
 def main():

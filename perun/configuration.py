@@ -4,23 +4,39 @@
 
 import configparser
 from pathlib import Path
-from typing import Any, Mapping, Union
+from typing import Any, Mapping, Optional, Union
 
 import click
 
 _default_config: Mapping[str, Mapping[str, Any]] = {
-    "report": {
-        "format": "txt",
+    "post-processing": {
         "pue": 1.58,
-        "emissions-factor": 0.355,
-        "price-factor": 41.59,
+        "emissions_factor": 0.355,
+        "price_factor": 41.59,
     },
-    "monitor": {"frequency": 1, "data_out": "./results"},
-    "perun": {"log_lvl": "WARN"},
-    "horeka": {"enabled": False, "url": "", "token": "", "org": ""},
+    "monitor": {
+        "sampling_rate": 1,
+    },
+    "output": {
+        "app_name": None,
+        "run_id": None,
+        "format": "text",
+        "data_out": "./perun_results",
+        "depth": None,
+        "raw": False,
+    },
+    "benchmarking": {
+        "bench_enable": False,
+        "bench_rounds": 10,
+        "bench_warmup_rounds": 1,
+        # "bench_metrics": ["ENERGY", "RUNTIME"],
+        "bench_minimal_format": False,
+    },
+    "debug": {"log_lvl": "ERROR"},
+    # "horeka": {"enabled": False, "url": "", "token": "", "org": ""},
 }
 
-config: configparser.ConfigParser = configparser.ConfigParser()
+config: configparser.ConfigParser = configparser.ConfigParser(allow_no_value=True)
 config.read_dict(_default_config)
 
 globalConfigPath = Path.home() / ".config/perun.ini"
@@ -29,7 +45,9 @@ if globalConfigPath.exists() and globalConfigPath.is_file():
 
 
 def read_custom_config(
-    ctx: click.Context, param: Union[click.Option, click.Parameter], pathStr: str
+    ctx: Optional[click.Context],
+    param: Optional[Union[click.Option, click.Parameter]],
+    pathStr: str,
 ) -> None:
     """
     Read an INI configuration file and overrides the values from the default and global configuration.
@@ -56,8 +74,9 @@ def save_to_config_callback(
         value (Any): New configuration value
     """
     if value and isinstance(param, click.Option):
-        key: str = param.name
-        save_to_config(key, value)
+        key: Optional[str] = param.name
+        if key:
+            save_to_config(key, value)
 
 
 def save_to_config(key: str, value: Any):
