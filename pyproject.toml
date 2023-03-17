@@ -48,10 +48,10 @@ version_variable = [
     "perun/__init__.py:__version__",
     "pyproject.toml:version"
 ]
-branch = "pre-release"
+branch = "release"
 upload_to_pypi = true
 upload_to_release = true
-mayor_on_zero = false
+commit_message = "{version} [skip ci]"
 build_command = "pip install poetry && poetry build"
 
 [tool.pytest.ini_options]
