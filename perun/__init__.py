@@ -1,6 +1,6 @@
 """perun module."""
 # flake8: noqa
-__version__ = "0.1.0-beta.18"
+__version__ = "0.1.0"
 from perun.configuration import config
 from perun.logging import init_logging
 

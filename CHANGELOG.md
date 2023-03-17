@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.0 (2023-03-17)
+
+
 ## v0.1.0-beta.18 (2022-12-16)
 ### Fix
 * Endless action triggers, I remebered why that was there in the first place ([`672ee64`](https://github.com/Helmholtz-AI-Energy/perun/commit/672ee64867dda36fe2f8931c3d901a8d96d4f838))
