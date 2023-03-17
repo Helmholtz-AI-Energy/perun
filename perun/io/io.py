@@ -5,7 +5,8 @@ from pathlib import Path
 from typing import Optional, Union
 
 from perun import log
-from perun.data_model.data import DataNode
+from perun.data_model.data import DataNode, NodeType
+from perun.io.bench import exportBench
 from perun.io.hdf5 import exportHDF5, importHDF5
 from perun.io.json import exportJson, importJson
 from perun.io.pandas import exportCSV
@@ -19,6 +20,7 @@ _suffixes = {
     "hdf5": "hdf5",
     "pickle": "pkl",
     "csv": "csv",
+    "bench": "json",
 }
 
 
@@ -26,11 +28,12 @@ class IOFormat(enum.Enum):
     """Available IO file formats."""
 
     TEXT = "text"
-    # YAML = "yaml"
     JSON = "json"
     HDF5 = "hdf5"
     PICKLE = "pickle"
     CSV = "csv"
+    BENCH = "bench"
+    # YAML = "yaml"
 
     @property
     def suffix(self):
@@ -68,6 +71,12 @@ def exportTo(
         log.info(f"{data_out} does not exists. So lets make it.")
         data_out.mkdir()
 
+    if format == IOFormat.BENCH and dataNode.type != NodeType.MULTI_RUN:
+        log.warning(
+            "BENCH format can only be used with 'bench' mode enabled. Using pickle instead."
+        )
+        format = IOFormat.PICKLE
+
     filename = f"{dataNode.metadata['app_name']}_{dataNode.id}"
 
     reportStr: Union[str, bytes]
@@ -77,9 +86,6 @@ def exportTo(
         reportStr = exportJson(dataNode, depth, rawData)
         with open(data_out / filename, fileType) as file:
             file.write(reportStr)
-    # elif format == IOFormat.YAML:
-    #     filename += ".yaml"
-    #     reportStr = exportYaml(dataNode, depth, rawData)
     elif format == IOFormat.HDF5:
         filename += ".hdf5"
         exportHDF5(data_out / filename, dataNode)
@@ -92,6 +98,15 @@ def exportTo(
     elif format == IOFormat.CSV:
         filename += ".cvs"
         exportCSV(data_out / filename, dataNode)
+    elif format == IOFormat.BENCH:
+        filename += ".json"
+        fileType = "w"
+        reportStr = exportBench(dataNode)
+        with open(data_out / filename, fileType) as file:
+            file.write(reportStr)
+    # elif format == IOFormat.YAML:
+    #     filename += ".yaml"
+    #     reportStr = exportYaml(dataNode, depth, rawData)
     else:
         filename += ".txt"
         fileType = "w"

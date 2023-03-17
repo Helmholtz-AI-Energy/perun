@@ -15,7 +15,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "price_factor": 41.59,
     },
     "monitor": {
-        "frequency": 1,
+        "sampling_rate": 1,
     },
     "output": {
         "app_name": None,
@@ -28,9 +28,9 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
     "benchmarking": {
         "bench_enable": False,
         "bench_rounds": 10,
-        "bench_warmup_rounds": 5,
+        "bench_warmup_rounds": 1,
         # "bench_metrics": ["ENERGY", "RUNTIME"],
-        # "bench_minimal_format": False
+        "bench_minimal_format": False,
     },
     "debug": {"log_lvl": "ERROR"},
     # "horeka": {"enabled": False, "url": "", "token": "", "org": ""},

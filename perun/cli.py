@@ -64,9 +64,9 @@ from perun.io.io import IOFormat, exportTo, importFrom
 )
 # Sampling Options
 @click.option(
-    "--frequency",
+    "--sampling_rate",
     type=float,
-    help="Sampling frequency (in Hz)",
+    help="Sampling rate in seconds.",
     callback=save_to_config_callback,
     expose_value=False,
 )
@@ -74,21 +74,21 @@ from perun.io.io import IOFormat, exportTo, importFrom
 @click.option(
     "--pue",
     type=float,
-    help="Data center Power usage efficiency",
+    help="Data center Power Usage Efficiency.",
     callback=save_to_config_callback,
     expose_value=False,
 )
 @click.option(
     "--emissions_factor",
     type=float,
-    help="Emissions factor at compute resource location",
+    help="Emissions factor at compute resource location.",
     callback=save_to_config_callback,
     expose_value=False,
 )
 @click.option(
     "--price_factor",
     type=float,
-    help="Electricity price factor at compute resource location",
+    help="Electricity price factor at compute resource location.",
     callback=save_to_config_callback,
     expose_value=False,
 )

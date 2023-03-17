@@ -16,6 +16,7 @@ class Unit(str, enum.Enum):
     SECOND = "s"
     PERCENT = "%"
 
+    @property
     def symbol(self) -> str:
         """Symbol associated with Unit.
 
@@ -26,7 +27,7 @@ class Unit(str, enum.Enum):
 
     def __str__(self) -> str:
         """Convert object to string."""
-        return self.symbol()
+        return self.symbol
 
 
 class Magnitude(float, enum.Enum):
@@ -42,6 +43,7 @@ class Magnitude(float, enum.Enum):
     GIGA = 1e9
     TERA = 1e12
 
+    @property
     def symbol(self) -> str:
         """Symbol associated with magnitude prefix.
 
@@ -63,7 +65,7 @@ class Magnitude(float, enum.Enum):
 
     def __str__(self) -> str:
         """Convert object to string."""
-        return self.symbol()
+        return self.symbol
 
 
 @dataclasses.dataclass

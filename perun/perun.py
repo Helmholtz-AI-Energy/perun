@@ -92,6 +92,12 @@ def monitor_application(
             )
             benchNode = processDataNode(benchNode)
 
+            format = (
+                IOFormat.BENCH
+                if config.get("benchmarking", "bench_minimal_format")
+                else format
+            )
+
             exportTo(data_out, benchNode, format, includeRawData, depth)
 
     for backend in backends:
@@ -132,19 +138,18 @@ def _run_application(
                     start_event,
                     stop_event,
                     localBackends,
-                    config.getfloat("monitor", "frequency"),
+                    config.getfloat("monitor", "sampling_rate"),
                 ],
             )
             perunSP.start()
 
         # 3) Start application
-        COMM_WORLD.barrier()
         run_starttime = datetime.utcnow()
 
         if isinstance(app, Path):
             try:
                 with open(str(app), "r") as scriptFile:
-                    start_event.set()
+                    start_event.wait()
                     exec(
                         scriptFile.read(),
                         {"__name__": "__main__", "__file__": app.name},
@@ -156,8 +161,8 @@ def _run_application(
                 raise e
 
         elif isinstance(app, types.FunctionType):
-            start_event.set()
             try:
+                start_event.wait()
                 app_result = app(*app_args, **app_kwargs)
             except Exception as e:
                 stop_event.set()
@@ -230,7 +235,7 @@ def perunSubprocess(
     start_event,
     stop_event,
     backendConfig: Dict[str, Set[str]],
-    frequency: float,
+    sampling_rate: float,
 ):
     """
     Parallel function that samples energy values from hardware libraries.
@@ -240,7 +245,7 @@ def perunSubprocess(
         start_event (_type_): Marks that perun finished setting up and started sampling from devices
         stop_event (_type_): Signal the subprocess that the monitored processed has finished
         deviceIds (Set[str]): List of device ids to sample from
-        frequency (int): Sampling frequency in Hz
+        sampling_rate (int): Sampling rate in s
     """
     from perun.backend import backends
 
@@ -265,15 +270,19 @@ def perunSubprocess(
 
     log.debug(f"perunSP lSensors: {lSensors}")
 
-    start_event.wait()
+    start_event.set()
     timesteps.append(time.time_ns())
     for idx, device in enumerate(lSensors):
         rawValues[idx].append(device.read())
 
-    while not stop_event.wait(1.0 / frequency):
+    while not stop_event.wait(sampling_rate):
         timesteps.append(time.time_ns())
         for idx, device in enumerate(lSensors):
             rawValues[idx].append(device.read())
+
+    timesteps.append(time.time_ns())
+    for idx, device in enumerate(lSensors):
+        rawValues[idx].append(device.read())
 
     log.debug("Subprocess: Stop event received.")
     for backend in backends:
