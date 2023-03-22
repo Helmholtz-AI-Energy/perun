@@ -30,7 +30,6 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "bench_rounds": 10,
         "bench_warmup_rounds": 1,
         # "bench_metrics": ["ENERGY", "RUNTIME"],
-        "bench_minimal_format": False,
     },
     "debug": {"log_lvl": "ERROR"},
     # "horeka": {"enabled": False, "url": "", "token": "", "org": ""},
