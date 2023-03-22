@@ -92,12 +92,6 @@ def monitor_application(
             )
             benchNode = processDataNode(benchNode)
 
-            format = (
-                IOFormat.BENCH
-                if config.get("benchmarking", "bench_minimal_format")
-                else format
-            )
-
             exportTo(data_out, benchNode, format, includeRawData, depth)
 
     for backend in backends:
