@@ -11,8 +11,8 @@ import click
 _default_config: Mapping[str, Mapping[str, Any]] = {
     "post-processing": {
         "pue": 1.58,
-        "emissions_factor": 0.355,
-        "price_factor": 41.59,
+        "emissions_factor": 0.262,  # gCO2eq/kWh
+        "price_factor": 34.60,  # Cent/kWh
     },
     "monitor": {
         "sampling_rate": 1,
