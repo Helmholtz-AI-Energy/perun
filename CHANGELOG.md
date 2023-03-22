@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.1 (2023-03-22)
+### Fix
+* Removed bench minimal configuration option ([`f946f71`](https://github.com/Helmholtz-AI-Energy/perun/commit/f946f71b6a62d151e232cdc288ae2f68680511f2))
+
 ## v0.1.0 (2023-03-17)
 
 
