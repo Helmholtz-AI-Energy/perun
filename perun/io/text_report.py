@@ -2,7 +2,7 @@
 
 from prettytable import PrettyTable
 
-from perun import log
+from perun import config, log
 from perun.data_model.data import DataNode, MetricType, NodeType, Stats
 from perun.util import value2str
 
@@ -63,5 +63,14 @@ def textReport(dataNode: DataNode) -> str:
                 metric = dataNode.metrics[metricType]
                 value, _, mag = value2str(metric.value, metric.metric_md)
                 reportStr += f"{metricType.name}: {value} {mag.symbol}{metric.metric_md.unit.value}\n"
+
+        if MetricType.ENERGY in dataNode.metrics:
+            e_metric = dataNode.metrics[MetricType.ENERGY]
+            e_pue = e_metric.value * config.getfloat("post-processing", "pue")
+            e_kWh = e_pue / (3600 * 1e3)
+            kgCO2 = e_kWh * config.getfloat("post-processing", "emissions_factor") / 1e3
+            euro = e_kWh * config.getfloat("post-processing", "price_factor") / 1e2
+
+            reportStr += f"\nThe application used a total of {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2eq into the atmosphere, and you paid {euro:.2f} € for it.\n"
 
     return reportStr

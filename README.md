@@ -207,30 +207,3 @@ There are multiple ways to configure perun, with a different level of priorities
 ### Priority
 
 CMD LINE and ENV > Local INI > Global INI > Default options
-
-## Experiment data
-
-Raw data is saved in a hdf5 file, where results over multiple runs are accumulated.
-
-At the top level, the root group containts groups for all individual runs, as well as information about creation date and total energy consumption over multiple runs.
-
-Experiments contain the information about a single run of the python script, and has information about nodes, devices per node, total runtime and avgerage power draw.
-
-The same applies at the node level.
-
-At the lowest group level, datasets with sample data from individual devices is collected, with the dataset attributes providing the device metadata, like id, measurement unit and magnitude, and possible value range.
-
-- exp_name (Root group)
-  - exp_0 (Group)
-    - node_name_0 (Group)
-      - device_0 (Dataset)
-        - units (Attribute)
-        - mag (Attribute)
-        - long_name (Attribute)
-        - ...
-      - device_1 (Dataset)
-      - ...
-    - node_name_1 (Group)
-    - ...
-  - exp_1 (Group)
-  - ...
