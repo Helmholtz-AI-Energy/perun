@@ -4,6 +4,9 @@
 
 Have you ever wondered how much energy is used when training your neural network on the MNIST dataset? Want to get scared because of impact you are having on the evironment while doing "valuable" research? Are you interested in knowing how much carbon you are burning playing with DALL-E just to get attention on twitter? If the thing that was missing from your machine learning workflow was existential dread, this is the correct package for you!
 
+perun is python package that calculates the energy consumption of your python scripts by sampling usage statistics from Intel RAPL, Nvidia-NVML and *psutil*. Unlike other energy measuring applications out there, this is the only one capable of handling MPI applications, being capable of gathering data from 100s of nodes at the same time, and accumulating it efficiently. This is posible without adding any line of code into your existing application, and without meaningfully extending the runtime of your application.
+
+
 ## Installation
 
 From PyPI:
@@ -18,31 +21,68 @@ From Github:
 pip install git+https://github.com/Helmholtz-AI-Energy/perun
 ```
 
-### MPI Support
+## Quick Start
 
-If your python program makes use of MPI, make sure mpi4py is installed.
+Perun has two usage methods, either using the command line, or using function decorators.
+
+### Command line
+
+When using the command line, perun will output file containing runtime, energy and other information gathered while your script runs.
 
 ```console
-pip install mpi4py
+$ perun monitor path/to/your/script.py [args]
+$ cat perun_results/script_2023-03-23T12:10:48.627214.txt
+PERUN REPORT
+
+App name: script
+Run ID: 2023-03-23T12:10:48.627214
+RUNTIME: 0:00:06.333626 s
+CPU_UTIL: 64.825 %
+MEM_UTIL: 0.563 %
+NET_READ: 1.401 kB
+NET_WRITE: 1.292 kB
+DISK_READ: 174.633 MB
+DISK_WRITE: 88.000 kB
+```
+
+### Decorator
+
+Perun can also monitor individual functions using a decorator:
+
+```python
+import time
+from perun.decorator import monitor
+
+@monitor()
+def your_sleep_function(n: int):
+    time.sleep(n)
+```
+
+And then running your script like always:
+
+```console
+python path/to/your/script.py
+```
+
+> :exclamation: Each time the function is run, perun will output a new report from the function.
+
+### MPI
+
+If your python application uses mpi4py, you don't need to change anything. Perun is able to handle MPI applications, and will gather statistics in all the utilized nodes.
+
+```console
+mpirun -n 8 perun monitor path/to/your/script.py
+```
+
+or
+
+```
+mpirun -n 8 python path/to/your/script.py
 ```
 
 ## Usage
 
-### Command line
-
-To get a quick report of the power usage of a python script simply run
-
-```console
-perun --format yaml monitor path/to/your/script.py [args]
-```
-
-Or
-
-```console
-python -m perun --format json -o results/ monitor path/to/your/script.py [args]
-```
-
-#### Subcommands
+### Subcommands
 
 Perun subcommands have some shared options that are typed before the subcommands.
 
@@ -61,20 +101,23 @@ Options:
   -i, --run_id TEXT               Unique id of the latest run of the
                                   application. If left empty, perun will use
                                   the SLURM job id, or the current date.
-  --format [text|json|hdf5|pickle|csv]
+  --format [text|json|hdf5|pickle|csv|bench]
                                   Report format.
   --data_out DIRECTORY            Where to save the output files, defaults to
                                   the current working directory.
-  --raw / --no-raw                Use the flag '--raw' if you need access to
+  --raw                           Use the flag '--raw' if you need access to
                                   all the raw data collected by perun. The
                                   output will be saved on an hdf5 file on the
                                   perun data output location.
-  --frequency FLOAT               sampling frequency (in Hz)
-  --pue FLOAT                     Data center Power usage efficiency
-  --emissions-factor FLOAT        Emissions factor at compute resource
-                                  location
-  --price-factor FLOAT            Electricity price factor at compute resource
-                                  location
+  --sampling_rate FLOAT           Sampling rate in seconds.
+  --pue FLOAT                     Data center Power Usage Efficiency.
+  --emissions_factor FLOAT        Emissions factor at compute resource
+                                  location.
+  --price_factor FLOAT            Electricity price factor at compute resource
+                                  location.
+  --bench                         Activate benchmarking mode.
+  --bench_rounds INTEGER          Number of rounds per function/app.
+  --bench_warmup_rounds INTEGER   Number of warmup rounds per function/app.
   -l, --log_lvl [DEBUG|INFO|WARN|ERROR|CRITICAL]
                                   Loggging level
   --help                          Show this message and exit.
@@ -86,7 +129,7 @@ Commands:
   showconf  Print current perun configuration in INI format.
 ```
 
-#### monitor
+### monitor
 
 Monitor energy usage of a python script.
 
@@ -100,10 +143,10 @@ Usage: perun monitor [OPTIONS] SCRIPT [SCRIPT_ARGS]...
   SCRIPT_ARGS.
 
 Options:
-  --help                        Show this message and exit.
+  --help  Show this message and exit.
 ```
 
-#### sensors
+### sensors
 
 Print available monitoring backends and each available sensors for each MPI rank.
 
@@ -116,26 +159,21 @@ Options:
   --help  Show this message and exit.
 ```
 
-#### export
+### export
 
 Export an existing perun output file to another format.
 
 ```console
 Usage: perun export [OPTIONS] INPUT_FILE OUTPUT_PATH
-                    {text|json|hdf5|pickle|csv}
+                    {text|json|hdf5|pickle|csv|bench}
 
   Export existing perun output file to another format.
-
-  Args:
-    input_file (str): Exisiting perun output file.
-    output_path (str): Location of the new file.
-    output_format (str): Format of the new file.
 
 Options:
   --help  Show this message and exit.
 ```
 
-#### showconf
+### showconf
 
 Prints the current option configurations based on the global, local configurations files and command line options.
 
@@ -148,23 +186,6 @@ Options:
   --default  Print default configuration
   --help     Show this message and exit.
 ```
-
-### Decorator
-
-Or decorate the function that you want analysed
-
-```python
-from perun.decorator import monitor
-
-@monitor(format="hdf5", data_out="results/")
-def training_loop(args, model, device, train_loader, test_loader, optimizer, scheduler):
-    for epoch in range(1, args.epochs + 1):
-        train(args, model, device, train_loader, optimizer, epoch)
-        test(model, device, test_loader)
-        scheduler.step()
-```
-
-Optional arguments same as the command line.
 
 ## Configuration
 
@@ -183,19 +204,27 @@ There are multiple ways to configure perun, with a different level of priorities
   ```ini
   [post-processing]
   pue = 1.58
-  emissions-factor = 0.355
-  price-factor = 41.59
+  emissions_factor = 0.262
+  price_factor = 34.6
 
   [monitor]
-  frequency = 1
+  sampling_rate = 1
 
   [output]
-  format = txt
-  data_out = ./
+  app_name
+  run_id
+  format = text
+  data_out = ./perun_results
+  depth
   raw = False
 
+  [benchmarking]
+  bench_enable = False
+  bench_rounds = 10
+  bench_warmup_rounds = 1
+
   [debug]
-  log_lvl = WARN
+  log_lvl = ERROR
   ```
 
   The location of the file can be changed using the option "-c" or "PERUN_CONFIGURATION".
