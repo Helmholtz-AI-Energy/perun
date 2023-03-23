@@ -6,7 +6,6 @@ Have you ever wondered how much energy is used when training your neural network
 
 perun is python package that calculates the energy consumption of your python scripts by sampling usage statistics from Intel RAPL, Nvidia-NVML and *psutil*. Unlike other energy measuring applications out there, this is the only one capable of handling MPI applications, being capable of gathering data from 100s of nodes at the same time, and accumulating it efficiently. This is posible without adding any line of code into your existing application, and without meaningfully extending the runtime of your application.
 
-
 ## Installation
 
 From PyPI:
@@ -236,3 +235,12 @@ There are multiple ways to configure perun, with a different level of priorities
 ### Priority
 
 CMD LINE and ENV > Local INI > Global INI > Default options
+
+
+## Data Output Structure
+
+When exporting data to machine readable formats like json, pickle, and hdf5, perun stores the data in a hierarchical format, with the application and individual runs at the root of data tree, and individual sensors and raw data a in the leafs. When processing, the data is propagated from the leafs (sensors), all the way to the root, where a aggregated statistics about the application are gatherd.
+
+<div align="center">
+  <img src="https://raw.githubusercontent.com/Helmholtz-AI-Energy/perun/main/docs/images/data_structure.png">
+</div>
