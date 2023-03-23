@@ -176,7 +176,7 @@ Options:
 
 Prints the current option configurations based on the global, local configurations files and command line options.
 
-```confg
+```console
 Usage: perun showconf [OPTIONS]
 
   Print current perun configuration in INI format.
