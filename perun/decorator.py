@@ -22,7 +22,7 @@ def monitor(
             for key, value in conf_kwargs.items():
                 save_to_config(key, value)
 
-            log.setLevel(config.get("debug", "log_lvl"))
+            log.setLevel(f"{config.get('debug', 'log_lvl')}")
             func_result = monitor_application(func, args, kwargs)
 
             return func_result

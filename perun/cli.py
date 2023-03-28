@@ -3,7 +3,6 @@
 Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline configurations.
 """
 from pathlib import Path
-from pprint import pprint
 
 import click
 
@@ -170,10 +169,16 @@ def sensors():
     if COMM_WORLD.Get_rank() == 0:
         for rank, bes in enumerate(globalSensorConfig):
             click.echo(f"Rank: {rank}")
-            click.echo(pprint(bes))
+            for key, items in bes.items():
+                if len(items) > 0:
+                    click.echo(f"   {key}:")
+                    for device in items:
+                        click.echo(f"       {device}")
+                    click.echo("")
 
         click.echo("Hostnames: ")
-        click.echo(pprint(globalHostRank))
+        for host, ranks in globalHostRank.items():
+            click.echo(f"   {host}: {ranks}")
 
     for b in backends:
         b.close()
