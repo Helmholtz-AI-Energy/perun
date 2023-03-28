@@ -84,9 +84,11 @@ class IntelRAPLBackend(Backend):
                         devType = DeviceType.RAM
                     elif "package" in device_name:
                         devType = DeviceType.CPU
-                    elif "psys" in device_name:
-                        devType = DeviceType.CPU
-                        foundPsys = True
+                    # Ignoring psys interface until I get more data.
+                    # This paper might have no clue : https://dl.acm.org/doi/10.1145/3177754
+                    # elif "psys" in device_name:
+                    #     devType = DeviceType.CPU
+                    #     foundPsys = True
                     else:
                         devType = DeviceType.OTHER
 
@@ -167,7 +169,7 @@ class IntelRAPLBackend(Backend):
             for pkg in packageDevices:
                 del self.devices[pkg.id]
 
-        log.debug("IntelRapl devices", self.devices)
+        log.debug(f"IntelRapl devices {self.devices}")
 
     def close(self) -> None:
         """Backend shutdown code (does nothing for intel rapl)."""

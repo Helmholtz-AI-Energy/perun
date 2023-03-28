@@ -1,6 +1,5 @@
 """Core perun functionality."""
 import platform
-import pprint as pp
 
 # import sys
 import time
@@ -122,7 +121,7 @@ def _run_application(
         # 2) If assigned devices, create subprocess
         if len(localBackends.keys()) > 0:
             log.debug(
-                f"Rank {COMM_WORLD.Get_rank()} - Local Backendens : {pp.pformat(localBackends)}"
+                f"Rank {COMM_WORLD.Get_rank()} - Local Backendens : {localBackends}"
             )
             queue = Queue()
             perunSP = Process(

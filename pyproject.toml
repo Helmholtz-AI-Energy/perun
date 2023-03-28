@@ -21,6 +21,7 @@ psutil = "*"
 h5py = "*"
 prettytable = "^3.6.0"
 pandas = "^1.5.3"
+typing-extensions = "^4.5.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
