@@ -2,6 +2,17 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.0 (2023-03-28)
+### Feature
+* Summary with co2 and price in text report ([`52dfe0a`](https://github.com/Helmholtz-AI-Energy/perun/commit/52dfe0ad47d5ee20ad295c0f693c9cb525c4dd0e))
+
+### Fix
+* Process start_event not set, rapl psys gets ignored ([`19b62ef`](https://github.com/Helmholtz-AI-Energy/perun/commit/19b62efc247030b2ef9e5bce4a2315573b3560da))
+* Removed bench minimal configuration option ([`8115bfc`](https://github.com/Helmholtz-AI-Energy/perun/commit/8115bfc0473ab8bca0c618d3149f09212ed5a7e2))
+
+### Documentation
+* Update README.md ([`7880070`](https://github.com/Helmholtz-AI-Energy/perun/commit/7880070307497cb213effd2d1387afbd88435e99))
+
 ## v0.1.1 (2023-03-22)
 ### Fix
 * Removed bench minimal configuration option ([`f946f71`](https://github.com/Helmholtz-AI-Energy/perun/commit/f946f71b6a62d151e232cdc288ae2f68680511f2))
