@@ -1,6 +1,8 @@
 name: fair-software
 
-on: push
+on:
+  push:
+    branches: [main]
 
 jobs:
   verify:
