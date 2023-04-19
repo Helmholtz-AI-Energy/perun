@@ -2,6 +2,13 @@
   <img src="https://raw.githubusercontent.com/Helmholtz-AI-Energy/perun/main/docs/images/perun.svg">
 </div>
 
+[![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B%20%20%E2%97%8B%20%20%E2%97%8B-orange)](https://fair-software.eu)
+![PyPI](https://img.shields.io/pypi/v/perun)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/perun)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+
 Have you ever wondered how much energy is used when training your neural network on the MNIST dataset? Want to get scared because of impact you are having on the evironment while doing "valuable" research? Are you interested in knowing how much carbon you are burning playing with DALL-E just to get attention on twitter? If the thing that was missing from your machine learning workflow was existential dread, this is the correct package for you!
 
 perun is python package that calculates the energy consumption of your python scripts by sampling usage statistics from Intel RAPL, Nvidia-NVML and *psutil*. Unlike other energy measuring applications out there, this is the only one capable of handling MPI applications, being capable of gathering data from 100s of nodes at the same time, and accumulating it efficiently. This is posible without adding any line of code into your existing application, and without meaningfully extending the runtime of your application.
