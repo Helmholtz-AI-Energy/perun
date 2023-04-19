@@ -2,6 +2,9 @@
   <img src="https://raw.githubusercontent.com/Helmholtz-AI-Energy/perun/main/docs/images/perun.svg">
 </div>
 
+&nbsp;
+&nbsp;
+
 [![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B%20%20%E2%97%8B%20%20%E2%97%8B-orange)](https://fair-software.eu)
 ![PyPI](https://img.shields.io/pypi/v/perun)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/perun)
