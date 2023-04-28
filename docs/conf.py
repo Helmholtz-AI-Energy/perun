@@ -19,6 +19,7 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
+    "autoapi.extension",
 ]
 
 templates_path = ["_templates"]
@@ -36,4 +37,8 @@ html_static_path = ["_static"]
 # html_theme_options = {
 #     "logo_only": False,
 #     "style_nav_header_background": "#2980B9"
-# }
+#
+
+# AUTOAPI
+autoapi_type = "python"
+autoapi_dirs = ["../perun"]

@@ -19,9 +19,16 @@ PyYAML = "*"
 numpy = "*"
 psutil = "*"
 h5py = "*"
-prettytable = "^3.6.0"
-pandas = "^1.5.3"
-typing-extensions = "^4.5.0"
+prettytable = "*"
+pandas = "*"
+typing-extensions = "*"
+
+[tool.poetry.extras]
+dev = ["pytest", "flake8", "mypy", "black", "pre-commit", "pytest-cov", "sphinx", "sphinx-rtd-theme", "sphinx-autoapi"]
+mpi = ["mpi4py"]
+
+[tool.poetry.group.dev]
+optional = true
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
@@ -32,6 +39,7 @@ pre-commit = "*"
 pytest-cov = "*"
 sphinx = "*"
 sphinx-rtd-theme = "*"
+sphinx-autoapi = "*"
 
 [tool.poetry.group.mpi]
 optional = true
@@ -44,7 +52,6 @@ optional = true
 
 [tool.poetry.group.horeka.dependencies]
 influxdb-client = "*"
-pandas = "*"
 
 [tool.semantic_release]
 version_variable = [
