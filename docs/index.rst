@@ -3,14 +3,27 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to perun's documentation!
-=================================
+.. image:: images/perun_logo.svg
+
+**perun** is a Python package that calculates the energy consumption of Python scripts by sampling usage statistics from Intel RAPL, Nvidia-NVML, and psutil. It can handle MPI applications, gather data from hundreds of nodes, and accumulate it efficiently. perun can be used as a command-line tool or as a function decorator in Python scripts.
+
+.. note::
+   This project is under active development. For any issues, features requests, or if you would like to contribute, our `github page`_ page is the place to go.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
+   Installation
+   Quick Start
+   Usage
+   Data
+   Configuration
+   Benchmarking
 
+
+.. Links
+.. _github page: https://github.com/Helmholtz-AI-Energy/perun
 
 Indices and tables
 ==================

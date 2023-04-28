@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/Helmholtz-AI-Energy/perun/main/docs/images/perun.svg">
+  <img src="https://raw.githubusercontent.com/Helmholtz-AI-Energy/perun/main/docs/images/full_perun.svg">
 </div>
 
 &nbsp;
@@ -12,9 +12,14 @@
 [![](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-Have you ever wondered how much energy is used when training your neural network on the MNIST dataset? Want to get scared because of impact you are having on the evironment while doing "valuable" research? Are you interested in knowing how much carbon you are burning playing with DALL-E just to get attention on twitter? If the thing that was missing from your machine learning workflow was existential dread, this is the correct package for you!
+perun is a Python package that calculates the energy consumption of Python scripts by sampling usage statistics from Intel RAPL, Nvidia-NVML, and psutil. It can handle MPI applications, gather data from hundreds of nodes, and accumulate it efficiently. perun can be used as a command-line tool or as a function decorator in Python scripts.
 
-perun is python package that calculates the energy consumption of your python scripts by sampling usage statistics from Intel RAPL, Nvidia-NVML and *psutil*. Unlike other energy measuring applications out there, this is the only one capable of handling MPI applications, being capable of gathering data from 100s of nodes at the same time, and accumulating it efficiently. This is posible without adding any line of code into your existing application, and without meaningfully extending the runtime of your application.
+## Key Features
+
+ - Measures energy consumption of Python scripts using Intel RAPL, Nvidia-NVML, and psutil
+ - Handles MPI applications efficiently
+ - Gathers data from hundreds of nodes and accumulates it efficiently
+ - Can be used as a command-line tool or as a function decorator in Python scripts
 
 ## Installation
 
@@ -32,15 +37,18 @@ pip install git+https://github.com/Helmholtz-AI-Energy/perun
 
 ## Quick Start
 
-Perun has two usage methods, either using the command line, or using function decorators.
+### Command Line
 
-### Command line
-
-When using the command line, perun will output file containing runtime, energy and other information gathered while your script runs.
+To use perun as a command-line tool, run the monitor subcommand followed by the path to your Python script and its arguments:
 
 ```console
 $ perun monitor path/to/your/script.py [args]
-$ cat perun_results/script_2023-03-23T12:10:48.627214.txt
+```
+
+perun will output a file containing runtime, energy, and other information gathered while your script runs:
+
+
+```console
 PERUN REPORT
 
 App name: script
@@ -52,22 +60,24 @@ NET_READ: 1.401 kB
 NET_WRITE: 1.292 kB
 DISK_READ: 174.633 MB
 DISK_WRITE: 88.000 kB
+
 ```
 
-### Decorator
+### Function Decorator
 
-Perun can also monitor individual functions using a decorator:
+To use perun as a function decorator in your Python script, import the monitor decorator and add it to the function you want to monitor:
 
 ```python
+
 import time
 from perun.decorator import monitor
 
 @monitor()
-def your_sleep_function(n: int):
+def your_function(n: int):
     time.sleep(n)
 ```
 
-And then running your script like always:
+When you run your script, perun will output a report from the function:
 
 ```console
 python path/to/your/script.py
