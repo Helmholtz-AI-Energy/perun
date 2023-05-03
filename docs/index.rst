@@ -21,7 +21,6 @@
    usage
    configuration
    data
-   benchmarking
 
 
 .. Links

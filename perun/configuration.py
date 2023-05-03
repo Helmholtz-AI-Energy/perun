@@ -1,6 +1,6 @@
 """Configuration module."""
-# kgCO2eq/kWh - source https://www.nowtricity.com/country/germany/
-# cent/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ Baden-Württemberg lokare anbieter
+# gCO2eq/kWh - source: https://ourworldindata.org/grapher/carbon-intensity-electricity Global Average
+# cent/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ Deutschland Günstigster Anbieter 03.05.2023
 
 import configparser
 from pathlib import Path
@@ -11,8 +11,8 @@ import click
 _default_config: Mapping[str, Mapping[str, Any]] = {
     "post-processing": {
         "pue": 1.58,
-        "emissions_factor": 0.262,  # gCO2eq/kWh
-        "price_factor": 34.60,  # Cent/kWh
+        "emissions_factor": 417.80,  # gCO2eq/kWh
+        "price_factor": 32.51,  # Cent/kWh
     },
     "monitor": {
         "sampling_rate": 1,
