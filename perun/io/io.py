@@ -78,6 +78,12 @@ def exportTo(
         format = IOFormat.PICKLE
 
     filename = f"{dataNode.metadata['app_name']}_{dataNode.id}"
+    output_path: Path = data_out / filename
+
+    existing_files = [path for path in output_path.parent.glob(f"{filename}*")]
+    if len(existing_files) > 0:
+        log.warning(f"File {output_path} already exists and will.")
+        filename += f"_{len(existing_files)}"
 
     reportStr: Union[str, bytes]
     if format == IOFormat.JSON:
