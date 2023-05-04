@@ -18,6 +18,8 @@ Options
     "emissions_factor", 417.80, "Average carbon intensity of electricity (gCO2e/kWh). Source: https://ourworldindata.org/grapher/carbon-intensity-electricity"
     "price_factor", 32.51, "Power to Euros conversion factor (Cent/kWh). Source : https://www.stromauskunft.de/strompreise/"
     "sampling_rate", 1, "Seconds between measurements"
+    "app_name", None, "Name to identify the app. If **None**, name will be based on the file or function name. If **SLURM**, perun will look for the environmental variable **SLURM_JOB_NAME** and use that."
+    "run_id", None, "ID of the current run. If **None**, the current date and time will be used. If **SLURM**, perun will look for the environmental variable **SLURM_JOB_ID** and use that."
     "format", "text", "Output report format [text, pickle, csv, hdf5, json, bench]"
     "data_out", "./perun_results", "perun output location"
     "raw", False, "If output file should include raw data"

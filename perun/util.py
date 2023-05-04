@@ -21,7 +21,9 @@ def getRunName(app: Union[Path, Callable]) -> str:
     """
     if config.get("output", "app_name"):
         return config.get("output", "app_name")
-    elif "SBATCH_JOB_NAME" in os.environ:
+    elif (
+        "SBATCH_JOB_NAME" in os.environ and config.get("output", "app_name") == "SLURM"
+    ):
         return os.environ["SBATCH_JOB_NAME"]
     elif isinstance(app, Path):
         return app.stem
@@ -40,7 +42,7 @@ def getRunId(startime: datetime) -> str:
     """
     if config.get("output", "run_id"):
         return config.get("output", "run_id")
-    elif "SLURM_JOB_ID" in os.environ:
+    elif "SLURM_JOB_ID" in os.environ and config.get("output", "run_id") == "SLURM":
         return os.environ["SLURM_JOB_ID"]
     else:
         return startime.isoformat()
