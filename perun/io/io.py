@@ -83,7 +83,9 @@ def exportTo(
     existing_files = [path for path in output_path.parent.glob(f"{filename}*")]
     if len(existing_files) > 0:
         log.warning(f"File {output_path} already exists and will.")
-        filename += f"_{len(existing_files)}"
+        idx = len(existing_files)
+        filename += f"_{idx}"
+        dataNode.id += f"_{idx}"
 
     reportStr: Union[str, bytes]
     if format == IOFormat.JSON:
