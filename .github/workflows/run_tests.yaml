@@ -24,6 +24,8 @@ jobs:
         run: |
           pip install poetry
           poetry install --with dev
-      - name: Test with pytest
+      - name: Test with pytest and cmdline commands
         run: |
           poetry run pytest
+          poetry run perun
+          poetry run sensors
