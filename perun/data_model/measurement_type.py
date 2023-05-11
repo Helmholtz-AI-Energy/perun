@@ -4,7 +4,6 @@ import enum
 from typing import Dict
 
 import numpy as np
-from typing_extensions import Self
 
 
 class Unit(str, enum.Enum):
@@ -80,7 +79,7 @@ class MetricMetaData:
     fill: np.number
 
     @classmethod
-    def fromDict(cls, mdDict: Dict) -> Self:
+    def fromDict(cls, mdDict: Dict):
         """Create MetricMetadata from a dictionary."""
         dtype = np.dtype(mdDict["dtype"])
         return cls(

@@ -4,7 +4,6 @@ import enum
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-from typing_extensions import Self
 
 from perun import log
 from perun.data_model.measurement_type import MetricMetaData
@@ -55,7 +54,7 @@ class Metric:
     agg: AggregateType
 
     @classmethod
-    def fromDict(cls, metricDict: Dict) -> Self:
+    def fromDict(cls, metricDict: Dict):
         """Create RawData object from a dictionary."""
         return cls(
             MetricType(metricDict["type"]),
@@ -77,7 +76,7 @@ class Stats:
     min: np.number
 
     @classmethod
-    def fromMetrics(cls, metrics: List[Metric]) -> Self:
+    def fromMetrics(cls, metrics: List[Metric]):
         """Create a stats object based on the metric's values."""
         type = metrics[0].type
         metric_md = metrics[0].metric_md
@@ -104,7 +103,7 @@ class Stats:
         return self.mean
 
     @classmethod
-    def fromDict(cls, statsDict: Dict) -> Self:
+    def fromDict(cls, statsDict: Dict):
         """Stats constructor from a dictionory."""
         return cls(
             MetricType(statsDict["type"]),
@@ -126,7 +125,7 @@ class RawData:
     v_md: MetricMetaData
 
     @classmethod
-    def fromDict(cls, rawDataDict: Dict) -> Self:
+    def fromDict(cls, rawDataDict: Dict):
         """Create RawData object from a dictionary."""
         t_md = MetricMetaData.fromDict(rawDataDict["t_md"])
         v_md = MetricMetaData.fromDict(rawDataDict["v_md"])
@@ -146,7 +145,7 @@ class DataNode:
         id: str,
         type: NodeType,
         metadata: Dict,
-        nodes: Optional[Dict[str, Self]] = None,
+        nodes: Optional[Dict[str, Any]] = None,
         metrics: Optional[Dict[MetricType, Union[Metric, Stats]]] = None,
         deviceType: Optional[DeviceType] = None,
         raw_data: Optional[RawData] = None,
@@ -164,7 +163,7 @@ class DataNode:
         self.id = id
         self.type = type
         self.metadata: Dict[str, Any] = metadata
-        self.nodes: Dict[str, Self] = nodes if nodes else {}
+        self.nodes: Dict[str, Any] = nodes if nodes else {}
         self.metrics: Dict[MetricType, Union[Metric, Stats]] = (
             metrics if metrics else {}
         )
@@ -208,7 +207,7 @@ class DataNode:
         return resultsDict
 
     @classmethod
-    def fromDict(cls, resultsDict: Dict) -> Self:
+    def fromDict(cls, resultsDict: Dict):
         """Build object from dictionary."""
         type = NodeType(resultsDict["type"])
         newResults = cls(
