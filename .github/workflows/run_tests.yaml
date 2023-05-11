@@ -28,4 +28,4 @@ jobs:
         run: |
           poetry run pytest
           poetry run perun
-          poetry run sensors
+          poetry run perun sensors
