@@ -55,7 +55,7 @@ from perun.io.io import IOFormat, exportTo, importFrom
 )
 @click.option(
     "--raw",
-    default=False,
+    default=True,
     help="Use the flag '--raw' if you need access to all the raw data collected by perun. The output will be saved on an hdf5 file on the perun data output location.",
     is_flag=True,
     callback=save_to_config_callback,
