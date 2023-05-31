@@ -1,12 +1,13 @@
 """Util module."""
 import os
+import platform
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, Tuple, Union
+from typing import Any, Callable, Dict, Set, Tuple, Union
 
 import numpy as np
 
-from perun import config
+from perun import config, log
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 
 
@@ -19,9 +20,11 @@ def getRunName(app: Union[Path, Callable]) -> str:
     Returns:
         str: Application name.
     """
-    if config.get("output", "app_name"):
+    app_name = config.get("output", "app_name")
+
+    if app_name and app_name != "SLURM":
         return config.get("output", "app_name")
-    elif "SBATCH_JOB_NAME" in os.environ:
+    elif app_name and "SBATCH_JOB_NAME" in os.environ and app_name == "SLURM":
         return os.environ["SBATCH_JOB_NAME"]
     elif isinstance(app, Path):
         return app.stem
@@ -38,9 +41,14 @@ def getRunId(startime: datetime) -> str:
     Returns:
         str: String id.
     """
-    if config.get("output", "run_id"):
+    run_id = config.get("output", "run_id")
+    if run_id and run_id != "SLURM":
         return config.get("output", "run_id")
-    elif "SLURM_JOB_ID" in os.environ:
+    elif (
+        run_id
+        and "SLURM_JOB_ID" in os.environ
+        and config.get("output", "run_id") == "SLURM"
+    ):
         return os.environ["SLURM_JOB_ID"]
     else:
         return startime.isoformat()
@@ -89,3 +97,33 @@ def value2str(
         return f"{newValue:.3f}", transformFactor, newMag
     else:
         return f"{value:.3f}", 1.0, metric_md.mag
+
+
+def getHostMetadata(backendConfig: Dict[str, Set[str]]) -> Dict[str, Any]:
+    """Return dictionary with the full system metadata based on the provided backend configuration.
+
+    :param backendConfig: Sensor backend configuration to include in the metadata object.
+    :type backendConfig: Dict[str, Set[str]]
+    :return: Dictionary with system metadata
+    :rtype: Dict[str, Any]
+    """
+    from perun.backend import backends
+
+    metadata = {}
+    for name, method in platform.__dict__.items():
+        if callable(method):
+            try:
+                metadata[name] = method()
+            except Exception as e:
+                log.warn(f"platform method {name} did not work")
+                log.warn(e)
+
+    metadata["backends"] = {}
+    for backend in backends:
+        if backend.name in backendConfig:
+            metadata["backends"][backend.name] = {}
+            sensors = backend.getSensors(backendConfig[backend.name])
+            for sensor in sensors:
+                metadata["backends"][backend.name][sensor.id] = sensor.metadata
+
+    return metadata

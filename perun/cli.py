@@ -3,6 +3,7 @@
 Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline configurations.
 """
 from pathlib import Path
+from typing import Dict, List, Optional
 
 import click
 
@@ -10,6 +11,7 @@ import perun
 from perun import log
 from perun.configuration import config, read_custom_config, save_to_config_callback
 from perun.io.io import IOFormat, exportTo, importFrom
+from perun.util import getHostMetadata
 
 
 @click.group()
@@ -55,7 +57,7 @@ from perun.io.io import IOFormat, exportTo, importFrom
 )
 @click.option(
     "--raw",
-    default=False,
+    default=True,
     help="Use the flag '--raw' if you need access to all the raw data collected by perun. The output will be saved on an hdf5 file on the perun data output location.",
     is_flag=True,
     callback=save_to_config_callback,
@@ -157,7 +159,14 @@ def showconf(default: bool):
 
 
 @cli.command()
-def sensors():
+@click.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    default=False,
+    help="Print all the available system information in json format.",
+)
+def sensors(verbose: bool):
     """Print sensors assigned to each rank by perun."""
     from perun import COMM_WORLD
     from perun.backend import backends
@@ -166,19 +175,35 @@ def sensors():
     globalHostRank, globalSensorConfig = getGlobalSensorRankConfiguration(
         COMM_WORLD, backends
     )
-    if COMM_WORLD.Get_rank() == 0:
-        for rank, bes in enumerate(globalSensorConfig):
-            click.echo(f"Rank: {rank}")
-            for key, items in bes.items():
-                if len(items) > 0:
-                    click.echo(f"   {key}:")
-                    for device in items:
-                        click.echo(f"       {device}")
-                    click.echo("")
 
-        click.echo("Hostnames: ")
-        for host, ranks in globalHostRank.items():
-            click.echo(f"   {host}: {ranks}")
+    if verbose:
+        import json
+        import sys
+
+        hostMD = getHostMetadata(globalSensorConfig[0])
+        allHostsMD: Optional[List[Dict]] = COMM_WORLD.gather(hostMD, root=0)
+
+        if COMM_WORLD.Get_rank() == 0 and allHostsMD:
+            metadataDict = {}
+            for host, assignedRanks in globalHostRank.items():
+                metadataDict[host] = allHostsMD[assignedRanks[0]]
+
+            json.dump(metadataDict, sys.stdout, indent=4)
+
+    else:
+        if COMM_WORLD.Get_rank() == 0:
+            for rank, bes in enumerate(globalSensorConfig):
+                click.echo(f"Rank: {rank}")
+                for key, items in bes.items():
+                    if len(items) > 0:
+                        click.echo(f"   {key}:")
+                        for device in items:
+                            click.echo(f"       {device}")
+                        click.echo("")
+
+            click.echo("Hostnames: ")
+            for host, ranks in globalHostRank.items():
+                click.echo(f"   {host}: {ranks}")
 
     for b in backends:
         b.close()

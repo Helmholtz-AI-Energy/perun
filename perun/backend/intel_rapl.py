@@ -38,20 +38,10 @@ class IntelRAPLBackend(Backend):
     def setup(self):
         """Check Intel RAPL access."""
         cpuInfo = cpuinfo.get_cpu_info()
-        self.metadata = {
-            "vendor_id": cpuInfo["vendor_id_raw"],
-            "brand": cpuInfo["brand_raw"],
-            "arch": cpuInfo["arch_string_raw"],
-            "hz_advertised": cpuInfo["hz_advertised_friendly"],
-            "hz_actual": cpuInfo["hz_actual_friendly"],
-            "l1_data_cache_size": cpuInfo["l1_data_cache_size"],
-            "l1_instruction_cache_size": cpuInfo["l1_instruction_cache_size"],
-            "l2_cache_size": cpuInfo["l2_cache_size"],
-            "l2_cache_line_size": cpuInfo["l2_cache_line_size"],
-            "l2_cache_associativity": cpuInfo["l2_cache_associativity"],
-            "l3_cache_size": cpuInfo["l3_cache_size"],
-            "source": "Intel RAPL",
-        }
+        self.metadata = {}
+        for key, value in cpuInfo.items():
+            self.metadata[key] = value
+
         log.debug(f"CPU info metadata: {self.metadata}")
 
         raplPath = Path(RAPL_PATH)
@@ -68,6 +58,7 @@ class IntelRAPLBackend(Backend):
 
         self._files = []
         packageDevices = []
+        packageFiles = []
         foundPsys = False
         for child in raplPath.iterdir():
             log.debug(child)
@@ -118,19 +109,21 @@ class IntelRAPLBackend(Backend):
                         self.devices[device.id] = device
                         if "package" in device_name:
                             packageDevices.append(device)
+                            packageFiles.append(energy_file)
 
                         for grandchild in child.iterdir():
                             match = re.match(SUBDIR_RGX, grandchild.name)
                             if match:
                                 with open(grandchild / "name", "r") as file:
                                     device_name = file.readline().strip()
+
                                 if "dram" in device_name:
                                     devType = DeviceType.RAM
                                 elif "package" in device_name:
                                     devType = DeviceType.CPU
-                                elif "psys" in device_name:
-                                    devType = DeviceType.CPU
-                                    foundPsys = True
+                                # elif "psys" in device_name:
+                                #     devType = DeviceType.CPU
+                                #     foundPsys = True
                                 else:
                                     devType = DeviceType.OTHER
 
@@ -166,7 +159,8 @@ class IntelRAPLBackend(Backend):
                                         packageDevices.append(device)
 
         if foundPsys:
-            for pkg in packageDevices:
+            for pkg, file in zip(packageDevices, packageFiles):
+                file.close()
                 del self.devices[pkg.id]
 
         log.debug(f"IntelRapl devices {self.devices}")

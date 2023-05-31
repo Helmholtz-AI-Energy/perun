@@ -1,6 +1,5 @@
 """Text report module."""
 
-from prettytable import PrettyTable
 
 from perun import config, log
 from perun.data_model.data import DataNode, MetricType, NodeType, Stats
@@ -36,26 +35,52 @@ def textReport(dataNode: DataNode) -> str:
     )
 
     if dataNode.type == NodeType.MULTI_RUN:
-        table = PrettyTable(float_format="1.3f")
-        table.field_names = ["Name", "mean", "std", "max", "min"]
-        table.align = "r"
-        table.align["Name"] = "l"  # type: ignore
+        columns = ["Name", "Unit", "mean", "std", "max", "min"]
+        column_widths = [4, 4, 8, 8, 8, 8]
+        entries = {}
         for metricType in MetricType:
             if metricType in dataNode.metrics:
                 metric = dataNode.metrics[metricType]
                 if isinstance(metric, Stats):
                     value, tfactor, mag = value2str(metric.value, metric.metric_md)
-                    table.add_row(
-                        [
-                            f"{metricType.name} [{mag.symbol}{metric.metric_md.unit.value}]",
-                            f"{metric.mean / tfactor:.3f}",
-                            f"{metric.std / tfactor:.3f}",
-                            f"{metric.max / tfactor:.3f}",
-                            f"{metric.min / tfactor:.3f}",
-                        ]
+                    unit_str = f"{mag.symbol}{metric.metric_md.unit.value}"
+                    column_widths[0] = (
+                        column_widths[0]
+                        if column_widths[0] > len(metricType.name)
+                        else len(metricType.name)
                     )
+                    column_widths[1] = (
+                        column_widths[1]
+                        if column_widths[1] > len(unit_str)
+                        else len(unit_str)
+                    )
+                    entries[metricType.name] = [
+                        unit_str,
+                        f"{metric.mean/tfactor:.3f}",
+                        f"{metric.std/tfactor:.3f}",
+                        f"{metric.max/tfactor:.3f}",
+                        f"{metric.min/tfactor:.3f}",
+                    ]
+
         reportStr += "\n"
-        reportStr += table.get_string(float_format=".3")
+        header_row: str = "|" + "".join(
+            [
+                " {0:^{width}} |".format(column, width=width)
+                for column, width in zip(columns, column_widths)
+            ]
+        )
+        table_width = len(header_row)
+        reportStr += header_row + "\n"
+        reportStr += ("-" * table_width) + "\n"
+        for key, values in entries.items():
+            name = "| {0:<{width}} |".format(key, width=column_widths[0])
+            values_str = "".join(
+                [
+                    " {0:>{w}} |".format(v, w=w)
+                    for v, w in zip(values, column_widths[1:])
+                ]
+            )
+            reportStr += name + values_str + "\n"
 
     else:
         for metricType in MetricType:

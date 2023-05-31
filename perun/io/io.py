@@ -15,7 +15,6 @@ from perun.io.text_report import textReport
 
 _suffixes = {
     "text": "txt",
-    "yaml": "yaml",
     "json": "json",
     "hdf5": "hdf5",
     "pickle": "pkl",
@@ -33,7 +32,6 @@ class IOFormat(enum.Enum):
     PICKLE = "pickle"
     CSV = "csv"
     BENCH = "bench"
-    # YAML = "yaml"
 
     @property
     def suffix(self):
@@ -78,6 +76,14 @@ def exportTo(
         format = IOFormat.PICKLE
 
     filename = f"{dataNode.metadata['app_name']}_{dataNode.id}"
+    output_path: Path = data_out / filename
+
+    existing_files = [path for path in output_path.parent.glob(f"{filename}*")]
+    if len(existing_files) > 0:
+        log.warning(f"File {output_path} already exists and will.")
+        idx = len(existing_files)
+        filename += f"_{idx}"
+        dataNode.id += f"_{idx}"
 
     reportStr: Union[str, bytes]
     if format == IOFormat.JSON:
@@ -104,9 +110,6 @@ def exportTo(
         reportStr = exportBench(dataNode)
         with open(data_out / filename, fileType) as file:
             file.write(reportStr)
-    # elif format == IOFormat.YAML:
-    #     filename += ".yaml"
-    #     reportStr = exportYaml(dataNode, depth, rawData)
     else:
         filename += ".txt"
         fileType = "w"
@@ -125,9 +128,6 @@ def importFrom(filePath: Path, format: IOFormat) -> DataNode:
     if format == IOFormat.JSON:
         with open(filePath, "r") as file:
             dataNode = importJson(file.read())
-    # elif format == IOFormat.YAML:
-    #     filename += ".yaml"
-    #     reportStr = exportYaml(dataNode, depth, rawData)
     elif format == IOFormat.HDF5:
         dataNode = importHDF5(filePath)
     elif format == IOFormat.PICKLE:

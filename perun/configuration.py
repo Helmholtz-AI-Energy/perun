@@ -1,8 +1,8 @@
 """Configuration module."""
-# kgCO2eq/kWh - source https://www.nowtricity.com/country/germany/
-# cent/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ Baden-Württemberg lokare anbieter
-
+# gCO2eq/kWh - source: https://ourworldindata.org/grapher/carbon-intensity-electricity Global Average
+# cent/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ 03.05.2023
 import configparser
+import os
 from pathlib import Path
 from typing import Any, Mapping, Optional, Union
 
@@ -11,19 +11,19 @@ import click
 _default_config: Mapping[str, Mapping[str, Any]] = {
     "post-processing": {
         "pue": 1.58,
-        "emissions_factor": 0.262,  # gCO2eq/kWh
-        "price_factor": 34.60,  # Cent/kWh
+        "emissions_factor": 417.80,  # gCO2eq/kWh
+        "price_factor": 32.51,  # Cent/kWh
     },
     "monitor": {
-        "sampling_rate": 1,
+        "sampling_rate": 5,
     },
     "output": {
         "app_name": None,
         "run_id": None,
-        "format": "text",
+        "format": "pickle",
         "data_out": "./perun_results",
         "depth": None,
-        "raw": False,
+        "raw": True,
     },
     "benchmarking": {
         "bench_enable": False,
@@ -89,3 +89,12 @@ def save_to_config(key: str, value: Any):
     for section in config.sections():
         if config.has_option(section, key):
             config.set(section, key, str(value))
+
+
+def read_environ():
+    """Read perun environmental variables."""
+    for section, subconf in _default_config.items():
+        for option in subconf.keys():
+            envvar = f"PERUN_{option.upper()}"
+            if envvar in os.environ:
+                config.set(section, option, os.environ[envvar])
