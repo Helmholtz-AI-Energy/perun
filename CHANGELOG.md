@@ -2,6 +2,24 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.0 (2023-05-31)
+### Feature
+
+* Extra host metadata ([`f576046`](https://github.com/Helmholtz-AI-Energy/perun/commit/f57604625e3072391e76a55945dce63d72e038b2))
+
+### Fix
+
+* Env configuration for decorator ([`2f5626f`](https://github.com/Helmholtz-AI-Energy/perun/commit/2f5626f9b0e20c77cd14cefe17f812cf41cb1ba9))
+* Intel rapl file managment changes ([`9fa33d3`](https://github.com/Helmholtz-AI-Energy/perun/commit/9fa33d388fd6f3868173733634250c021fd3aa1c))
+* SLURM integration changes ([#52](https://github.com/Helmholtz-AI-Energy/perun/issues/52)) ([`e563c19`](https://github.com/Helmholtz-AI-Energy/perun/commit/e563c19a7593fe6f2bda863c96d0ecbdeed206cb))
+
+### Documentation
+
+* Link to docs in README ([`77613ab`](https://github.com/Helmholtz-AI-Energy/perun/commit/77613ab72657ed00537417572f2a170917577567))
+* Rtd setup ([`d3ef35b`](https://github.com/Helmholtz-AI-Energy/perun/commit/d3ef35bf1393f4c45982e5f163a9445cd83d2062))
+* Readthedocs documentation with sphinx ([#51](https://github.com/Helmholtz-AI-Energy/perun/issues/51)) ([`ef02fe9`](https://github.com/Helmholtz-AI-Energy/perun/commit/ef02fe93c705f0c89bc8855b16678817904c6ce6))
+* Fair-software badge ([#47](https://github.com/Helmholtz-AI-Energy/perun/issues/47)) ([`34585cd`](https://github.com/Helmholtz-AI-Energy/perun/commit/34585cd8f3d353c1e2591a498004677a8315864c))
+
 ## v0.2.0 (2023-03-28)
 ### Feature
 * Summary with co2 and price in text report ([`52dfe0a`](https://github.com/Helmholtz-AI-Energy/perun/commit/52dfe0ad47d5ee20ad295c0f693c9cb525c4dd0e))
