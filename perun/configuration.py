@@ -1,6 +1,6 @@
 """Configuration module."""
 # gCO2eq/kWh - source: https://ourworldindata.org/grapher/carbon-intensity-electricity Global Average
-# cent/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ Deutschland Günstigster Anbieter 03.05.2023
+# cent/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ 03.05.2023
 import configparser
 import os
 from pathlib import Path
