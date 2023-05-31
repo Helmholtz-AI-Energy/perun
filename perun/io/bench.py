@@ -27,7 +27,7 @@ def exportBench(dataNode: DataNode) -> str:
             if isinstance(metric, Stats):
                 metricDict.append(
                     {
-                        "name": f"{dataNode.metadata['app_name']} - {metricType.name}",
+                        "name": f"{dataNode.metadata['app_name']}_{dataNode.id} - {metricType.name}",
                         "unit": f"{mag.symbol}{metric_md.unit.symbol}",
                         "value": metric.mean / tfactor,
                         "range": metric.std / tfactor,
@@ -36,7 +36,7 @@ def exportBench(dataNode: DataNode) -> str:
             else:
                 metricDict.append(
                     {
-                        "name": f"{dataNode.metadata['app_name']} - {metricType.name}",
+                        "name": f"{dataNode.metadata['app_name']}_{dataNode.id} - {metricType.name}",
                         "unit": f"{mag.symbol}{metric_md.unit.symbol}",
                         "value": metric.value / tfactor,
                     }
