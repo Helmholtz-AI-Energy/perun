@@ -61,17 +61,17 @@ def monitor_application(
             exportTo(data_out, dataNode, format, includeRawData, depth)
     else:
         # Start with warmup rounds
-        log.debug(f"Rank {COMM_WORLD.Get_rank()} : Started warmup rounds")
+        log.info(f"Rank {COMM_WORLD.Get_rank()} : Started warmup rounds")
         for i in range(config.getint("benchmarking", "bench_warmup_rounds")):
-            log.debug(f"Warmup run: {i}")
+            log.info(f"Warmup run: {i}")
             app_results, _ = _run_application(
                 backends, app, app_args, app_kwargs, record=False
             )
 
-        log.debug(f"Rank {COMM_WORLD.Get_rank()} : Started bench rounds")
+        log.info(f"Rank {COMM_WORLD.Get_rank()} : Started bench rounds")
         runNodes: List[DataNode] = []
         for i in range(config.getint("benchmarking", "bench_rounds")):
-            log.debug(f"Rank {COMM_WORLD.Get_rank()} : Bench run: {i}")
+            log.info(f"Rank {COMM_WORLD.Get_rank()} : Bench run: {i}")
             app_results, runNode = _run_application(
                 backends, app, app_args, app_kwargs, record=True, run_id=str(i)
             )
@@ -93,9 +93,6 @@ def monitor_application(
 
             exportTo(data_out, benchNode, format, includeRawData, depth)
 
-    for backend in backends:
-        backend.close()
-
     return app_results
 
 
@@ -109,7 +106,7 @@ def _run_application(
 ) -> Tuple[Optional[Any], Optional[DataNode]]:
     app_result: Optional[Any] = None
 
-    log.debug(f"Rank {COMM_WORLD.Get_rank()}: _run_application")
+    log.info(f"Rank {COMM_WORLD.Get_rank()}: _run_application")
     if record:
         # 1) Get sensor configuration
         mpiRanks, localBackends = getLocalSensorRankConfiguration(COMM_WORLD, backends)
@@ -147,13 +144,13 @@ def _run_application(
                 with open(str(app), "r") as scriptFile:
                     start_event.wait()
                     COMM_WORLD.barrier()
-                    log.debug(f"Rank {COMM_WORLD.Get_rank()}: Started App")
+                    log.info(f"Rank {COMM_WORLD.Get_rank()}: Started App")
                     run_starttime = datetime.utcnow()
                     exec(
                         scriptFile.read(),
                         {"__name__": "__main__", "__file__": app.name},
                     )
-                    log.debug(f"Rank {COMM_WORLD.Get_rank()}: AppStoppedStopped")
+                    log.info(f"Rank {COMM_WORLD.Get_rank()}: App Stopped")
                     stop_event.set()
             except Exception as e:
                 log.error(
@@ -166,11 +163,11 @@ def _run_application(
             try:
                 start_event.wait()
                 COMM_WORLD.barrier()
-                log.debug(f"Rank {COMM_WORLD.Get_rank()}: Started App")
+                log.info(f"Rank {COMM_WORLD.Get_rank()}: Started App")
                 run_starttime = datetime.utcnow()
 
                 app_result = app(*app_args, **app_kwargs)
-                log.debug(f"Rank {COMM_WORLD.Get_rank()}: Stopped App")
+                log.info(f"Rank {COMM_WORLD.Get_rank()}: Stopped App")
             except Exception as e:
                 stop_event.set()
                 raise e
@@ -178,19 +175,19 @@ def _run_application(
 
         # 4) App finished, stop subrocess and get data
         if queue and perunSP:
-            log.debug(f"Rank {COMM_WORLD.Get_rank()}: Getting queue contents")
+            log.info(f"Rank {COMM_WORLD.Get_rank()}: Getting queue contents")
             nodeData = queue.get(block=True)
-            log.debug(f"Rank {COMM_WORLD.Get_rank()}: Got queue contents")
-            log.debug(f"Rank {COMM_WORLD.Get_rank()}: Waiting for subprocess to close")
+            log.info(f"Rank {COMM_WORLD.Get_rank()}: Got queue contents")
+            log.info(f"Rank {COMM_WORLD.Get_rank()}: Waiting for subprocess to close")
             perunSP.join()
             perunSP.close()
-            log.debug(f"Rank {COMM_WORLD.Get_rank()}: Subprocess closed")
+            log.info(f"Rank {COMM_WORLD.Get_rank()}: Subprocess closed")
             queue.close()
         else:
             nodeData = None
 
         COMM_WORLD.barrier()
-        log.debug(f"Rank {COMM_WORLD.Get_rank()}: Everyone exited the subprocess")
+        log.info(f"Rank {COMM_WORLD.Get_rank()}: Everyone exited the subprocess")
 
         if nodeData:
             nodeData.metadata["mpi_ranks"] = mpiRanks
@@ -292,7 +289,7 @@ def perunSubprocess(
     for idx, device in enumerate(lSensors):
         rawValues[idx].append(device.read())
 
-    log.debug(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Stop event received.")
+    log.info(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Stop event received.")
 
     sensorNodes: Dict = {}
 
@@ -316,7 +313,7 @@ def perunSubprocess(
         dn = processSensorData(dn)
         sensorNodes[sensor.type].append(dn)
 
-    log.debug(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Preprocessed Sensor Data")
+    log.info(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Preprocessed Sensor Data")
     deviceGroupNodes = []
     for deviceType, sensorNodes in sensorNodes.items():
         if deviceType != DeviceType.NODE:
@@ -333,7 +330,7 @@ def perunSubprocess(
         else:
             deviceGroupNodes.extend(sensorNodes)
 
-    log.debug(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Preprocessed Device Data")
+    log.info(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Preprocessed Device Data")
 
     hostNode = DataNode(
         id=platform.node(),
@@ -345,8 +342,4 @@ def perunSubprocess(
 
     # This should send a single processed node for the current computational node
     queue.put(hostNode, block=True)
-    log.debug(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Sent data")
-
-    log.debug("Closing backends")
-    for backend in backends:
-        backend.close()
+    log.info(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Sent data")

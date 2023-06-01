@@ -162,7 +162,7 @@ class IntelRAPLBackend(Backend):
 
         if foundPsys:
             for pkg, file in zip(packageDevices, packageFiles):
-                log.debug(f"Closing file: {file}")
+                log.info(f"Closing file: {file}")
                 file.close()
                 del self.devices[pkg.id]
 
@@ -170,9 +170,9 @@ class IntelRAPLBackend(Backend):
 
     def close(self) -> None:
         """Backend shutdown code (does nothing for intel rapl)."""
-        log.debug("Closing files")
+        log.info("Closing files")
         for file in self._files:
-            log.debug(f"Closing file: {file}")
+            log.info(f"Closing file: {file}")
             file.close()
         return
 
