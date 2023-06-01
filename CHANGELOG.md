@@ -2,6 +2,16 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.1 (2023-06-01)
+### Fix
+
+* Backends init and closed twice ([`406739c`](https://github.com/Helmholtz-AI-Energy/perun/commit/406739c34cf540b2177770022a82f84b1a1b60e3))
+
+### Documentation
+
+* Updated fair badge ([`827557d`](https://github.com/Helmholtz-AI-Energy/perun/commit/827557d5ffd0828cb168577d471219fe1e7fcee1))
+* Zenodo badge ([`c1043c5`](https://github.com/Helmholtz-AI-Energy/perun/commit/c1043c563166aedeef51da4c5c64ea8323836d31))
+
 ## v0.3.0 (2023-05-31)
 ### Feature
 
