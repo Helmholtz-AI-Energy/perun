@@ -134,7 +134,12 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                 else:
                     metricType = MetricType.DISK_WRITE
 
-            result = rawData.values[-1] - rawData.values[0]
+            bytes_v = rawData.values
+            maxValue = rawData.v_md.max
+            dtype = rawData.v_md.dtype.name
+            d_bytes = bytes_v[1:] - bytes_v[:-1]
+            result = d_bytes.sum()
+
             sensorData.metrics[metricType] = Metric(
                 metricType,
                 result.astype(rawData.v_md.dtype),
