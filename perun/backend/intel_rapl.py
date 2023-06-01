@@ -97,6 +97,7 @@ class IntelRAPLBackend(Backend):
 
                         energy_path = str(child / "energy_uj")
                         energy_file = open(energy_path, "r")
+                        log.debug(f"RAPL FILE OPENED: {energy_path}")
                         self._files.append(energy_file)
                         device = Sensor(
                             f"{devType.value}_{socket}_{device_name}",
@@ -144,6 +145,7 @@ class IntelRAPLBackend(Backend):
 
                                     energy_path = str(grandchild / "energy_uj")
                                     energy_file = open(energy_path, "r")
+                                    log.debug(f"RAPL FILE OPENED: {energy_path}")
                                     self._files.append(energy_file)
                                     device = Sensor(
                                         f"{devType.value}_{socket}_{device_name}",
@@ -160,6 +162,7 @@ class IntelRAPLBackend(Backend):
 
         if foundPsys:
             for pkg, file in zip(packageDevices, packageFiles):
+                log.debug(f"Closing file: {file}")
                 file.close()
                 del self.devices[pkg.id]
 
@@ -169,6 +172,7 @@ class IntelRAPLBackend(Backend):
         """Backend shutdown code (does nothing for intel rapl)."""
         log.debug("Closing files")
         for file in self._files:
+            log.debug(f"Closing file: {file}")
             file.close()
         return
 

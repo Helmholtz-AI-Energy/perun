@@ -141,8 +141,6 @@ def _run_application(
             start_event.set()
 
         # 3) Start application
-        log.debug(f"Rank {COMM_WORLD.Get_rank()}: Started Timer")
-        run_starttime = datetime.utcnow()
 
         if isinstance(app, Path):
             try:
@@ -150,6 +148,7 @@ def _run_application(
                     start_event.wait()
                     COMM_WORLD.barrier()
                     log.debug(f"Rank {COMM_WORLD.Get_rank()}: Started App")
+                    run_starttime = datetime.utcnow()
                     exec(
                         scriptFile.read(),
                         {"__name__": "__main__", "__file__": app.name},
@@ -168,6 +167,8 @@ def _run_application(
                 start_event.wait()
                 COMM_WORLD.barrier()
                 log.debug(f"Rank {COMM_WORLD.Get_rank()}: Started App")
+                run_starttime = datetime.utcnow()
+
                 app_result = app(*app_args, **app_kwargs)
                 log.debug(f"Rank {COMM_WORLD.Get_rank()}: Stopped App")
             except Exception as e:
@@ -259,7 +260,6 @@ def perunSubprocess(
 
     lSensors: List[Sensor] = []
     for backend in backends:
-        backend.setup()
         if backend.name in backendConfig:
             lSensors += backend.getSensors(backendConfig[backend.name])
 
@@ -293,10 +293,7 @@ def perunSubprocess(
         rawValues[idx].append(device.read())
 
     log.debug(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Stop event received.")
-    for backend in backends:
-        backend.close()
 
-    log.debug(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Closed backends")
     sensorNodes: Dict = {}
 
     t_s = np.array(timesteps)
@@ -350,5 +347,6 @@ def perunSubprocess(
     queue.put(hostNode, block=True)
     log.debug(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Sent data")
 
+    log.debug("Closing backends")
     for backend in backends:
         backend.close()
