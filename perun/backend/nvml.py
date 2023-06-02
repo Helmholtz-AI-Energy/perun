@@ -37,7 +37,7 @@ class NVMLBackend(Backend):
             "source": "Nvidia Managment Library",
         }
 
-        log.debug(f"NVML Device count: {deviceCount}")
+        log.info(f"NVML Device count: {deviceCount}")
 
     def close(self):
         """Backend shutdown code."""
@@ -106,8 +106,8 @@ class NVMLBackend(Backend):
                     )
                 )
             except NVMLError as e:
-                log.debug(f"Could not find device {deviceId}")
-                log.debug(e)
+                log.warning(f"Could not find device {deviceId}")
+                log.warning(e)
 
         return devices
 
