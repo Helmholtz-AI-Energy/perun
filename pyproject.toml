@@ -62,7 +62,7 @@ version_toml = ["pyproject.toml:tool.poetry.version"]
 commit_message = "{version} [skip ci]"
 build_command = "pip install poetry && poetry build"
 
-[tool.semantic_release.branch.release]
+[tool.semantic_release.branches.release]
 match = "release"
 prerelease = false
 
