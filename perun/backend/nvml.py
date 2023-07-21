@@ -66,6 +66,7 @@ class NVMLBackend(Backend):
         Returns:
             List[Device]: Device objects
         """
+
         def getCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
                 return np.uint32(pynvml.nvmlDeviceGetPowerUsage(handle))
