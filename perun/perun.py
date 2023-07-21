@@ -258,6 +258,7 @@ def perunSubprocess(
     lSensors: List[Sensor] = []
     for backend in backends:
         if backend.name in backendConfig:
+            backend.setup()
             lSensors += backend.getSensors(backendConfig[backend.name])
 
     timesteps = []
