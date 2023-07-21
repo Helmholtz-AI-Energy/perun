@@ -6,29 +6,12 @@ on:
       - release
 
 jobs:
-  Test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
-
-    steps:
-      - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          pip install poetry
-          poetry install --with dev
-      - name: Test with pytest
-        run: |
-          poetry run pytest
   Release:
-    needs: Test
     runs-on: ubuntu-latest
-    concurrency: release
+    environment: release
+    permissions:
+      id-token: write
+
     steps:
     - uses: actions/checkout@v2
       with:
@@ -36,8 +19,17 @@ jobs:
         fetch-depth: 0
 
     - name: Python Semantic Release
+      id: release
       uses: relekang/python-semantic-release@master
       with:
         github_token: ${{ secrets.GH_TOKEN }}
-        repository_username: __token__
-        repository_password: ${{ secrets.PYPI_TOKEN }}
+
+    - name: Publish package distributions to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      if: steps.release.outputs.released == 'true'
+
+    - name: Publish package distributions to GitHub Releases
+      uses: python-semantic-release/upload-to-gh-release@main
+      if: steps.release.outputs.released == 'true'
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}

@@ -57,15 +57,14 @@ mpi4py = "^3.1"
 # influxdb-client = "*"
 
 [tool.semantic_release]
-version_variable = [
-    "perun/__init__.py:__version__",
-    "pyproject.toml:version"
-]
-branch = "release"
-upload_to_pypi = true
-upload_to_release = true
+version_variable = [ "perun/__init__.py:__version__" ]
+version_toml = ["pyproject.toml:tool.poetry.version"]
 commit_message = "{version} [skip ci]"
 build_command = "pip install poetry && poetry build"
+
+[tool.semantic_release.branch.release]
+match = "release"
+prerelease = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
