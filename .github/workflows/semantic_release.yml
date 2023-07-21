@@ -23,7 +23,7 @@ jobs:
       id: release
       uses: python-semantic-release/python-semantic-release@master
       with:
-        github_token: ${{ secrets.GH_TOKEN }}
+        github_token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
