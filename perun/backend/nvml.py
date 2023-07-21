@@ -76,7 +76,7 @@ class NVMLBackend(Backend):
         devices = []
         for deviceId in deviceList:
             try:
-                handle = pynvml.nvmlDeviceGetHandleByUUID(deviceId.encode())
+                handle = pynvml.nvmlDeviceGetHandleByUUID(deviceId)
                 index = pynvml.nvmlDeviceGetIndex(handle)
 
                 name = f"CUDA:{index}"
@@ -106,6 +106,7 @@ class NVMLBackend(Backend):
                     )
                 )
             except NVMLError as e:
+                print(e)
                 log.warning(f"Could not find device {deviceId}")
                 log.warning(e)
 

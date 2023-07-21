@@ -5,7 +5,8 @@
 &nbsp;
 &nbsp;
 
-[![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu)
+[![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F-green)](https://fair-software.eu)
+[![OpenSSF Best Practices](https://bestpractices.coreinfrastructure.org/projects/7253/badge)](https://bestpractices.coreinfrastructure.org/projects/7253)
 [![DOI](https://zenodo.org/badge/523363424.svg)](https://zenodo.org/badge/latestdoi/523363424)
 ![PyPI](https://img.shields.io/pypi/v/perun)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/perun)
