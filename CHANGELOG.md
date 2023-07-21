@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.2 (2023-06-02)
+
+### Fix
+
+* Overflow in byte calculation ([`bf375de`](https://github.com/Helmholtz-AI-Energy/perun/commit/bf375de8bd8170ddc67fa92fd250553d93b4b0d2))
+* Closing rapl files to early ([`e570531`](https://github.com/Helmholtz-AI-Energy/perun/commit/e5705319b400b31a69b033f804d69c947d88a25f))
+
 ## v0.3.1 (2023-06-01)
 ### Fix
 
