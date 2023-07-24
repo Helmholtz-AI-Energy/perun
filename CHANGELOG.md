@@ -1,141 +1,340 @@
-# Changelog
+# CHANGELOG
 
-<!--next-version-placeholder-->
+
+
+## v0.3.3 (2023-07-24)
+
+### Documentation
+
+* docs: OpenSSF badge ([`bebc329`](https://github.com/Helmholtz-AI-Energy/perun/commit/bebc3296fbcaf621c5af34aaf6326c8c5b9a8e8e))
+
+### Unknown
+
+* Update README.md ([`74887f1`](https://github.com/Helmholtz-AI-Energy/perun/commit/74887f157e01c7a078826fff3ecb94ab345838f6))
+
 
 ## v0.3.2 (2023-06-02)
 
-### Fix
+### Unknown
 
-* Overflow in byte calculation ([`bf375de`](https://github.com/Helmholtz-AI-Energy/perun/commit/bf375de8bd8170ddc67fa92fd250553d93b4b0d2))
-* Closing rapl files to early ([`e570531`](https://github.com/Helmholtz-AI-Energy/perun/commit/e5705319b400b31a69b033f804d69c947d88a25f))
+* 0.3.2
+
+0.3.2 [skip ci] ([`14731b6`](https://github.com/Helmholtz-AI-Energy/perun/commit/14731b6a9bea39304cd8deae7b46e8a93135c507))
+
+* Merge branch &#39;release&#39; ([`b3884c5`](https://github.com/Helmholtz-AI-Energy/perun/commit/b3884c5e5598e985d13ffaf8446f99520ae5a706))
+
 
 ## v0.3.1 (2023-06-01)
-### Fix
-
-* Backends init and closed twice ([`406739c`](https://github.com/Helmholtz-AI-Energy/perun/commit/406739c34cf540b2177770022a82f84b1a1b60e3))
 
 ### Documentation
 
-* Updated fair badge ([`827557d`](https://github.com/Helmholtz-AI-Energy/perun/commit/827557d5ffd0828cb168577d471219fe1e7fcee1))
-* Zenodo badge ([`c1043c5`](https://github.com/Helmholtz-AI-Energy/perun/commit/c1043c563166aedeef51da4c5c64ea8323836d31))
+* docs: updated fair badge ([`827557d`](https://github.com/Helmholtz-AI-Energy/perun/commit/827557d5ffd0828cb168577d471219fe1e7fcee1))
+
+* docs: Zenodo badge ([`c1043c5`](https://github.com/Helmholtz-AI-Energy/perun/commit/c1043c563166aedeef51da4c5c64ea8323836d31))
+
+### Unknown
+
+* 0.3.1
+
+0.3.1 [skip ci] ([`a7e50f3`](https://github.com/Helmholtz-AI-Energy/perun/commit/a7e50f3483e1393fc3c6c6980273d70e9da8d977))
+
 
 ## v0.3.0 (2023-05-31)
-### Feature
-
-* Extra host metadata ([`f576046`](https://github.com/Helmholtz-AI-Energy/perun/commit/f57604625e3072391e76a55945dce63d72e038b2))
-
-### Fix
-
-* Env configuration for decorator ([`2f5626f`](https://github.com/Helmholtz-AI-Energy/perun/commit/2f5626f9b0e20c77cd14cefe17f812cf41cb1ba9))
-* Intel rapl file managment changes ([`9fa33d3`](https://github.com/Helmholtz-AI-Energy/perun/commit/9fa33d388fd6f3868173733634250c021fd3aa1c))
-* SLURM integration changes ([#52](https://github.com/Helmholtz-AI-Energy/perun/issues/52)) ([`e563c19`](https://github.com/Helmholtz-AI-Energy/perun/commit/e563c19a7593fe6f2bda863c96d0ecbdeed206cb))
 
 ### Documentation
 
-* Link to docs in README ([`77613ab`](https://github.com/Helmholtz-AI-Energy/perun/commit/77613ab72657ed00537417572f2a170917577567))
-* Rtd setup ([`d3ef35b`](https://github.com/Helmholtz-AI-Energy/perun/commit/d3ef35bf1393f4c45982e5f163a9445cd83d2062))
-* Readthedocs documentation with sphinx ([#51](https://github.com/Helmholtz-AI-Energy/perun/issues/51)) ([`ef02fe9`](https://github.com/Helmholtz-AI-Energy/perun/commit/ef02fe93c705f0c89bc8855b16678817904c6ce6))
-* Fair-software badge ([#47](https://github.com/Helmholtz-AI-Energy/perun/issues/47)) ([`34585cd`](https://github.com/Helmholtz-AI-Energy/perun/commit/34585cd8f3d353c1e2591a498004677a8315864c))
+* docs: fair-software badge (#47)
+
+* docs: fair-software action
+
+* docs: added fair badge to readme
+
+* docs: more badges
+
+* fix: badge formating
+
+* docs: downloads badge
+
+* ci: limit fair action to pushes to main ([`34585cd`](https://github.com/Helmholtz-AI-Energy/perun/commit/34585cd8f3d353c1e2591a498004677a8315864c))
+
+### Feature
+
+* feat: extra host metadata ([`f576046`](https://github.com/Helmholtz-AI-Energy/perun/commit/f57604625e3072391e76a55945dce63d72e038b2))
+
+### Unknown
+
+* 0.3.0
+
+0.3.0 [skip ci] ([`f4b6f19`](https://github.com/Helmholtz-AI-Energy/perun/commit/f4b6f19b8985a9130b931caa76e8c00fc378aaaf))
+
+* Merge branch &#39;release&#39; ([`7eb62a0`](https://github.com/Helmholtz-AI-Energy/perun/commit/7eb62a0e37ae9c21f539d8dc3b675760746761db))
+
+* Update README.md
+
+Added whitespace in the README to get spacing between logo and badges ([`57f15bf`](https://github.com/Helmholtz-AI-Energy/perun/commit/57f15bff0e25b662ab782eebb782cf335d31c63e))
+
 
 ## v0.2.0 (2023-03-28)
-### Feature
-* Summary with co2 and price in text report ([`52dfe0a`](https://github.com/Helmholtz-AI-Energy/perun/commit/52dfe0ad47d5ee20ad295c0f693c9cb525c4dd0e))
-
-### Fix
-* Process start_event not set, rapl psys gets ignored ([`19b62ef`](https://github.com/Helmholtz-AI-Energy/perun/commit/19b62efc247030b2ef9e5bce4a2315573b3560da))
-* Removed bench minimal configuration option ([`8115bfc`](https://github.com/Helmholtz-AI-Energy/perun/commit/8115bfc0473ab8bca0c618d3149f09212ed5a7e2))
 
 ### Documentation
-* Update README.md ([`7880070`](https://github.com/Helmholtz-AI-Energy/perun/commit/7880070307497cb213effd2d1387afbd88435e99))
+
+* docs: update README.md
+
+* 0.1.1
+
+0.1.1 [skip ci]
+
+* docs: updated readme
+
+* docs: data structure image
+
+* docs: code snipet correction
+
+---------
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`7880070`](https://github.com/Helmholtz-AI-Energy/perun/commit/7880070307497cb213effd2d1387afbd88435e99))
+
+### Unknown
+
+* 0.2.0
+
+0.2.0 [skip ci] ([`09c2ad1`](https://github.com/Helmholtz-AI-Energy/perun/commit/09c2ad1d0e9532a63022a334f4e7ab142ea1ddcb))
+
+* quickfix release #38
+
+feat: co2 and money in text summary
+fix: removed minimal bench format option
+docs: updated docs
+fix: ignoring psys object in rapl interface
+fix: fix start event for non measuring mpi ranks ([`926ac32`](https://github.com/Helmholtz-AI-Energy/perun/commit/926ac3238e4bfbfd33586600c9829d96e70a067e))
+
+* Merge branch &#39;release&#39; ([`3b6c628`](https://github.com/Helmholtz-AI-Energy/perun/commit/3b6c628375987aef174de52a821ede237213128c))
+
 
 ## v0.1.1 (2023-03-22)
-### Fix
-* Removed bench minimal configuration option ([`f946f71`](https://github.com/Helmholtz-AI-Energy/perun/commit/f946f71b6a62d151e232cdc288ae2f68680511f2))
+
+### Unknown
+
+* 0.1.1
+
+0.1.1 [skip ci] ([`ce70bf8`](https://github.com/Helmholtz-AI-Energy/perun/commit/ce70bf8ab9685d06e5aff6ebfd1bc09f86d9fab6))
+
+* 0.1.0
+
+0.1.0 [skip ci] ([`d40a45e`](https://github.com/Helmholtz-AI-Energy/perun/commit/d40a45e167e25e554000505025b366fb94c1941e))
+
 
 ## v0.1.0 (2023-03-17)
 
+### Ci
+
+* ci: test action trigger on anything except on release ([`ea76a8c`](https://github.com/Helmholtz-AI-Energy/perun/commit/ea76a8cb9baa5afaf57f308133151ff0dcb7dd34))
+
+### Unknown
+
+* 0.1.0
+
+0.1.0 [skip ci] ([`d7f545d`](https://github.com/Helmholtz-AI-Energy/perun/commit/d7f545ddf146fcbbe6919a0249219a99ed197667))
+
 
 ## v0.1.0-beta.18 (2022-12-16)
-### Fix
-* Endless action triggers, I remebered why that was there in the first place ([`672ee64`](https://github.com/Helmholtz-AI-Energy/perun/commit/672ee64867dda36fe2f8931c3d901a8d96d4f838))
+
+### Unknown
+
+* 0.1.0-beta.18
+
+Automatically generated by python-semantic-release ([`0edc10b`](https://github.com/Helmholtz-AI-Energy/perun/commit/0edc10b1663e3be68c9d08d143316a6e4837c0d2))
+
+* refactor/mpi4py-optional (#24)
+
+* feat: removed mpi4py dependency
+
+* docs: updated readme
+
+* fix: configuration corrections ([`047022e`](https://github.com/Helmholtz-AI-Energy/perun/commit/047022ef18d7c504c7f93916f2088638bc4658d0))
+
 
 ## v0.1.0-beta.17 (2022-12-07)
-### Feature
-* Poetry hooks and installer configuration ([`6b222e1`](https://github.com/Helmholtz-AI-Energy/perun/commit/6b222e150a4ba179bf10178c36ceb7372c9d8e69))
-* Net io counters from psutil ([`341c186`](https://github.com/Helmholtz-AI-Energy/perun/commit/341c1869c4cf4f1284068aadfb87422cc93a52b7))
 
-### Fix
-* Missing system path on cli monitor ([`c2b7b31`](https://github.com/Helmholtz-AI-Energy/perun/commit/c2b7b3131b3940c0c8b0092e75c0412bc5e8fa99))
-* README title image url ([`fd5b2b8`](https://github.com/Helmholtz-AI-Energy/perun/commit/fd5b2b880bcbf176ea3fe1f02275d86188ea48db))
-* Cmd line argument parsing for monitor subcommand ([`57e8744`](https://github.com/Helmholtz-AI-Energy/perun/commit/57e87440ccdd86a673f0769ad73abf4512025e73))
+### Test
+
+* test: mocked backend, tested assignedDevices ([`9aa805d`](https://github.com/Helmholtz-AI-Energy/perun/commit/9aa805d5d2e8c0b709d640f6a8663f6120532a2c))
+
+### Unknown
+
+* 0.1.0-beta.17
+
+Automatically generated by python-semantic-release ([`1c89721`](https://github.com/Helmholtz-AI-Energy/perun/commit/1c897213820c5cccf984212ed256a83d4830c99a))
+
+* tests: backend fixture autoused and monkeypatched ([`e0484ce`](https://github.com/Helmholtz-AI-Energy/perun/commit/e0484ce8ae9ecd3efeaa28439da7be4937f6b330))
+
 
 ## v0.1.0-beta.16 (2022-09-20)
-### Fix
-* Catching influxdb import error ([`851bfb4`](https://github.com/Helmholtz-AI-Energy/perun/commit/851bfb4a574b8cab91ff08540b3090c3af337efe))
+
+### Unknown
+
+* 0.1.0-beta.16
+
+Automatically generated by python-semantic-release ([`6309b46`](https://github.com/Helmholtz-AI-Energy/perun/commit/6309b46d0201649313506703657f7d01ad3f460b))
+
 
 ## v0.1.0-beta.15 (2022-09-19)
+
 ### Fix
-* Relaxed dependencies (will tighten them later) ([`6509481`](https://github.com/Helmholtz-AI-Energy/perun/commit/650948170150eee242ae9bc78d1ea6bb1e9285b4))
+
+* fix: relaxed dependencies (will tighten them later) ([`6509481`](https://github.com/Helmholtz-AI-Energy/perun/commit/650948170150eee242ae9bc78d1ea6bb1e9285b4))
+
+### Unknown
+
+* 0.1.0-beta.15
+
+Automatically generated by python-semantic-release ([`e4687c4`](https://github.com/Helmholtz-AI-Energy/perun/commit/e4687c4a5ed7ed7e59d0dd7f59f9150696c06a64))
+
 
 ## v0.1.0-beta.14 (2022-09-19)
-### Fix
-* Removed RAM_POWER from psutil backend ([`9ef751f`](https://github.com/Helmholtz-AI-Energy/perun/commit/9ef751f3784dcf1b065be79adc950d4bb0f0e22f))
+
+### Unknown
+
+* 0.1.0-beta.14
+
+Automatically generated by python-semantic-release ([`05a3915`](https://github.com/Helmholtz-AI-Energy/perun/commit/05a3915fa108d3f1dc2e46a673e1c27e0826ba37))
+
 
 ## v0.1.0-beta.13 (2022-09-02)
-### Feature
-* Psutil backend ([`7d3aa61`](https://github.com/Helmholtz-AI-Energy/perun/commit/7d3aa61a4164463bec88343e2efb139464bc30ae))
+
+### Unknown
+
+* 0.1.0-beta.13
+
+Automatically generated by python-semantic-release ([`d99923f`](https://github.com/Helmholtz-AI-Energy/perun/commit/d99923f8449b63298260c4ed49051d9db41b1f18))
+
 
 ## v0.1.0-beta.12 (2022-08-30)
-### Feature
-* Energy conversion to euro and co2e ([#17](https://github.com/Helmholtz-AI-Energy/perun/issues/17)) ([`ee89583`](https://github.com/Helmholtz-AI-Energy/perun/commit/ee8958357298780e285412360c33856a13ee49d5))
+
+### Unknown
+
+* 0.1.0-beta.12
+
+Automatically generated by python-semantic-release ([`be6e84c`](https://github.com/Helmholtz-AI-Energy/perun/commit/be6e84cfbd52ed53a6f073ddd8588a4955138653))
+
 
 ## v0.1.0-beta.11 (2022-08-29)
-### Feature
-* Configuration files ([#16](https://github.com/Helmholtz-AI-Energy/perun/issues/16)) ([`1035763`](https://github.com/Helmholtz-AI-Energy/perun/commit/1035763c2e66f2973180bceca52b7c0ef04d6f8b))
+
+### Unknown
+
+* 0.1.0-beta.11
+
+Automatically generated by python-semantic-release ([`b92def6`](https://github.com/Helmholtz-AI-Energy/perun/commit/b92def6f36ac453f003a3bf946d1c79797404202))
+
 
 ## v0.1.0-beta.10 (2022-08-24)
-### Feature
-* Serial hdf5 support ([#15](https://github.com/Helmholtz-AI-Energy/perun/issues/15)) ([`e9caa69`](https://github.com/Helmholtz-AI-Energy/perun/commit/e9caa69948eec4f6baf98807d7e4bcaf81700e8a))
+
+### Unknown
+
+* 0.1.0-beta.10
+
+Automatically generated by python-semantic-release ([`4d00219`](https://github.com/Helmholtz-AI-Energy/perun/commit/4d0021985790d01e2bd6ddac180a9f905d54e3b3))
+
 
 ## v0.1.0-beta.9 (2022-08-23)
 
+### Unknown
+
+* 0.1.0-beta.9
+
+Automatically generated by python-semantic-release ([`b68fee8`](https://github.com/Helmholtz-AI-Energy/perun/commit/b68fee897e61f15525ffabacea5ed0d11238ac80))
+
 
 ## v0.1.0-beta.8 (2022-08-22)
-### Feature
-* Horeka options in cli and monitor decorator ([#13](https://github.com/Helmholtz-AI-Energy/perun/issues/13)) ([`0fde3cd`](https://github.com/Helmholtz-AI-Energy/perun/commit/0fde3cdcf8c489ff1b8ba4a985778c0e92a06cc6))
+
+### Ci
+
+* ci: v3
+
+python-semantic-release
+Github needs a better action editor ([`e2f38e5`](https://github.com/Helmholtz-AI-Energy/perun/commit/e2f38e5281ea510694f6f58b04824cb8a589ea65))
+
+### Unknown
+
+* 0.1.0-beta.8
+
+Automatically generated by python-semantic-release ([`ef91afa`](https://github.com/Helmholtz-AI-Energy/perun/commit/ef91afa02124767df2e92cf22e8b18332180724b))
+
 
 ## v0.1.0-beta.7 (2022-08-17)
-### Fix
-* Extra typing imports for 3.8 support ([#12](https://github.com/Helmholtz-AI-Energy/perun/issues/12)) ([`28367a7`](https://github.com/Helmholtz-AI-Energy/perun/commit/28367a747015288e7a5bb09f3cdc97c96d0e4680))
+
+### Unknown
+
+* 0.1.0-beta.7
+
+Automatically generated by python-semantic-release ([`b1090f4`](https://github.com/Helmholtz-AI-Energy/perun/commit/b1090f4efc6d57aaac52d52f0fa0ce7956273f50))
+
 
 ## v0.1.0-beta.6 (2022-08-15)
+
 ### Documentation
-* Expanded usage documentation ([`e2c0c2d`](https://github.com/Helmholtz-AI-Energy/perun/commit/e2c0c2dae77100a68fcab9c875f9c22efce4d149))
+
+* docs: expanded usage documentation ([`e2c0c2d`](https://github.com/Helmholtz-AI-Energy/perun/commit/e2c0c2dae77100a68fcab9c875f9c22efce4d149))
+
+### Unknown
+
+* 0.1.0-beta.6
+
+Automatically generated by python-semantic-release ([`9842763`](https://github.com/Helmholtz-AI-Energy/perun/commit/984276398412ef8d7037b1956189b3c681192a7e))
+
 
 ## v0.1.0-beta.5 (2022-08-11)
+
 ### Fix
-* Missing report after monitor ([`5234a96`](https://github.com/Helmholtz-AI-Energy/perun/commit/5234a96292de553b57f4aaa82deb90153fe41ffc))
+
+* fix: missing report after monitor ([`5234a96`](https://github.com/Helmholtz-AI-Energy/perun/commit/5234a96292de553b57f4aaa82deb90153fe41ffc))
+
+### Unknown
+
+* 0.1.0-beta.5
+
+Automatically generated by python-semantic-release ([`e65fdd6`](https://github.com/Helmholtz-AI-Energy/perun/commit/e65fdd66334e546c1a6555c470275795f6cad1a4))
+
 
 ## v0.1.0-beta.4 (2022-08-11)
+
 ### Documentation
-* Updated readme ([`75d10bb`](https://github.com/Helmholtz-AI-Energy/perun/commit/75d10bbbef942695c8505bb5863a71ae523fbe54))
+
+* docs: updated readme ([`75d10bb`](https://github.com/Helmholtz-AI-Energy/perun/commit/75d10bbbef942695c8505bb5863a71ae523fbe54))
+
+### Unknown
+
+* 0.1.0-beta.4
+
+Automatically generated by python-semantic-release ([`725b9f8`](https://github.com/Helmholtz-AI-Energy/perun/commit/725b9f8a5e24ef11001f63579674ddc18f7a3291))
+
 
 ## v0.1.0-beta.3 (2022-08-11)
-### Fix
-* Missing pyyaml dependency ([`3b8e74a`](https://github.com/Helmholtz-AI-Energy/perun/commit/3b8e74a3318bcac43398db3f86cc9be9da75ce5a))
+
+### Unknown
+
+* 0.1.0-beta.3
+
+Automatically generated by python-semantic-release ([`e704d89`](https://github.com/Helmholtz-AI-Energy/perun/commit/e704d89508205ef93bd3ccd5e3a09bc1832dd3c3))
+
 
 ## v0.1.0-beta.2 (2022-08-11)
 
+### Unknown
+
+* 0.1.0-beta.2
+
+Automatically generated by python-semantic-release ([`fd98e02`](https://github.com/Helmholtz-AI-Energy/perun/commit/fd98e025b0beb1a21f04af03d74d53a758069195))
+
 
 ## v0.1.0-beta.1 (2022-08-11)
-### Feature
-* Text, json and yaml reports ([`9503751`](https://github.com/Helmholtz-AI-Energy/perun/commit/95037516594189959fbfb2b2894d18cdba7b5819))
-* Experiment run postprocessing ([`5e78804`](https://github.com/Helmholtz-AI-Energy/perun/commit/5e7880431aa513754ab6e61f2a9e30daac8aed69))
-* Perun module emulates cli ([`8bfd029`](https://github.com/Helmholtz-AI-Energy/perun/commit/8bfd0290d453e51776b0e6df59743cd96e800bfe))
-* Perun monitor decorator ([`167165c`](https://github.com/Helmholtz-AI-Energy/perun/commit/167165cbbcbea1ff3b2f566b5543c259ed73e5ad))
-* Cmdline monitoring ([`d66bf8a`](https://github.com/Helmholtz-AI-Energy/perun/commit/d66bf8a751243e71fada5687dc2fe146de5612bc))
-* Intel and nvida backends ([`b720d49`](https://github.com/Helmholtz-AI-Energy/perun/commit/b720d495c8a3dc1b77113a3febc8bda4f6b8c575))
-* Initial commit ([`c8620bc`](https://github.com/Helmholtz-AI-Energy/perun/commit/c8620bc5e0f745323e5409b2dda4d26e5ef2ff21))
 
-### Fix
-* Semantic-release action ([`90caf3d`](https://github.com/Helmholtz-AI-Energy/perun/commit/90caf3d6817e42c21ad1f9d30a32038fe96c0362))
+### Feature
+
+* feat: text, json and yaml reports ([`9503751`](https://github.com/Helmholtz-AI-Energy/perun/commit/95037516594189959fbfb2b2894d18cdba7b5819))
+
+### Unknown
+
+* 0.1.0-beta.1
+
+Automatically generated by python-semantic-release ([`dae5ad9`](https://github.com/Helmholtz-AI-Energy/perun/commit/dae5ad92d8c91d8f5a36bab1b731c4fe6ad66b14))
