@@ -9,27 +9,30 @@ jobs:
   Release:
     runs-on: ubuntu-latest
     environment: release
+    concurrency: publish
     permissions:
       id-token: write
+      contents: write
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
-        persist-credentials: false
         fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        persist-credentials: false
 
     - name: Python Semantic Release
-      id: release
-      uses: relekang/python-semantic-release@master
+      id: semantic_release
+      uses: python-semantic-release/python-semantic-release@master
       with:
-        github_token: ${{ secrets.GH_TOKEN }}
+        github_token: ${{ secrets.SEMANTIC_RELEASE_PAT }}
 
     - name: Publish package distributions to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
-      if: steps.release.outputs.released == 'true'
+      if: steps.semantic_release.outputs.released == 'true'
 
     - name: Publish package distributions to GitHub Releases
       uses: python-semantic-release/upload-to-gh-release@main
-      if: steps.release.outputs.released == 'true'
+      if: steps.semantic_release.outputs.released == 'true'
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
