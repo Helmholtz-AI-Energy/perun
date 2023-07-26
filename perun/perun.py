@@ -37,7 +37,7 @@ class Perun:
             os.environ["IBV_FORK_SAFE"] = "1"
             os.environ["RDMAV_FORK_SAFE"] = "1"
 
-            self.comm = Comm()
+            self._comm = Comm()
 
         return self._comm
 
@@ -57,6 +57,12 @@ class Perun:
                     log.warning(e)
 
         return self._backends
+    
+    @property
+    def sensors(self) -> List[Sensor]:
+        if not self._sensors:
+
+        return self._sensors
 
     def monitor_application(
         self,

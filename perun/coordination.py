@@ -2,11 +2,9 @@
 import platform
 from typing import Dict, List, Optional, Set, Tuple
 
+from perun import log
 from perun.backend import Backend
 from perun.comm import Comm
-
-_cached_sensor_config: Optional[Tuple[Dict, List]] = None
-
 
 def getHostRankDict(comm: Comm) -> Dict[str, List[int]]:
     """Return a dictionary with all the host names with each MPI rank in them.
@@ -69,15 +67,7 @@ def getLocalSensorRankConfiguration(
     Returns:
         Tuple[List[int], Dict[str, Set[str]]]: Local rank and sensor configuration
     """
-    global _cached_sensor_config
-    if _cached_sensor_config is None:
-        globalHostRanks, globalSensorConfig = getGlobalSensorRankConfiguration(
-            comm, backends
-        )
-        _cached_sensor_config = (globalHostRanks, globalSensorConfig)
-    else:
-        globalHostRanks, globalSensorConfig = _cached_sensor_config
-
+    globalHostRanks, globalSensorConfig = getGlobalSensorRankConfiguration( comm, backends)
     return globalHostRanks[platform.node()], globalSensorConfig[comm.Get_rank()]
 
 
