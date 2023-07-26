@@ -9,9 +9,9 @@ import click
 
 import perun
 from perun import log
+from perun.backend.util import getHostMetadata
 from perun.configuration import config, read_custom_config, save_to_config_callback
 from perun.io.io import IOFormat, exportTo, importFrom
-from perun.util import getHostMetadata
 
 
 @click.group()
@@ -168,8 +168,6 @@ def showconf(default: bool):
 )
 def sensors(verbose: bool):
     """Print sensors assigned to each rank by perun."""
-    from perun import COMM_WORLD
-    from perun.backend import backends
     from perun.coordination import getGlobalSensorRankConfiguration
 
     globalHostRank, globalSensorConfig = getGlobalSensorRankConfiguration(

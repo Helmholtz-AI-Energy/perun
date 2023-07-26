@@ -2,7 +2,7 @@
 import json
 
 from perun.data_model.data import DataNode, MetricType, Stats
-from perun.util import value2str
+from perun.io.util import value2str
 
 lessIsBetterMetrics = [MetricType.RUNTIME, MetricType.ENERGY]
 

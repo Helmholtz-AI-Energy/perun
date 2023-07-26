@@ -11,14 +11,17 @@ from ..data_model.sensor import Sensor
 class Backend(ABC):
     """Abstract backend class."""
 
+    id: str = "abstract_backend"
     name: str = "Abstract backend class"
     description: str = "Abstract backend class description"
 
     def __init__(self) -> None:
         """Import and setup backend."""
         super().__init__()
+        log.debug(f"Initializing {self.name} backend")
         self.devices: Dict = {}
         self.setup()
+        log.debug(f"Initialized {self.name} backend")
 
     @abstractmethod
     def visibleSensors(self) -> Set[str]:
@@ -27,14 +30,12 @@ class Backend(ABC):
 
     @abstractmethod
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
-        """
-        Return device objects based on the provided list of device ids.
+        """Return device objects based on the provided list of device ids.
 
-        Args:
-            deviceList (Set[str]): List with wanted device ids
-
-        Returns:
-            List[Device]: List of device objects
+        :param deviceList: List with wanted device ids
+        :type deviceList: Set[str]
+        :return: List of device objects
+        :rtype: List[Sensor]
         """
         pass
 
@@ -47,30 +48,3 @@ class Backend(ABC):
     def setup(self):
         """Perform backend setup."""
         pass
-
-
-backends: List[Backend] = []
-
-
-def backend(cls):
-    """Backend class decorator.
-
-    Marks a class a singleton, and if setup succeeds,
-    gets added to the backends list.
-    """
-
-    @functools.wraps(cls)
-    def backend_wrapper(*args, **kwargs):
-        if not backend_wrapper.instance:
-            try:
-                backend_wrapper.instance = cls(*args, **kwargs)
-                backends.append(backend_wrapper.instance)
-            except ImportError as ie:
-                log.warning(f"Missing dependencies for backend {cls.__name__}")
-                log.warning(ie)
-            except Exception as e:
-                log.warning(f"Unknown error loading dependecy {cls.__name__}")
-                log.warning(e)
-
-    backend_wrapper.instance = None
-    return backend_wrapper

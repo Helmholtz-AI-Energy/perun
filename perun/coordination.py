@@ -2,8 +2,8 @@
 import platform
 from typing import Dict, List, Optional, Set, Tuple
 
-from perun import Comm, log
 from perun.backend import Backend
+from perun.comm import Comm
 
 _cached_sensor_config: Optional[Tuple[Dict, List]] = None
 

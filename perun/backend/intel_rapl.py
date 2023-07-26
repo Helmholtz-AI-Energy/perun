@@ -9,10 +9,10 @@ import cpuinfo
 import numpy as np
 
 from perun import log
+from perun.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
-
-from ..data_model.sensor import DeviceType, Sensor
-from .backend import Backend, backend
+from perun.data_model.sensor import DeviceType, Sensor
+from perun.util import singleton
 
 RAPL_PATH = "/sys/class/powercap/"
 
@@ -20,20 +20,16 @@ DIR_RGX = r"intel-rapl:(\d)$"
 SUBDIR_RGX = r"intel-rapl:\d:\d$"
 
 
-@backend
+@singleton
 class IntelRAPLBackend(Backend):
     """Intel RAPL as a source of cpu and memory devices.
 
     Uses pyRAPL to gather device information and creates metrics for each available device
     """
 
+    id = "intel_rapl"
     name = "Intel RAPL"
     description = "Reads energy usage from CPUs and DRAM using Intel RAPL"
-
-    def __init__(self) -> None:
-        """Init IntelRAPLBackend."""
-        super().__init__()
-        log.info("Initialized Intel RAPL")
 
     def setup(self):
         """Check Intel RAPL access."""

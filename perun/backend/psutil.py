@@ -5,12 +5,13 @@ import numpy as np
 import psutil
 
 from perun import log
-from perun.backend.backend import Backend, backend
+from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType, Sensor
+from perun.util import singleton
 
 
-@backend
+@singleton
 class PSUTILBackend(Backend):
     """PSUTIL Backend class."""
 

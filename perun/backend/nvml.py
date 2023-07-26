@@ -6,26 +6,22 @@ import pynvml
 from pynvml import NVMLError
 
 from perun import log
+from perun.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.sensor import DeviceType, Sensor
+from perun.util import singleton
 
-from ..data_model.sensor import DeviceType, Sensor
-from .backend import Backend, backend
 
-
-@backend
+@singleton
 class NVMLBackend(Backend):
     """NVMLSource class.
 
     Setups connection to NVML and creates relevant devices
     """
 
+    id = "nvlm"
     name = "NVIDIA ML"
     description: str = "Access GPU information from NVML python bindings"
-
-    def __init__(self) -> None:
-        """Init NVIDIA ML Backend."""
-        super().__init__()
-        log.info("Initialized NVML Backend")
 
     def setup(self):
         """Init pynvml and gather number of devices."""
@@ -111,6 +107,3 @@ class NVMLBackend(Backend):
                 log.warning(e)
 
         return devices
-
-
-NVMLBackend()

@@ -3,7 +3,7 @@
 
 from perun import config, log
 from perun.data_model.data import DataNode, MetricType, NodeType, Stats
-from perun.util import value2str
+from perun.io.util import value2str
 
 
 def textReport(dataNode: DataNode) -> str:

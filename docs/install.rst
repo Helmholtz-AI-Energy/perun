@@ -60,7 +60,7 @@ GPU
 
 Supported backends:
 
- - GPU power draw: `NVIDIA NVML <https://developer.nvidia.com/nvidia-management-library-nvml>`_ through pynvml.
+ - GPU power draw: `NVIDIA NVML <https://developer.nvidia.com/nvidia-management-library-nvml>`_ through nvidia-ml-py.
 
 DRAM
 ~~~~
