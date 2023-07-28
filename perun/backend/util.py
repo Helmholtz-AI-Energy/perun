@@ -1,13 +1,13 @@
 """Backend util."""
 import platform
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, Set
 
 from perun import log
 from perun.backend import Backend
 
 
 def getHostMetadata(
-    backends: List[Backend], backendConfig: Dict[str, Set[str]]
+    backends: Dict[str, Backend], backendConfig: Dict[str, Set[str]]
 ) -> Dict[str, Any]:
     """Return dictionary with the full system metadata based on the provided backend configuration.
 
@@ -33,7 +33,7 @@ def getHostMetadata(
                 log.warn(e)
 
     metadata["backends"] = {}
-    for backend in backends:
+    for backend in backends.values():
         if backend.name in backendConfig:
             metadata["backends"][backend.name] = {}
             sensors = backend.getSensors(backendConfig[backend.name])

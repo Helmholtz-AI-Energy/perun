@@ -2,8 +2,10 @@
 
 Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline configurations.
 """
+import json
+import sys
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
 import click
 
@@ -80,11 +82,28 @@ def sensors():
 
 
 @cli.command()
+def metadata():
+    """Print global metadata dictionaries in json format."""
+    perun = Perun(config)
+
+    hostMD = perun.l_metadata
+    allHostsMD: Optional[List[Dict]] = perun.comm.gather(hostMD, root=0)
+
+    if perun.comm.Get_rank() == 0 and allHostsMD:
+        metadataDict = {}
+        for host, assignedRanks in perun.host_rank.items():
+            metadataDict[host] = allHostsMD[assignedRanks[0]]
+
+        json.dump(metadataDict, sys.stdout, indent=4)
+
+
+@cli.command()
 @click.argument("input_file", type=click.Path(exists=True))
 @click.argument("output_path", type=click.Path(exists=True))
 @click.option(
     "-f" "--format",
     type=click.Choice([format.value for format in IOFormat]),
+    default=None,
 )
 def export(input_file: str, output_path: str, output_format: Optional[str]):
     """Export existing perun output file to another format."""
@@ -99,7 +118,11 @@ def export(input_file: str, output_path: str, output_format: Optional[str]):
         return
 
     inputFormat = IOFormat.fromSuffix(in_file.suffix)
-    out_format = IOFormat(output_format)
+    if output_format:
+        out_format = IOFormat(output_format)
+    else:
+        out_format = IOFormat.fromSuffix(out_path.suffix)
+
     dataNode = importFrom(in_file, inputFormat)
     exportTo(out_path, dataNode, out_format, rawData=True)
 

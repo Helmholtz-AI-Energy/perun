@@ -9,10 +9,11 @@ from configparser import ConfigParser
 from datetime import datetime
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 from perun import __version__, log
 from perun.backend import Backend, IntelRAPLBackend, NVMLBackend, PSUTILBackend
+from perun.backend.util import getHostMetadata
 from perun.comm import Comm
 from perun.coordination import getGlobalSensorRankConfiguration, getHostRankDict
 from perun.data_model.data import DataNode, NodeType
@@ -41,6 +42,8 @@ class Perun:
         self._l_sensor_config: Optional[Dict[str, Set[str]]] = None
         self._hostname: Optional[str] = None
         self._host_rank: Optional[Dict[str, List[int]]] = None
+        self._metadata: Optional[Dict] = None
+        self._l_metadata: Optional[Dict] = None
 
     def __del__(self):
         """Perun object destructor."""
@@ -148,9 +151,22 @@ class Perun:
 
         return self._l_sensor_config
 
+    @property
+    def l_metadata(self) -> Dict[str, Any]:
+        """Lazy initialization of local metadata dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Metadata dictionary
+        """
+        if not self._l_metadata:
+            self._l_metadata = getHostMetadata(self.backends, self.l_sensors_config)
+        return self._l_metadata
+
     def monitor_application(
         self,
-        app: Path,
+        app: Union[Callable, Path],
         app_args: tuple = tuple(),
         app_kwargs: dict = dict(),
     ):
@@ -223,7 +239,7 @@ class Perun:
 
     def _run_application(
         self,
-        app: Path,
+        app: Union[Callable, Path],
         app_args: tuple = tuple(),
         app_kwargs: dict = dict(),
         record: bool = True,
@@ -261,24 +277,38 @@ class Perun:
                 start_event.set()
 
             # 3) Start application
-            try:
-                with open(str(app), "r") as scriptFile:
+            if isinstance(app, Path):
+                try:
+                    with open(str(app), "r") as scriptFile:
+                        start_event.wait()
+                        self.comm.barrier()
+                        log.info(f"Rank {self.comm.Get_rank()}: Started App")
+                        run_starttime = datetime.utcnow()
+                        exec(
+                            scriptFile.read(),
+                            {"__name__": "__main__", "__file__": app.name},
+                        )
+                        log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
+                        stop_event.set()
+                except Exception as e:
+                    log.error(
+                        f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
+                    )
+                    stop_event.set()
+                    raise e
+
+            elif isinstance(app, types.FunctionType):
+                try:
                     start_event.wait()
                     self.comm.barrier()
                     log.info(f"Rank {self.comm.Get_rank()}: Started App")
                     run_starttime = datetime.utcnow()
-                    exec(
-                        scriptFile.read(),
-                        {"__name__": "__main__", "__file__": app.name},
-                    )
-                    log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
+
+                    app_result = app(*app_args, **app_kwargs)
+                    log.info(f"Rank {self.comm.Get_rank()}: Stopped App")
+                except Exception as e:
                     stop_event.set()
-            except Exception as e:
-                log.error(
-                    f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
-                )
-                stop_event.set()
-                raise e
+                    raise e
 
             # 4) App finished, stop subrocess and get data
             if queue and perunSP:
