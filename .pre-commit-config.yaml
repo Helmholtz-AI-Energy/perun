@@ -21,6 +21,8 @@ repos:
   hooks:
   - id: pydocstyle
     additional_dependencies: [tomli]
+    args:
+    - --config=pyproject.toml
 - repo: https://github.com/asottile/seed-isort-config
   rev: v2.2.0
   hooks:

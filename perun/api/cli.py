@@ -3,15 +3,15 @@
 Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline configurations.
 """
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 import click
 
 import perun
 from perun import log
-from perun.backend.util import getHostMetadata
 from perun.configuration import config, read_custom_config, save_to_config_callback
 from perun.io.io import IOFormat, exportTo, importFrom
+from perun.perun import Perun
 
 
 @click.group()
@@ -26,6 +26,85 @@ from perun.io.io import IOFormat, exportTo, importFrom
     callback=read_custom_config,
     expose_value=False,
 )
+@click.option(
+    "-l",
+    "--log_lvl",
+    type=click.Choice(["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]),
+    help="Loggging level",
+    callback=save_to_config_callback,
+    expose_value=False,
+)
+def cli():
+    """Perun: Energy measuring and reporting tool."""
+    log.setLevel(config.get("debug", "log_lvl"))
+
+
+@cli.command()
+@click.option(
+    "--default",
+    is_flag=True,
+    show_default=True,
+    default=False,
+    help="Print default configuration",
+)
+def showconf(default: bool):
+    """Print current perun configuration in INI format."""
+    import sys
+
+    from perun.configuration import _default_config
+
+    if default:
+        config.read_dict(_default_config)
+        config.write(sys.stdout)
+    else:
+        config.write(sys.stdout)
+
+
+@cli.command()
+def sensors():
+    """Print sensors assigned to each rank by perun."""
+    perun = Perun(config)
+    if perun.comm.Get_rank() == 0:
+        for rank, bes in enumerate(perun.sensors_config):
+            click.echo(f"Rank: {rank}")
+            for key, items in bes.items():
+                if len(items) > 0:
+                    click.echo(f"   {key}:")
+                    for device in items:
+                        click.echo(f"       {device}")
+                    click.echo("")
+
+        click.echo("Hostnames: ")
+        for host, ranks in perun.host_rank.items():
+            click.echo(f"   {host}: {ranks}")
+
+
+@cli.command()
+@click.argument("input_file", type=click.Path(exists=True))
+@click.argument("output_path", type=click.Path(exists=True))
+@click.option(
+    "-f" "--format",
+    type=click.Choice([format.value for format in IOFormat]),
+)
+def export(input_file: str, output_path: str, output_format: Optional[str]):
+    """Export existing perun output file to another format."""
+    in_file = Path(input_file)
+    if not in_file.exists():
+        click.echo("File does not exist.", err=True)
+        return
+
+    out_path = Path(output_path)
+    if not out_path.parent.exists():
+        click.echo("Output path does not exist", err=True)
+        return
+
+    inputFormat = IOFormat.fromSuffix(in_file.suffix)
+    out_format = IOFormat(output_format)
+    dataNode = importFrom(in_file, inputFormat)
+    exportTo(out_path, dataNode, out_format, rawData=True)
+
+
+@cli.command(context_settings={"ignore_unknown_options": True})
 # Output option
 @click.option(
     "-n",
@@ -116,123 +195,6 @@ from perun.io.io import IOFormat, exportTo, importFrom
     callback=save_to_config_callback,
     expose_value=False,
 )
-# @click.option(
-#     "--bench_metrics",
-#     multiple=True,
-#     help="Metrics to output. Only relevant with bench_minimal_format enabled",
-#     callback=save_to_config_callback,
-#     expose_value=False,
-# )
-# Debug Options
-@click.option(
-    "-l",
-    "--log_lvl",
-    type=click.Choice(["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]),
-    help="Loggging level",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-def cli():
-    """Perun: Energy measuring and reporting tool."""
-    log.setLevel(config.get("debug", "log_lvl"))
-
-
-@cli.command()
-@click.option(
-    "--default",
-    is_flag=True,
-    show_default=True,
-    default=False,
-    help="Print default configuration",
-)
-def showconf(default: bool):
-    """Print current perun configuration in INI format."""
-    import sys
-
-    from perun.configuration import _default_config
-
-    if default:
-        config.read_dict(_default_config)
-        config.write(sys.stdout)
-    else:
-        config.write(sys.stdout)
-
-
-@cli.command()
-@click.option(
-    "-v",
-    "--verbose",
-    is_flag=True,
-    default=False,
-    help="Print all the available system information in json format.",
-)
-def sensors(verbose: bool):
-    """Print sensors assigned to each rank by perun."""
-    from perun.coordination import getGlobalSensorRankConfiguration
-
-    globalHostRank, globalSensorConfig = getGlobalSensorRankConfiguration(
-        COMM_WORLD, backends
-    )
-
-    if verbose:
-        import json
-        import sys
-
-        hostMD = getHostMetadata(globalSensorConfig[0])
-        allHostsMD: Optional[List[Dict]] = COMM_WORLD.gather(hostMD, root=0)
-
-        if COMM_WORLD.Get_rank() == 0 and allHostsMD:
-            metadataDict = {}
-            for host, assignedRanks in globalHostRank.items():
-                metadataDict[host] = allHostsMD[assignedRanks[0]]
-
-            json.dump(metadataDict, sys.stdout, indent=4)
-
-    else:
-        if COMM_WORLD.Get_rank() == 0:
-            for rank, bes in enumerate(globalSensorConfig):
-                click.echo(f"Rank: {rank}")
-                for key, items in bes.items():
-                    if len(items) > 0:
-                        click.echo(f"   {key}:")
-                        for device in items:
-                            click.echo(f"       {device}")
-                        click.echo("")
-
-            click.echo("Hostnames: ")
-            for host, ranks in globalHostRank.items():
-                click.echo(f"   {host}: {ranks}")
-
-    for b in backends:
-        b.close()
-
-
-@cli.command()
-@click.argument("input_file", type=click.Path(exists=True))
-@click.argument("output_path", type=click.Path(exists=True))
-@click.argument(
-    "output_format",
-    type=click.Choice([format.value for format in IOFormat]),
-)
-def export(input_file: str, output_path: str, output_format: str):
-    """Export existing perun output file to another format."""
-    in_file = Path(input_file)
-    if not in_file.exists():
-        click.echo("File does not exist.", err=True)
-        return
-
-    out_path = Path(output_path)
-    if not out_path.parent.exists():
-        click.echo("Output path does not exist", err=True)
-        return
-
-    inputFormat = IOFormat.fromSuffix(in_file.suffix)
-    out_format = IOFormat(output_format)
-    dataNode = importFrom(in_file, inputFormat)
-    exportTo(out_path, dataNode, out_format, rawData=True)
-
-
-@cli.command(context_settings={"ignore_unknown_options": True})
 @click.argument("script", type=click.Path(exists=True))
 @click.argument("script_args", nargs=-1)
 def monitor(
@@ -245,9 +207,10 @@ def monitor(
     SCRIPT is a path to the python script to monitor, run with arguments SCRIPT_ARGS.
     """
     # Setup script arguments
+
     import sys
 
-    from perun.perun import monitor_application
+    perun = Perun(config)
 
     filePath: Path = Path(script)
     log.debug(f"Script path: {filePath}")
@@ -257,7 +220,7 @@ def monitor(
 
     sys.path.insert(0, str(filePath.parent.absolute()))
 
-    monitor_application(filePath)
+    perun.monitor_application(filePath)
 
 
 def main():

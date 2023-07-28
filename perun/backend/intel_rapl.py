@@ -1,5 +1,6 @@
 """Defines Intel RAPL related classes."""
 import os
+import pprint as pp
 import re
 from io import IOBase
 from pathlib import Path
@@ -38,7 +39,7 @@ class IntelRAPLBackend(Backend):
         for key, value in cpuInfo.items():
             self.metadata[key] = value
 
-        log.debug(f"CPU info metadata: {self.metadata}")
+        log.debug(f"CPU info metadata: {pp.pformat(self.metadata)}")
 
         raplPath = Path(RAPL_PATH)
 
@@ -162,13 +163,15 @@ class IntelRAPLBackend(Backend):
                 file.close()
                 del self.devices[pkg.id]
 
-        log.debug(f"IntelRapl devices {self.devices}")
+        log.debug(
+            f"IntelRapl devices {pp.pformat([deviceId for deviceId in self.devices])}"
+        )
 
     def close(self) -> None:
         """Backend shutdown code (does nothing for intel rapl)."""
-        log.info("Closing files")
+        log.debug("Closing files")
         for file in self._files:
-            log.info(f"Closing file: {file}")
+            log.debug(f"Closing file: {file}")
             file.close()
         return
 
@@ -179,8 +182,7 @@ class IntelRAPLBackend(Backend):
         Returns:
             Set[str]: Set with device string ids
         """
-        log.debug(self.devices)
-        return {id for id, device in self.devices.items()}
+        return {id for id in self.devices.keys()}
 
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
         """
@@ -193,6 +195,3 @@ class IntelRAPLBackend(Backend):
             List[Device]: Device objects
         """
         return [self.devices[deviceId] for deviceId in deviceList]
-
-
-IntelRAPLBackend()

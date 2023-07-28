@@ -1,19 +1,28 @@
+"""Backend util."""
 import platform
-from typing import Any, Dict, Set
+from typing import Any, Dict, List, Set
 
 from perun import log
+from perun.backend import Backend
 
 
-def getHostMetadata(backendConfig: Dict[str, Set[str]]) -> Dict[str, Any]:
+def getHostMetadata(
+    backends: List[Backend], backendConfig: Dict[str, Set[str]]
+) -> Dict[str, Any]:
     """Return dictionary with the full system metadata based on the provided backend configuration.
 
-    :param backendConfig: Sensor backend configuration to include in the metadata object.
-    :type backendConfig: Dict[str, Set[str]]
-    :return: Dictionary with system metadata
-    :rtype: Dict[str, Any]
-    """
-    from perun.backend import backends
+    Parameters
+    ----------
+    backends : List[Backend]
+        List with available backends.
+    backendConfig : Dict[str, Set[str]]
+        Sensor backend configuration to include in the metadata object.
 
+    Returns
+    -------
+    Dict[str, Any]
+        Dictionary with host metadata.
+    """
     metadata = {}
     for name, method in platform.__dict__.items():
         if callable(method):

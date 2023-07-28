@@ -102,7 +102,6 @@ class NVMLBackend(Backend):
                     )
                 )
             except NVMLError as e:
-                print(e)
                 log.warning(f"Could not find device {deviceId}")
                 log.warning(e)
 

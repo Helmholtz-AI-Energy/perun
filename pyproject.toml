@@ -8,7 +8,7 @@ readme = "README.md"
 homepage = "https://github.com/Helmholtz-AI-Energy/perun"
 
 [tool.poetry.scripts]
-perun = "perun.cli:main"
+perun = "perun.api.cli:main"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
@@ -35,6 +35,7 @@ flake8 = "*"
 mypy = "*"
 black = "*"
 pre-commit = "*"
+pydocstyle = "*"
 
 [tool.poetry.group.docs]
 optional = true
@@ -75,9 +76,8 @@ known_third_party = ["click", "cpuinfo", "h5py", "influxdb_client", "numpy", "pa
 profile = "black"
 
 [tool.pydocstyle]
-match = '(test_)!.*\.py'
 match-dir = 'perun'
-convention = 'numpy'
+# convention = 'numpy'
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -4,7 +4,6 @@ from typing import Callable, List, Set
 import numpy as np
 import psutil
 
-from perun import log
 from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType, Sensor
@@ -21,7 +20,6 @@ class PSUTILBackend(Backend):
     def __init__(self) -> None:
         """Create psutil backend."""
         super().__init__()
-        log.info("Init PSUTIL")
 
     def setup(self):
         """Configure psutil backend."""
@@ -132,6 +130,3 @@ class PSUTILBackend(Backend):
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
         """Return desired device objects."""
         return [self.devices[deviceName] for deviceName in deviceList]
-
-
-PSUTILBackend()

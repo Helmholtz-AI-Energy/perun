@@ -1,5 +1,4 @@
 """Backend module."""
-import functools
 from abc import ABC, abstractmethod
 from typing import Dict, List, Set
 
@@ -18,10 +17,9 @@ class Backend(ABC):
     def __init__(self) -> None:
         """Import and setup backend."""
         super().__init__()
-        log.debug(f"Initializing {self.name} backend")
         self.devices: Dict = {}
         self.setup()
-        log.debug(f"Initialized {self.name} backend")
+        log.info(f"Initialized {self.name} backend")
 
     @abstractmethod
     def visibleSensors(self) -> Set[str]:

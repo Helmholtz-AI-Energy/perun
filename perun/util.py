@@ -8,6 +8,18 @@ from perun import config
 
 
 def singleton(class_):
+    """Singleton decorator.
+
+    Parameters
+    ----------
+    class_ : _type_
+        Class to decorate as singleton
+
+    Returns
+    -------
+    _type_
+        Decoreated class definition
+    """
     instances = {}
 
     def getinstance(*args, **kwargs):
