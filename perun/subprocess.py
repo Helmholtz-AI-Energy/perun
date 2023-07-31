@@ -17,7 +17,7 @@ from perun.processing import processDataNode, processSensorData
 def perunSubprocess(
     queue: Queue,
     rank: int,
-    backends: List[Backend],
+    backends: Dict[str, Backend],
     l_sensors_config: Dict[str, Set[str]],
     sp_ready_event,
     start_event,
@@ -46,9 +46,10 @@ def perunSubprocess(
         Sampling rate in seconds
     """
     lSensors: List[Sensor] = []
-    for backend in backends:
+    log.debug(f"SP: backends -- {backends}")
+    log.debug(f"SP: l_sensor_config -- {l_sensors_config}")
+    for backend in backends.values():
         if backend.name in l_sensors_config:
-            backend.setup()
             lSensors += backend.getSensors(l_sensors_config[backend.name])
 
     timesteps = []

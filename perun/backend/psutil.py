@@ -14,6 +14,7 @@ from perun.util import singleton
 class PSUTILBackend(Backend):
     """PSUTIL Backend class."""
 
+    id: str = "psutil"
     name: str = "PSUTIL"
     description: str = "Obtain hardware data from psutil"
 

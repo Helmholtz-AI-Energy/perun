@@ -15,7 +15,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "price_factor": 32.51,  # Cent/kWh
     },
     "monitor": {
-        "sampling_rate": 5,
+        "sampling_rate": 1,
     },
     "output": {
         "app_name": None,
