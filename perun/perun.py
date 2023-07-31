@@ -4,12 +4,11 @@ import platform
 import pprint as pp
 
 # import sys
-import types
 from configparser import ConfigParser
 from datetime import datetime
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Set, Type
 
 from perun import __version__, log
 from perun.backend import Backend, IntelRAPLBackend, NVMLBackend, PSUTILBackend
@@ -17,8 +16,7 @@ from perun.backend.util import getHostMetadata
 from perun.comm import Comm
 from perun.coordination import getGlobalSensorRankConfiguration, getHostRankDict
 from perun.data_model.data import DataNode, NodeType
-from perun.io import io
-from perun.io.io import IOFormat, exportTo
+from perun.io.io import IOFormat, exportTo, importFrom
 from perun.processing import processDataNode
 from perun.subprocess import perunSubprocess
 from perun.util import getRunId, getRunName, singleton
@@ -167,7 +165,7 @@ class Perun:
 
     def monitor_application(
         self,
-        app: Union[Callable, Path],
+        app: Path,
         app_args: tuple = tuple(),
         app_kwargs: dict = dict(),
     ):
@@ -184,67 +182,44 @@ class Perun:
         """
         log.debug(f"Rank {self.comm.Get_rank()} Backends: {pp.pformat(self.backends)}")
 
-        starttime = datetime.utcnow()
-        app_results: Optional[Any] = None
         data_out = Path(self.config.get("output", "data_out"))
         format = IOFormat(self.config.get("output", "format"))
 
-        if not self.config.getboolean("benchmarking", "bench_enable"):
-            app_results, dataNode = self._run_application(
+        if self.config.getint("benchmarking", "warmup_rounds"):
+            log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
+            for i in range(self.config.getint("benchmarking", "warmup_rounds")):
+                log.info(f"Warmup run: {i}")
+                _ = self._run_application(app, app_args, app_kwargs, record=False)
+
+        log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
+        run_data: List[DataNode] = []
+        for i in range(self.config.getint("benchmarking", "rounds")):
+            runNode: Optional[DataNode] = self._run_application(
                 app, app_args, app_kwargs, record=True
             )
-            if dataNode:
-                # Only on first rank, export data
-                exportTo(data_out, dataNode, format)
-        else:
-            # Start with warmup rounds
-            log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
-            for i in range(self.config.getint("benchmarking", "bench_warmup_rounds")):
-                log.info(f"Warmup run: {i}")
-                app_results, _ = self._run_application(
-                    app, app_args, app_kwargs, record=False
-                )
+            if self.comm.Get_rank() == 0 and runNode:
+                run_data.append(runNode)
+                self.export_to(data_out, runNode, IOFormat.PICKLE)
+                self.export_to(data_out, runNode, format)
 
-            log.info(f"Rank {self.comm.Get_rank()} : Started bench rounds")
-            runNodes: List[DataNode] = []
-            for i in range(self.config.getint("benchmarking", "bench_rounds")):
-                log.info(f"Rank {self.comm.Get_rank()} : Bench run: {i}")
-                app_results, runNode = self._run_application(
-                    app, app_args, app_kwargs, record=True, run_id=str(i)
-                )
-                if runNode:
-                    runNodes.append(runNode)
+        # Get app node data if it exists
 
-            if len(runNodes) > 0:
-                benchNode = DataNode(
-                    id=getRunId(starttime),
-                    type=NodeType.MULTI_RUN,
-                    metadata={
-                        "app_name": getRunName(app),
-                        "startime": starttime.isoformat(),
-                        # "perun_version": __version__,
-                    },
-                    nodes={node.id: node for node in runNodes},
-                )
-                benchNode = processDataNode(benchNode)
+        # Add new run data
 
-                exportTo(data_out, benchNode, format)
-
-        return app_results
+        # Process and update data
 
     def _run_application(
         self,
-        app: Union[Callable, Path],
+        app: Path,
         app_args: tuple = tuple(),
         app_kwargs: dict = dict(),
         record: bool = True,
         run_id: Optional[str] = None,
-    ) -> Tuple[Optional[Any], Optional[DataNode]]:
-        app_result: Optional[Any] = None
-
+    ) -> Optional[DataNode]:
         log.info(f"Rank {self.comm.Get_rank()}: _run_application")
         if record:
             # 1) Get sensor configuration
+            sp_ready_event = Event()
             start_event = Event()
             stop_event = Event()
 
@@ -261,49 +236,40 @@ class Perun:
                     target=perunSubprocess,
                     args=[
                         queue,
+                        self.comm.Get_rank(),
+                        self.backends,
+                        self.l_sensors_config,
+                        sp_ready_event,
                         start_event,
                         stop_event,
-                        self.l_sensors_config,
                         self.config.getfloat("monitor", "sampling_rate"),
                     ],
                 )
                 perunSP.start()
             else:
-                start_event.set()
+                sp_ready_event.set()
 
             # 3) Start application
-            if isinstance(app, Path):
-                try:
-                    with open(str(app), "r") as scriptFile:
-                        start_event.wait()
-                        self.comm.barrier()
-                        log.info(f"Rank {self.comm.Get_rank()}: Started App")
-                        run_starttime = datetime.utcnow()
-                        exec(
-                            scriptFile.read(),
-                            {"__name__": "__main__", "__file__": app.name},
-                        )
-                        log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
-                        stop_event.set()
-                except Exception as e:
-                    log.error(
-                        f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
-                    )
-                    stop_event.set()
-                    raise e
-
-            elif isinstance(app, types.FunctionType):
-                try:
-                    start_event.wait()
+            try:
+                sp_ready_event.wait()
+                with open(str(app), "r") as scriptFile:
                     self.comm.barrier()
                     log.info(f"Rank {self.comm.Get_rank()}: Started App")
+                    start_event.set()
                     run_starttime = datetime.utcnow()
-
-                    app_result = app(*app_args, **app_kwargs)
-                    log.info(f"Rank {self.comm.Get_rank()}: Stopped App")
-                except Exception as e:
+                    exec(
+                        scriptFile.read(),
+                        {"__name__": "__main__", "__file__": app.name},
+                    )
+                    # run_stoptime = datetime.utcnow()
+                    log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
                     stop_event.set()
-                    raise e
+            except Exception as e:
+                log.error(
+                    f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
+                )
+                stop_event.set()
+                raise e
 
             # 4) App finished, stop subrocess and get data
             if queue and perunSP:
@@ -320,7 +286,6 @@ class Perun:
             else:
                 nodeData = None
 
-            self.comm.barrier()
             log.info(f"Rank {self.comm.Get_rank()}: Everyone exited the subprocess")
 
             if nodeData:
@@ -342,32 +307,22 @@ class Perun:
                 )
                 runNode = processDataNode(runNode)
 
-                return app_result, runNode
-            return app_result, None
+                return runNode
+            return None
 
         else:
-            if isinstance(app, Path):
-                # filePath = app
-                try:
-                    with open(str(app), "r") as scriptFile:
-                        exec(
-                            scriptFile.read(),
-                            {"__name__": "__main__", "__file__": app.name},
-                        )
-                except Exception as e:
-                    log.error(
-                        f"Rank {self.comm.Get_rank()}: Found error on monitored script: {str(app)}"
+            try:
+                with open(str(app), "r") as scriptFile:
+                    exec(
+                        scriptFile.read(),
+                        {"__name__": "__main__", "__file__": app.name},
                     )
-                    raise e
-
-            elif isinstance(app, types.FunctionType):
-                # filePath = Path(sys.argv[0])
-                try:
-                    app_result = app(*app_args, **app_kwargs)
-                except Exception as e:
-                    raise e
-
-            return app_result, None
+            except Exception as e:
+                log.error(
+                    f"Rank {self.comm.Get_rank()}: Found error on monitored script: {str(app)}"
+                )
+                raise e
+            return None
 
     @staticmethod
     def import_from(filePath: Path, format: IOFormat) -> DataNode:
@@ -380,7 +335,7 @@ class Perun:
         :return: Data Node object
         :rtype: DataNode
         """
-        return io.importFrom(filePath, format)
+        return importFrom(filePath, format)
 
     @staticmethod
     def export_to(dataOut: Path, dataNode: DataNode, format: IOFormat):
@@ -393,4 +348,4 @@ class Perun:
         :param format: Output file format
         :type format: IOFormat
         """
-        io.exportTo(dataOut, dataNode, format)
+        exportTo(dataOut, dataNode, format)

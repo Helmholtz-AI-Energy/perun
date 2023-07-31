@@ -24,9 +24,8 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "data_out": "./perun_results",
     },
     "benchmarking": {
-        "bench_enable": False,
-        "bench_rounds": 10,
-        "bench_warmup_rounds": 1,
+        "rounds": 1,
+        "warmup_rounds": 0,
         # "bench_metrics": ["ENERGY", "RUNTIME"],
     },
     "debug": {"log_lvl": "ERROR"},

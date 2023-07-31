@@ -19,6 +19,7 @@ def perunSubprocess(
     rank: int,
     backends: List[Backend],
     l_sensors_config: Dict[str, Set[str]],
+    sp_ready_event,
     start_event,
     stop_event,
     sampling_rate: float,
@@ -35,6 +36,8 @@ def perunSubprocess(
         Available backend list
     l_sensors_config : Dict[str, Set[str]]
         Local MPI rank sensor configuration
+    sp_ready_event : _type_
+        Indicates monitoring supbrocess is ready, multiprocessing module
     start_event : _type_
         Indicates app start, multiprocessing module
     stop_event : _type_
@@ -45,7 +48,7 @@ def perunSubprocess(
     lSensors: List[Sensor] = []
     for backend in backends:
         if backend.name in l_sensors_config:
-            # backend.setup()
+            backend.setup()
             lSensors += backend.getSensors(l_sensors_config[backend.name])
 
     timesteps = []
@@ -63,7 +66,11 @@ def perunSubprocess(
 
     log.debug(f"Rank {rank}: perunSP lSensors: {lSensors}")
 
-    start_event.set()
+    # Monitoring process ready
+    sp_ready_event.set()
+
+    # Waiting for main process to send the signal
+    start_event.wait()
     timesteps.append(time.time_ns())
     for idx, device in enumerate(lSensors):
         rawValues[idx].append(device.read())

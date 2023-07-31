@@ -189,24 +189,16 @@ def export(input_file: str, output_path: str, output_format: Optional[str]):
 )
 # Benchmarking
 @click.option(
-    "--bench",
-    "bench_enable",
-    is_flag=True,
-    help="Activate benchmarking mode.",
+    "--rounds",
+    type=int,
+    help="Number of rounds to run the app.",
     callback=save_to_config_callback,
     expose_value=False,
 )
 @click.option(
-    "--bench_rounds",
+    "--warmup_rounds",
     type=int,
-    help="Number of rounds per function/app.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.option(
-    "--bench_warmup_rounds",
-    type=int,
-    help="Number of warmup rounds per function/app.",
+    help="Number of warmup rounds to run the app.",
     callback=save_to_config_callback,
     expose_value=False,
 )
