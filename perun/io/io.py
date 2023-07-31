@@ -2,7 +2,7 @@
 
 import enum
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from perun import log
 from perun.data_model.data import DataNode, NodeType
@@ -47,19 +47,15 @@ class IOFormat(enum.Enum):
         raise ValueError("Invalid file format.")
 
 
-def exportTo(
-    data_out: Path,
-    dataNode: DataNode,
-    format: IOFormat,
-    rawData: bool = False,
-    depth: Optional[int] = None,
-):
+def exportTo(data_out: Path, dataNode: DataNode, format: IOFormat):
     """Export DataNode structure to the selected format.
 
-    Args:
-        dataNode (DataNode): DataNode tree with processed metrics.
-        format (IOFormat, optional): Output format. Defaults to IOFormat.TEXT.
-        rawData (bool, optional): If raw data should be included. Limits available formats. Defaults to False.
+    :param data_out: Output path
+    :type data_out: Path
+    :param dataNode: DataNode tree with processed metrics
+    :type dataNode: DataNode
+    :param format: Output format.
+    :type format: IOFormat
     """
     if not dataNode.processed:
         log.warning("Data has not been processed before import. Proceed with caution.")
@@ -89,7 +85,7 @@ def exportTo(
     if format == IOFormat.JSON:
         filename += ".json"
         fileType = "w"
-        reportStr = exportJson(dataNode, depth, rawData)
+        reportStr = exportJson(dataNode)
         with open(data_out / filename, fileType) as file:
             file.write(reportStr)
     elif format == IOFormat.HDF5:
@@ -119,11 +115,14 @@ def exportTo(
 
 
 def importFrom(filePath: Path, format: IOFormat) -> DataNode:
-    """Import DataNode structure from path. If no format is given, it is inferred form path sufix.
+    """Import DataNode structure from path. If no format is given, it is inferred from the file suffix.
 
-    Args:
-        filePath (Path): Path to file
-        format (Optional[IOFormat], optional): File format. Defaults to None.
+    :param filePath: Path to file
+    :type filePath: Path
+    :param format: File format
+    :type format: IOFormat
+    :return: Perun DataNode structure
+    :rtype: DataNode
     """
     if format == IOFormat.JSON:
         with open(filePath, "r") as file:

@@ -17,6 +17,7 @@ from perun.backend.util import getHostMetadata
 from perun.comm import Comm
 from perun.coordination import getGlobalSensorRankConfiguration, getHostRankDict
 from perun.data_model.data import DataNode, NodeType
+from perun.io import io
 from perun.io.io import IOFormat, exportTo
 from perun.processing import processDataNode
 from perun.subprocess import perunSubprocess
@@ -187,12 +188,6 @@ class Perun:
         app_results: Optional[Any] = None
         data_out = Path(self.config.get("output", "data_out"))
         format = IOFormat(self.config.get("output", "format"))
-        includeRawData = self.config.getboolean("output", "raw")
-        depthStr = self.config.get("output", "depth")
-        if depthStr:
-            depth = int(depthStr)
-        else:
-            depth = None
 
         if not self.config.getboolean("benchmarking", "bench_enable"):
             app_results, dataNode = self._run_application(
@@ -200,7 +195,7 @@ class Perun:
             )
             if dataNode:
                 # Only on first rank, export data
-                exportTo(data_out, dataNode, format, includeRawData, depth)
+                exportTo(data_out, dataNode, format)
         else:
             # Start with warmup rounds
             log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
@@ -233,7 +228,7 @@ class Perun:
                 )
                 benchNode = processDataNode(benchNode)
 
-                exportTo(data_out, benchNode, format, includeRawData, depth)
+                exportTo(data_out, benchNode, format)
 
         return app_results
 
@@ -373,3 +368,29 @@ class Perun:
                     raise e
 
             return app_result, None
+
+    @staticmethod
+    def import_from(filePath: Path, format: IOFormat) -> DataNode:
+        """Import Data Node tree from filepath.
+
+        :param filePath: Perun Data file path
+        :type filePath: Path
+        :param format: File format
+        :type format: IOFormat
+        :return: Data Node object
+        :rtype: DataNode
+        """
+        return io.importFrom(filePath, format)
+
+    @staticmethod
+    def export_to(dataOut: Path, dataNode: DataNode, format: IOFormat):
+        """Export existing Data Node object to the selected format.
+
+        :param dataOut: Output file path
+        :type dataOut: Path
+        :param dataNode: Data Node to write to file
+        :type dataNode: DataNode
+        :param format: Output file format
+        :type format: IOFormat
+        """
+        io.exportTo(dataOut, dataNode, format)

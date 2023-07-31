@@ -151,14 +151,24 @@ class DataNode:
         raw_data: Optional[RawData] = None,
         processed: bool = False,
     ) -> None:
-        """DataNode.
+        """Perun DataNode.
 
-        Args:
-            id (str): String identifier
-            type (NodeType): Type of Node
-            metadata (Dict): Metadata
-            nodes (Dict[str, Self], optional): Child DataNodes. Defaults to {}.
-            raw_data (Optional[RawData], optional): If sensor, contains raw sensor values. Defaults to None.
+        :param id: Node identifier
+        :type id: str
+        :param type: Node type
+        :type type: NodeType
+        :param metadata: Node metadata
+        :type metadata: Dict
+        :param nodes: Child node dictionary, defaults to None
+        :type nodes: Optional[Dict[str, Any]], optional
+        :param metrics: Metrics dictionary, defaults to None
+        :type metrics: Optional[Dict[MetricType, Union[Metric, Stats]]], optional
+        :param deviceType: Node device type, if relevant, defaults to None
+        :type deviceType: Optional[DeviceType], optional
+        :param raw_data: Raw Data object, if relevant, defaults to None
+        :type raw_data: Optional[RawData], optional
+        :param processed: Marks if node has been processed, defaults to False
+        :type processed: bool, optional
         """
         self.id = id
         self.type = type
@@ -171,9 +181,7 @@ class DataNode:
         self.raw_data: Optional[RawData] = raw_data
         self.processed = processed
 
-    def toDict(
-        self, depth: Optional[int] = None, include_raw_data: bool = False
-    ) -> Dict:
+    def toDict(self, include_raw_data: bool = True) -> Dict:
         """Transform object to dictionary."""
         resultsDict = {
             "id": self.id,
@@ -186,20 +194,9 @@ class DataNode:
             "deviceType": self.deviceType,
             "processed": self.processed,
         }
-        if depth is None:
-            resultsDict["nodes"] = (
-                {
-                    key: value.toDict(depth, include_raw_data)
-                    for key, value in self.nodes.items()
-                },
-            )
-        elif depth > 1:
-            resultsDict["nodes"] = (
-                {
-                    key: value.toDict(depth - 1, include_raw_data)
-                    for key, value in self.nodes.items()
-                },
-            )
+        resultsDict["nodes"] = (
+            {key: value.toDict(include_raw_data) for key, value in self.nodes.items()},
+        )
 
         if include_raw_data and self.raw_data:
             resultsDict["raw_data"] = dataclasses.asdict(self.raw_data)

@@ -98,8 +98,6 @@ To get a quick overview of the current configuration that perun is using, use th
     run_id
     format = text
     data_out = ./perun_results
-    depth
-    raw = False
 
     [benchmarking]
     bench_enable = False

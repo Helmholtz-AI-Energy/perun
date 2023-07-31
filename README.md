@@ -239,8 +239,6 @@ There are multiple ways to configure perun, with a different level of priorities
   run_id
   format = text
   data_out = ./perun_results
-  depth
-  raw = False
 
   [benchmarking]
   bench_enable = False

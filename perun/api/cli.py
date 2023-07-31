@@ -12,7 +12,7 @@ import click
 import perun
 from perun import log
 from perun.configuration import config, read_custom_config, save_to_config_callback
-from perun.io.io import IOFormat, exportTo, importFrom
+from perun.io.io import IOFormat
 from perun.perun import Perun
 
 
@@ -123,8 +123,8 @@ def export(input_file: str, output_path: str, output_format: Optional[str]):
     else:
         out_format = IOFormat.fromSuffix(out_path.suffix)
 
-    dataNode = importFrom(in_file, inputFormat)
-    exportTo(out_path, dataNode, out_format, rawData=True)
+    dataNode = Perun.import_from(in_file, inputFormat)
+    Perun.export_to(out_path, dataNode, out_format)
 
 
 @cli.command(context_settings={"ignore_unknown_options": True})
@@ -154,14 +154,6 @@ def export(input_file: str, output_path: str, output_format: Optional[str]):
     "--data_out",
     type=click.Path(exists=False, dir_okay=True, file_okay=False),
     help="Where to save the output files, defaults to the current working directory.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.option(
-    "--raw",
-    default=True,
-    help="Use the flag '--raw' if you need access to all the raw data collected by perun. The output will be saved on an hdf5 file on the perun data output location.",
-    is_flag=True,
     callback=save_to_config_callback,
     expose_value=False,
 )
