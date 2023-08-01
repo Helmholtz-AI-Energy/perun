@@ -37,7 +37,7 @@ class IntelRAPLBackend(Backend):
         cpuInfo = cpuinfo.get_cpu_info()
         self.metadata = {}
         for key, value in cpuInfo.items():
-            self.metadata[key] = value
+            self.metadata[key] = str(value)
 
         log.debug(f"CPU info metadata: {pp.pformat(self.metadata)}")
 
@@ -176,22 +176,26 @@ class IntelRAPLBackend(Backend):
         return
 
     def visibleSensors(self) -> Set[str]:
-        """
-        Return string ids of visible devices.
+        """Return string id set of visible devices.
 
-        Returns:
-            Set[str]: Set with device string ids
+        Returns
+        -------
+        Set[str]
+            Set with visible device ids.
         """
         return {id for id in self.devices.keys()}
 
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
-        """
-        Gather devive objects based on a set of device ids.
+        """Gather device objects based on a set of device ids.
 
-        Args:
-            deviceList (Set[str]): Set containing devices ids
+        Parameters
+        ----------
+        deviceList : Set[str]
+            Set of device ids.
 
-        Returns:
-            List[Device]: Device objects
+        Returns
+        -------
+        List[Sensor]
+            Device objects.
         """
         return [self.devices[deviceId] for deviceId in deviceList]

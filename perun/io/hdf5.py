@@ -1,4 +1,5 @@
 """HDF5 IO module."""
+import json
 from pathlib import Path
 from typing import Union
 
@@ -22,9 +23,12 @@ from perun.data_model.sensor import DeviceType
 def exportHDF5(filePath: Path, dataNode: DataNode):
     """Export perun data nodes to an HDF5 file.
 
-    Args:
-        filePath (Path): Output path.
-        dataNode (DataNode): DataNode.
+    Parameters
+    ----------
+    filePath : Path
+        Output path
+    dataNode : DataNode
+        Root of data node tree.
     """
     h5_file = h5py.File(filePath, "a")
     _addNode(h5_file, dataNode)
@@ -32,16 +36,22 @@ def exportHDF5(filePath: Path, dataNode: DataNode):
 
 
 def importHDF5(filePath: Path) -> DataNode:
-    """Import HDF5 created by perun.
+    """Import DataNode from HDF5 format.
 
-    Args:
-        filePath (Path): File path.
+    Parameters
+    ----------
+    filePath : Path
+        HDF5 file path.
 
-    Raises:
-        ValueError: Incompatible hdf5 file.
+    Returns
+    -------
+    DataNode
+        Perun data node.
 
-    Returns:
-        DataNode: Recoverd perun DataNode
+    Raises
+    ------
+    ValueError
+        Incompatible HDF5 file.
     """
     h5_file = h5py.File(filePath, "r")
     rootEntries = list(h5_file.keys())
@@ -60,18 +70,19 @@ def _addNode(h5group: h5py.Group, dataNode: DataNode):
     """Write node into hdf5 file."""
     group = h5group.create_group(dataNode.id)
     group.attrs["type"] = dataNode.type.value
+
     for key, value in dataNode.metadata.items():
-        group.attrs[key] = value
+        group.attrs[key] = json.dumps(value)
 
     if dataNode.deviceType is not None:
         group.attrs["device_type"] = dataNode.deviceType.value
 
     metricGroup = group.create_group("metrics")
-    for metricId, metric in dataNode.metrics.items():
+    for metric in dataNode.metrics.values():
         _addMetric(metricGroup, metric)
 
     nodesGroup = group.create_group("nodes")
-    for nodeId, node in dataNode.nodes.items():
+    for node in dataNode.nodes.values():
         _addNode(nodesGroup, node)
 
     if dataNode.raw_data is not None:
@@ -126,6 +137,7 @@ def _addMetric(h5Group: h5py.Group, metric: Union[Metric, Stats]):
         metricGroup.attrs["agg_type"] = metric.agg.value
         metricGroup.attrs.create("value", metric.value, dtype=metadata.dtype)
     else:
+        metricGroup.attrs.create("sum", metric.sum, dtype=metadata.dtype)
         metricGroup.attrs.create("mean", metric.mean, dtype=metadata.dtype)
         metricGroup.attrs.create("min", metric.min, dtype=metadata.dtype)
         metricGroup.attrs.create("max", metric.max, dtype=metadata.dtype)
@@ -146,6 +158,7 @@ def _readMetric(group: h5py.Group) -> Union[Metric, Stats]:
         return Stats(
             type=MetricType(group.attrs["type"]),
             metric_md=metric_md,
+            sum=group.attrs["sum"],  # type: ignore
             mean=group.attrs["mean"],  # type: ignore
             std=group.attrs["std"],  # type: ignore
             min=group.attrs["min"],  # type: ignore

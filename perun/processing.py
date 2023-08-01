@@ -16,10 +16,17 @@ from perun.data_model.sensor import DeviceType
 
 
 def processSensorData(sensorData: DataNode) -> DataNode:
-    """Calculate metrics based on the data found on sensor nodes.
+    """Calculate metrics based on raw values.
 
-    Args:
-        sensorData (DataNode): DataNode with raw data (SENSOR)
+    Parameters
+    ----------
+    sensorData : DataNode
+        DataNode with raw sensor data.
+
+    Returns
+    -------
+    DataNode
+        DataNode with computed metrics.
     """
     if sensorData.type == NodeType.SENSOR and sensorData.raw_data:
         rawData = sensorData.raw_data
@@ -49,7 +56,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
             magFactor = rawData.v_md.mag.value / Magnitude.ONE.value
             energy_J = np.float32(total_energy) * magFactor
 
-            sensorData.metrics[MetricType.ENERGY] = Metric(
+            energyMetric = Metric(
                 MetricType.ENERGY,
                 energy_J,
                 MetricMetaData(
@@ -62,7 +69,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                 ),
                 AggregateType.SUM,
             )
-            sensorData.metrics[MetricType.POWER] = Metric(
+            powerMetric = Metric(
                 MetricType.POWER,
                 energy_J / runtime,
                 MetricMetaData(
@@ -75,6 +82,36 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                 ),
                 AggregateType.SUM,
             )
+
+            sensorData.metrics[MetricType.ENERGY] = energyMetric
+            sensorData.metrics[MetricType.POWER] = powerMetric
+
+            if sensorData.deviceType == DeviceType.CPU:
+                sensorData.metrics[MetricType.CPU_ENERGY] = energyMetric.copy()
+                sensorData.metrics[MetricType.CPU_ENERGY].type = MetricType.CPU_ENERGY
+                sensorData.metrics[MetricType.CPU_POWER] = powerMetric.copy()
+                sensorData.metrics[MetricType.CPU_POWER].type = MetricType.CPU_POWER
+
+            elif sensorData.deviceType == DeviceType.GPU:
+                sensorData.metrics[MetricType.GPU_ENERGY] = energyMetric.copy()
+                sensorData.metrics[MetricType.GPU_ENERGY].type = MetricType.GPU_ENERGY
+                sensorData.metrics[MetricType.GPU_POWER] = powerMetric.copy()
+                sensorData.metrics[MetricType.GPU_POWER].type = MetricType.GPU_POWER
+
+            elif sensorData.deviceType == DeviceType.RAM:
+                sensorData.metrics[MetricType.DRAM_ENERGY] = energyMetric.copy()
+                sensorData.metrics[MetricType.DRAM_ENERGY].type = MetricType.DRAM_ENERGY
+                sensorData.metrics[MetricType.DRAM_POWER] = powerMetric.copy()
+                sensorData.metrics[MetricType.DRAM_POWER].type = MetricType.DRAM_POWER
+
+            elif sensorData.deviceType == DeviceType.OTHER:
+                sensorData.metrics[MetricType.OTHER_ENERGY] = energyMetric.copy()
+                sensorData.metrics[
+                    MetricType.OTHER_ENERGY
+                ].type = MetricType.OTHER_ENERGY
+                sensorData.metrics[MetricType.OTHER_POWER] = powerMetric.copy()
+                sensorData.metrics[MetricType.OTHER_POWER].type = MetricType.OTHER_POWER
+
         elif rawData.v_md.unit == Unit.WATT:
             t_s = rawData.timesteps.astype("float32")
             t_s *= rawData.t_md.mag.value / Magnitude.ONE.value
@@ -82,7 +119,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
             magFactor = rawData.v_md.mag.value / Magnitude.ONE.value
             power_W = rawData.values.astype("float32") * magFactor
             energy_J = np.trapz(power_W, t_s)
-            sensorData.metrics[MetricType.ENERGY] = Metric(
+            energyMetric = Metric(
                 MetricType.ENERGY,
                 energy_J,
                 MetricMetaData(
@@ -95,7 +132,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                 ),
                 AggregateType.SUM,
             )
-            sensorData.metrics[MetricType.POWER] = Metric(
+            powerMetric = Metric(
                 MetricType.POWER,
                 np.mean(power_W),
                 MetricMetaData(
@@ -108,6 +145,36 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                 ),
                 AggregateType.SUM,
             )
+
+            sensorData.metrics[MetricType.ENERGY] = energyMetric
+            sensorData.metrics[MetricType.POWER] = powerMetric
+
+            if sensorData.deviceType == DeviceType.CPU:
+                sensorData.metrics[MetricType.CPU_ENERGY] = energyMetric.copy()
+                sensorData.metrics[MetricType.CPU_ENERGY].type = MetricType.CPU_ENERGY
+                sensorData.metrics[MetricType.CPU_POWER] = powerMetric.copy()
+                sensorData.metrics[MetricType.CPU_POWER].type = MetricType.CPU_POWER
+
+            elif sensorData.deviceType == DeviceType.GPU:
+                sensorData.metrics[MetricType.GPU_ENERGY] = energyMetric.copy()
+                sensorData.metrics[MetricType.GPU_ENERGY].type = MetricType.GPU_ENERGY
+                sensorData.metrics[MetricType.GPU_POWER] = powerMetric.copy()
+                sensorData.metrics[MetricType.GPU_POWER].type = MetricType.GPU_POWER
+
+            elif sensorData.deviceType == DeviceType.RAM:
+                sensorData.metrics[MetricType.DRAM_ENERGY] = energyMetric.copy()
+                sensorData.metrics[MetricType.DRAM_ENERGY].type = MetricType.DRAM_ENERGY
+                sensorData.metrics[MetricType.DRAM_POWER] = powerMetric.copy()
+                sensorData.metrics[MetricType.DRAM_POWER].type = MetricType.DRAM_POWER
+
+            elif sensorData.deviceType == DeviceType.OTHER:
+                sensorData.metrics[MetricType.OTHER_ENERGY] = energyMetric.copy()
+                sensorData.metrics[
+                    MetricType.OTHER_ENERGY
+                ].type = MetricType.OTHER_ENERGY
+                sensorData.metrics[MetricType.OTHER_POWER] = powerMetric.copy()
+                sensorData.metrics[MetricType.OTHER_POWER].type = MetricType.OTHER_POWER
+
         elif rawData.v_md.unit == Unit.PERCENT:
             if sensorData.deviceType == DeviceType.CPU:
                 metricType = MetricType.CPU_UTIL
@@ -152,11 +219,19 @@ def processSensorData(sensorData: DataNode) -> DataNode:
 
 
 def processDataNode(dataNode: DataNode, force_process=False) -> DataNode:
-    """Recursively calculate metrics of the current nodes, and of child nodes if necessary.
+    """Recursively calculate metrics on the dataNode tree.
 
-    Args:
-        dataNode (DataNode): Root of the DataNode structure
-        force_process (bool, optional): If true, ignored processed flag in child DataNodes. Defaults to False.
+    Parameters
+    ----------
+    dataNode : DataNode
+        Root data node tree.
+    force_process : bool, optional
+        Force recomputation of child node metrics, by default False
+
+    Returns
+    -------
+    DataNode
+        Data node with computed metrics.
     """
     aggregatedMetrics: Dict[MetricType, List[Metric]] = {}
     for _, subNode in dataNode.nodes.items():
@@ -167,17 +242,27 @@ def processDataNode(dataNode: DataNode, force_process=False) -> DataNode:
             else:
                 subNode = processDataNode(subNode, force_process=force_process)
 
-        for metricType, metric in subNode.metrics.items():
-            if isinstance(metric, Metric):
-                if metricType in aggregatedMetrics:
-                    aggregatedMetrics[metricType].append(metric)
-                else:
-                    aggregatedMetrics[metricType] = [metric]
+        if dataNode.type == NodeType.APP:
+            for subSubNode in subNode.nodes.values():
+                for metricType, metric in subSubNode.metrics.items():
+                    if isinstance(metric, Metric):
+                        if metricType in aggregatedMetrics:
+                            aggregatedMetrics[metricType].append(metric)
+                        else:
+                            aggregatedMetrics[metricType] = [metric]
+
+        else:
+            for metricType, metric in subNode.metrics.items():
+                if isinstance(metric, Metric):
+                    if metricType in aggregatedMetrics:
+                        aggregatedMetrics[metricType].append(metric)
+                    else:
+                        aggregatedMetrics[metricType] = [metric]
 
     for metricType, metrics in aggregatedMetrics.items():
         aggType = metrics[0].agg
         metric_md = metrics[0].metric_md
-        if dataNode.type == NodeType.MULTI_RUN:
+        if dataNode.type == NodeType.MULTI_RUN or dataNode.type == NodeType.APP:
             dataNode.metrics[metricType] = Stats.fromMetrics(metrics)
         else:
             if aggType == AggregateType.MEAN:

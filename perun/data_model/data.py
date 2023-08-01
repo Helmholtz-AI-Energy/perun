@@ -13,6 +13,7 @@ from perun.data_model.sensor import DeviceType
 class NodeType(enum.Enum):
     """DataNode type enum."""
 
+    APP = enum.auto()
     MULTI_RUN = enum.auto()
     RUN = enum.auto()
     NODE = enum.auto()
@@ -25,6 +26,10 @@ class MetricType(str, enum.Enum):
 
     RUNTIME = "runtime"
     POWER = "power"
+    CPU_POWER = "cpu_power"
+    GPU_POWER = "gpu_power"
+    DRAM_POWER = "dram_power"
+    OTHER_POWER = "other_power"
     CPU_UTIL = "cpu_util"
     GPU_UTIL = "gpu_util"
     MEM_UTIL = "mem_util"
@@ -33,6 +38,10 @@ class MetricType(str, enum.Enum):
     DISK_READ = "disk_read"
     DISK_WRITE = "disk_write"
     ENERGY = "energy"
+    CPU_ENERGY = "cpu_energy"
+    GPU_ENERGY = "gpu_energy"
+    DRAM_ENERGY = "dram_energy"
+    OTHER_ENERGY = "other_energy"
 
 
 class AggregateType(str, enum.Enum):
@@ -63,6 +72,21 @@ class Metric:
             AggregateType(metricDict["agg"]),
         )
 
+    def copy(self):
+        """Create copy metric object.
+
+        Returns
+        -------
+        _type_
+            Copy of object.
+        """
+        return Metric(
+            MetricType(self.type.value),
+            self.value.copy(),
+            self.metric_md.copy(),
+            AggregateType(self.agg.value),
+        )
+
 
 @dataclasses.dataclass
 class Stats:
@@ -70,6 +94,7 @@ class Stats:
 
     type: MetricType
     metric_md: MetricMetaData
+    sum: np.number
     mean: np.number
     std: np.number
     max: np.number
@@ -77,7 +102,23 @@ class Stats:
 
     @classmethod
     def fromMetrics(cls, metrics: List[Metric]):
-        """Create a stats object based on the metric's values."""
+        """Create stats object from list of metrics with the same type.
+
+        Parameters
+        ----------
+        metrics : List[Metric]
+            List of metrics with  the same type.
+
+        Returns
+        -------
+        _type_
+            Stats object.
+
+        Raises
+        ------
+        Exception
+            If metrics are not from the same type.
+        """
         type = metrics[0].type
         metric_md = metrics[0].metric_md
 
@@ -87,18 +128,23 @@ class Stats:
                 raise Exception("Metrics type don't match. Invalid Stats")
 
         values = np.array([metric.value for metric in metrics])
+        sum = values.sum()
         mean = values.mean()
         std = values.std()
         max = values.max()
         min = values.min()
-        return cls(type, metric_md, mean, std, max, min)
+        return cls(type, metric_md, sum, mean, std, max, min)
 
     @property
     def value(self):
-        """
-        Value property.
+        """Value property (mean).
 
         For compatibility with Metric dataclass.
+
+        Returns
+        -------
+        _type_
+            Return the mean value of the stats object.
         """
         return self.mean
 
@@ -108,6 +154,7 @@ class Stats:
         return cls(
             MetricType(statsDict["type"]),
             MetricMetaData.fromDict(statsDict["metric_md"]),
+            statsDict["min"],
             statsDict["mean"],
             statsDict["std"],
             statsDict["max"],
@@ -126,7 +173,18 @@ class RawData:
 
     @classmethod
     def fromDict(cls, rawDataDict: Dict):
-        """Create RawData object from a dictionary."""
+        """Create RawData object from a dictionary.
+
+        Parameters
+        ----------
+        rawDataDict : Dict
+            Dictionary with same keys as RawData object.
+
+        Returns
+        -------
+        _type_
+            RawData object.
+        """
         t_md = MetricMetaData.fromDict(rawDataDict["t_md"])
         v_md = MetricMetaData.fromDict(rawDataDict["v_md"])
         return cls(
@@ -153,22 +211,24 @@ class DataNode:
     ) -> None:
         """Perun DataNode.
 
-        :param id: Node identifier
-        :type id: str
-        :param type: Node type
-        :type type: NodeType
-        :param metadata: Node metadata
-        :type metadata: Dict
-        :param nodes: Child node dictionary, defaults to None
-        :type nodes: Optional[Dict[str, Any]], optional
-        :param metrics: Metrics dictionary, defaults to None
-        :type metrics: Optional[Dict[MetricType, Union[Metric, Stats]]], optional
-        :param deviceType: Node device type, if relevant, defaults to None
-        :type deviceType: Optional[DeviceType], optional
-        :param raw_data: Raw Data object, if relevant, defaults to None
-        :type raw_data: Optional[RawData], optional
-        :param processed: Marks if node has been processed, defaults to False
-        :type processed: bool, optional
+        Parameters
+        ----------
+        id : str
+            Node id.
+        type : NodeType
+            Node type.
+        metadata : Dict
+            Node metadata.
+        nodes : Optional[Dict[str, Any]], optional
+            Children nodes, by default None
+        metrics : Optional[Dict[MetricType, Union[Metric, Stats]]], optional
+            Node metrics, by default None
+        deviceType : Optional[DeviceType], optional
+            Node device type, only relevant for leaf nodes, by default None
+        raw_data : Optional[RawData], optional
+            Raw data object, only relevant for leaf nodes, by default None
+        processed : bool, optional
+            Marks if the node has been processed, by default False
         """
         self.id = id
         self.type = type
@@ -205,7 +265,18 @@ class DataNode:
 
     @classmethod
     def fromDict(cls, resultsDict: Dict):
-        """Build object from dictionary."""
+        """Create dataNode from python dictionary.
+
+        Parameters
+        ----------
+        resultsDict : Dict
+            Dictionary with data node attributes.
+
+        Returns
+        -------
+        _type_
+            DataNode object.
+        """
         type = NodeType(resultsDict["type"])
         newResults = cls(
             id=resultsDict["id"],

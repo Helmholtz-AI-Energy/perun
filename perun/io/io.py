@@ -2,10 +2,10 @@
 
 import enum
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 from perun import log
-from perun.data_model.data import DataNode, NodeType
+from perun.data_model.data import DataNode
 from perun.io.bench import exportBench
 from perun.io.hdf5 import exportHDF5, importHDF5
 from perun.io.json import exportJson, importJson
@@ -47,7 +47,9 @@ class IOFormat(enum.Enum):
         raise ValueError("Invalid file format.")
 
 
-def exportTo(data_out: Path, dataNode: DataNode, format: IOFormat):
+def exportTo(
+    output_path: Path, dataNode: DataNode, format: IOFormat, id: Optional[str] = None
+):
     """Export DataNode structure to the selected format.
 
     :param data_out: Output path
@@ -61,56 +63,37 @@ def exportTo(data_out: Path, dataNode: DataNode, format: IOFormat):
         log.warning("Data has not been processed before import. Proceed with caution.")
         raise Exception("DataNode needs to be processed before it can be exported.")
 
-    if not data_out.exists():
-        log.info(f"{data_out} does not exists. So lets make it.")
-        data_out.mkdir()
+    if not output_path.parent.exists():
+        log.info(f"{output_path.parent} does not exists. So lets make it.")
+        output_path.parent.mkdir()
 
-    if format == IOFormat.BENCH and dataNode.type != NodeType.MULTI_RUN:
-        log.warning(
-            "BENCH format can only be used with 'bench' mode enabled. Using pickle instead."
-        )
-        format = IOFormat.PICKLE
-
-    filename = f"{dataNode.metadata['app_name']}_{dataNode.id}"
-    output_path: Path = data_out / filename
-
-    existing_files = [path for path in output_path.parent.glob(f"{filename}*")]
-    if len(existing_files) > 0:
-        log.warning(f"File {output_path} already exists and will.")
-        idx = len(existing_files)
-        filename += f"_{idx}"
-        dataNode.id += f"_{idx}"
+    if output_path.exists() and output_path.is_file():
+        log.warn(f"Overwriting existing file {output_path}")
 
     reportStr: Union[str, bytes]
     if format == IOFormat.JSON:
-        filename += ".json"
         fileType = "w"
         reportStr = exportJson(dataNode)
-        with open(data_out / filename, fileType) as file:
+        with open(output_path, fileType) as file:
             file.write(reportStr)
     elif format == IOFormat.HDF5:
-        filename += ".hdf5"
-        exportHDF5(data_out / filename, dataNode)
+        exportHDF5(output_path, dataNode)
     elif format == IOFormat.PICKLE:
-        filename += ".pkl"
         fileType = "wb"
         reportStr = exportPickle(dataNode)
-        with open(data_out / filename, fileType) as file:
+        with open(output_path, fileType) as file:
             file.write(reportStr)
     elif format == IOFormat.CSV:
-        filename += ".cvs"
-        exportCSV(data_out / filename, dataNode)
+        exportCSV(output_path, dataNode)
     elif format == IOFormat.BENCH:
-        filename += ".json"
         fileType = "w"
         reportStr = exportBench(dataNode)
-        with open(data_out / filename, fileType) as file:
+        with open(output_path, fileType) as file:
             file.write(reportStr)
     else:
-        filename += ".txt"
         fileType = "w"
         reportStr = textReport(dataNode)
-        with open(data_out / filename, fileType) as file:
+        with open(output_path, fileType) as file:
             file.write(reportStr)
 
 

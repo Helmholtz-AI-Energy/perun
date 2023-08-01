@@ -183,38 +183,86 @@ class Perun:
         log.debug(f"Rank {self.comm.Get_rank()} Backends: {pp.pformat(self.backends)}")
 
         data_out = Path(self.config.get("output", "data_out"))
-        format = IOFormat(self.config.get("output", "format"))
+        # format = IOFormat(self.config.get("output", "format"))
+        starttime = datetime.now()
+        app_name = getRunName(app)
+        multirun_id = getRunId(starttime)
+        host_metadata = self.l_metadata
+        global_metadata = self.comm.gather(host_metadata, root=0)
+
+        log.info(f"App: {app_name}, MR_ID: {multirun_id}")
 
         if self.config.getint("benchmarking", "warmup_rounds"):
             log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
             for i in range(self.config.getint("benchmarking", "warmup_rounds")):
                 log.info(f"Warmup run: {i}")
-                _ = self._run_application(app, app_args, app_kwargs, record=False)
+                _ = self._run_application(
+                    app, str(i), app_args, app_kwargs, record=False
+                )
 
         log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
-        run_data: List[DataNode] = []
+        multirun_nodes: Dict[str, DataNode] = {}
         for i in range(self.config.getint("benchmarking", "rounds")):
             runNode: Optional[DataNode] = self._run_application(
-                app, app_args, app_kwargs, record=True
+                app, str(i), app_args, app_kwargs, record=True
             )
             if self.comm.Get_rank() == 0 and runNode:
-                run_data.append(runNode)
-                self.export_to(data_out, runNode, IOFormat.PICKLE)
-                self.export_to(data_out, runNode, format)
+                multirun_nodes[str(i)] = runNode
 
         # Get app node data if it exists
+        if self.comm.Get_rank() == 0 and len(multirun_nodes) > 0:
+            # Multi_run data processing
+            multirun_node = DataNode(
+                multirun_id,
+                NodeType.MULTI_RUN,
+                metadata={
+                    "execution_datetime": starttime.isoformat(),
+                    "n_runs": len(multirun_nodes),
+                    "hardware_md": global_metadata,
+                },
+                nodes=multirun_nodes,
+                processed=False,
+            )
+            multirun_node = processDataNode(multirun_node)
 
-        # Add new run data
+            app_data_file = data_out / f"{app_name}.{IOFormat.HDF5.suffix}"
+            app_data = None
+            if app_data_file.exists() and app_data_file.is_file():
+                app_data = self.import_from(app_data_file, IOFormat.HDF5)
+                app_data.metadata["last_execution"] = starttime.isoformat()
+                if multirun_id in app_data.nodes:
+                    log.warning(
+                        f"Trying to override data for app {app_name} and id {multirun_id}, changing id to {starttime}"
+                    )
+                    multirun_id = starttime.isoformat()
 
-        # Process and update data
+                app_data.nodes[multirun_id] = multirun_node
+                app_data.processed = False
+
+            else:
+                app_data = DataNode(
+                    getRunName(app),
+                    NodeType.APP,
+                    metadata={
+                        "creation_datetime": starttime.isoformat(),
+                        "last_execution": starttime.isoformat(),
+                    },
+                    nodes={multirun_id: multirun_node},
+                    processed=False,
+                )
+            app_data = processDataNode(app_data)
+
+            self.export_to(
+                data_out / f"{app_name}.{IOFormat.HDF5.suffix}", app_data, IOFormat.HDF5
+            )
 
     def _run_application(
         self,
         app: Path,
+        run_id: str,
         app_args: tuple = tuple(),
         app_kwargs: dict = dict(),
         record: bool = True,
-        run_id: Optional[str] = None,
     ) -> Optional[DataNode]:
         log.info(f"Rank {self.comm.Get_rank()}: _run_application")
         if record:
@@ -296,7 +344,7 @@ class Perun:
             if dataNodes:
                 # 6) On the first rank, create run node
                 runNode = DataNode(
-                    id=run_id if run_id is not None else getRunId(run_starttime),
+                    id=run_id,
                     type=NodeType.RUN,
                     metadata={
                         "app_name": getRunName(app),
