@@ -30,7 +30,7 @@ def exportHDF5(filePath: Path, dataNode: DataNode):
     dataNode : DataNode
         Root of data node tree.
     """
-    h5_file = h5py.File(filePath, "a")
+    h5_file = h5py.File(filePath, "w")
     _addNode(h5_file, dataNode)
     h5_file.close()
 

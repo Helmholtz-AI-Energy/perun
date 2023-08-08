@@ -82,7 +82,8 @@ class IntelRAPLBackend(Backend):
 
                     if devType != DeviceType.OTHER:
                         with open(child / "max_energy_range_uj", "r") as file:
-                            max_energy = np.uint64(file.readline().strip())
+                            line = file.readline().strip()
+                            max_energy = np.uint64(line)
                         dataType = MetricMetaData(
                             Unit.JOULE,
                             Magnitude.MICRO,
@@ -127,9 +128,10 @@ class IntelRAPLBackend(Backend):
 
                                 if devType != DeviceType.OTHER:
                                     with open(
-                                        child / "max_energy_range_uj", "r"
+                                        grandchild / "max_energy_range_uj", "r"
                                     ) as file:
-                                        max_energy = np.uint64(file.readline().strip())
+                                        line = file.readline().strip()
+                                        max_energy = np.uint64(line)
 
                                     dataType = MetricMetaData(
                                         Unit.JOULE,
