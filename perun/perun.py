@@ -2,6 +2,7 @@
 import os
 import platform
 import pprint as pp
+import time
 
 # import sys
 from configparser import ConfigParser
@@ -15,7 +16,7 @@ from perun.backend import Backend, IntelRAPLBackend, NVMLBackend, PSUTILBackend
 from perun.backend.util import getHostMetadata
 from perun.comm import Comm
 from perun.coordination import getGlobalSensorRankConfiguration, getHostRankDict
-from perun.data_model.data import DataNode, NodeType
+from perun.data_model.data import DataNode, LocalRegions, NodeType, Regions
 from perun.io.io import IOFormat, exportTo, importFrom
 from perun.processing import processDataNode
 from perun.subprocess import perunSubprocess
@@ -43,6 +44,7 @@ class Perun:
         self._host_rank: Optional[Dict[str, List[int]]] = None
         self._metadata: Optional[Dict] = None
         self._l_metadata: Optional[Dict] = None
+        self.local_regions: Optional[LocalRegions] = None
 
     def __del__(self):
         """Perun object destructor."""
@@ -196,15 +198,13 @@ class Perun:
             log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
             for i in range(self.config.getint("benchmarking", "warmup_rounds")):
                 log.info(f"Warmup run: {i}")
-                _ = self._run_application(
-                    app, str(i), app_args, app_kwargs, record=False
-                )
+                _ = self._run_application(app, str(i), record=False)
 
         log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
         multirun_nodes: Dict[str, DataNode] = {}
         for i in range(self.config.getint("benchmarking", "rounds")):
             runNode: Optional[DataNode] = self._run_application(
-                app, str(i), app_args, app_kwargs, record=True
+                app, str(i), record=True
             )
             if self.comm.Get_rank() == 0 and runNode:
                 multirun_nodes[str(i)] = runNode
@@ -260,8 +260,6 @@ class Perun:
         self,
         app: Path,
         run_id: str,
-        app_args: tuple = tuple(),
-        app_kwargs: dict = dict(),
         record: bool = True,
     ) -> Optional[DataNode]:
         log.info(f"Rank {self.comm.Get_rank()}: _run_application")
@@ -301,10 +299,12 @@ class Perun:
             try:
                 sp_ready_event.wait()
                 with open(str(app), "r") as scriptFile:
+                    self.local_regions = LocalRegions()
                     self.comm.barrier()
                     log.info(f"Rank {self.comm.Get_rank()}: Started App")
                     start_event.set()
                     run_starttime = datetime.utcnow()
+                    startime_ns = time.time_ns()
                     exec(
                         scriptFile.read(),
                         {"__name__": "__main__", "__file__": app.name},
@@ -341,8 +341,14 @@ class Perun:
 
             # 5) Collect data from everyone on the first rank
             dataNodes: Optional[List[DataNode]] = self.comm.gather(nodeData, root=0)
-            if dataNodes:
+            globalRegions: Optional[List[LocalRegions]] = self.comm.gather(
+                self.local_regions, root=0
+            )
+
+            if dataNodes and globalRegions:
                 # 6) On the first rank, create run node
+                regions = Regions.fromLocalRegions(globalRegions, startime_ns)
+                log.info(pp.pformat(regions._regions))
                 runNode = DataNode(
                     id=run_id,
                     type=NodeType.RUN,
@@ -352,6 +358,7 @@ class Perun:
                         "perun_version": __version__,
                     },
                     nodes={node.id: node for node in dataNodes if node},
+                    regions=regions,
                 )
                 runNode = processDataNode(runNode)
 

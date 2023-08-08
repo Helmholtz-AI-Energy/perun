@@ -161,7 +161,7 @@ class Regions:
         return self._regions
 
     @classmethod
-    def fromLocalRegions(cls, local_regions: List[LocalRegions]) -> None:
+    def fromLocalRegions(cls, local_regions: List[LocalRegions], start_time: int):
         """Create a Regions object from a list of local regions.
 
         Parameters
@@ -175,9 +175,13 @@ class Regions:
                 if region_name not in regionObj._regions:
                     regionObj._regions[region_name] = {}
 
-                regionObj._regions[region_name][rank] = (
-                    np.array(region, dtype="float32") / 1e9
-                )
+                t_s = np.array(region)
+                t_s -= start_time
+                t_s = t_s.astype("float32")
+                t_s *= 1e-9
+
+                regionObj._regions[region_name][rank] = t_s
+        return regionObj
 
     @classmethod
     def fromDict(cls, regions: Dict[str, Dict[int, np.ndarray]]):
