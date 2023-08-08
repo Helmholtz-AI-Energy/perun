@@ -1,6 +1,7 @@
 """Storage Module."""
 import dataclasses
 import enum
+import time
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
@@ -86,6 +87,115 @@ class Metric:
             self.metric_md.copy(),
             AggregateType(self.agg.value),
         )
+
+
+class LocalRegions:
+    """Stores local region data while an application is being monitored."""
+
+    def __init__(self) -> None:
+        self._regions: Dict[str, List[int]] = {}
+
+    def addEvent(self, region_name: str) -> None:
+        """Mark a new event for the named region.
+
+        Parameters
+        ----------
+        region_name : str
+            Region to mark the event from.
+        """
+        if region_name not in self._regions:
+            self._regions[region_name] = []
+
+        self._regions[region_name].append(time.time_ns())
+
+
+class Regions:
+    """Stores region data from all MPI ranks.
+
+    For each marked region (decorated function), an numpy array with timestamps indicating function starts and ends.
+    """
+
+    def __init__(self) -> None:
+        self._regions: Dict[str, Dict[int, np.ndarray]] = {}
+
+    def getRegion(self, region_name: str) -> Dict[int, np.ndarray]:
+        """Get data from a named region.
+
+        Parameters
+        ----------
+        region_name : str
+            Region id.
+
+        Returns
+        -------
+        Dict[int, np.ndarray]
+            Region data from all MPI ranks.
+        """
+        return self._regions[region_name]
+
+    def getRegionFromRank(self, region_name: str, rank: int) -> np.ndarray:
+        """Obtain region data from a particular MPI rank.
+
+        Parameters
+        ----------
+        region_name : str
+            Region id.
+        rank : int
+            MPI rank.
+
+        Returns
+        -------
+        np.ndarray
+            Numpy array with all marked event timestamps.
+        """
+        return self._regions[region_name][rank]
+
+    def toDict(self) -> Dict[str, Dict[int, np.ndarray]]:
+        """Convert regions to a python dictionary.
+
+        Returns
+        -------
+        Dict[str, Dict[int, np.ndarray]]
+            Dictionary with region data.
+        """
+        return self._regions
+
+    @classmethod
+    def fromLocalRegions(cls, local_regions: List[LocalRegions]) -> None:
+        """Create a Regions object from a list of local regions.
+
+        Parameters
+        ----------
+        local_regions : List[LocalRegions]
+            Local region objects collected from multiple MPI ranks.
+        """
+        regionObj = cls()
+        for rank, local_region in enumerate(local_regions):
+            for region_name, region in local_region._regions.items():
+                if region_name not in regionObj._regions:
+                    regionObj._regions[region_name] = {}
+
+                regionObj._regions[region_name][rank] = (
+                    np.array(region, dtype="float32") / 1e9
+                )
+
+    @classmethod
+    def fromDict(cls, regions: Dict[str, Dict[int, np.ndarray]]):
+        """Create Regions object from a dictionary.
+
+        Parameters
+        ----------
+        regions : Dict[str, Dict[int, np.ndarray]]
+            Regions dictionary.
+
+        Returns
+        -------
+        Regions
+            Regions object.
+        """
+        regionObj = cls()
+        regionObj._regions = regions
+        return regionObj
 
 
 @dataclasses.dataclass
@@ -207,6 +317,7 @@ class DataNode:
         metrics: Optional[Dict[MetricType, Union[Metric, Stats]]] = None,
         deviceType: Optional[DeviceType] = None,
         raw_data: Optional[RawData] = None,
+        regions: Optional[Regions] = None,
         processed: bool = False,
     ) -> None:
         """Perun DataNode.
@@ -239,6 +350,7 @@ class DataNode:
         )
         self.deviceType: Optional[DeviceType] = deviceType
         self.raw_data: Optional[RawData] = raw_data
+        self.regions: Optional[Regions] = regions
         self.processed = processed
 
     def toDict(self, include_raw_data: bool = True) -> Dict:
@@ -251,6 +363,7 @@ class DataNode:
                 type.value: dataclasses.asdict(metric)
                 for type, metric in self.metrics.items()
             },
+            "regions": self.regions.toDict() if self.regions else None,
             "deviceType": self.deviceType,
             "processed": self.processed,
         }
@@ -304,5 +417,8 @@ class DataNode:
                 }
         if "raw_data" in resultsDict:
             newResults.raw_data = RawData.fromDict(resultsDict["raw_data"])
+
+        if "regions" in resultsDict:
+            newResults.regions = Regions.fromDict(resultsDict["regions"])
 
         return newResults

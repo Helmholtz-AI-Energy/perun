@@ -1,7 +1,7 @@
 """HDF5 IO module."""
 import json
 from pathlib import Path
-from typing import Union
+from typing import Dict, Union
 
 import h5py
 import numpy as np
@@ -14,6 +14,7 @@ from perun.data_model.data import (
     MetricType,
     NodeType,
     RawData,
+    Regions,
     Stats,
 )
 from perun.data_model.measurement_type import Magnitude, Unit
@@ -88,6 +89,9 @@ def _addNode(h5group: h5py.Group, dataNode: DataNode):
     if dataNode.raw_data is not None:
         _addRawData(group, dataNode.raw_data)
 
+    if dataNode.regions is not None:
+        _addRegions(group, dataNode.regions)
+
 
 def _readNode(group: h5py.Group) -> DataNode:
     """Read node from hdf5 file."""
@@ -112,6 +116,7 @@ def _readNode(group: h5py.Group) -> DataNode:
         metrics[metric.type] = metric
 
     raw_data = _readRawData(group["raw_data"]) if "raw_data" in group else None  # type: ignore
+    regions = _readRegions(group["regions"]) if "regions" in group else None  # type: ignore
 
     return DataNode(
         id=id,
@@ -121,6 +126,7 @@ def _readNode(group: h5py.Group) -> DataNode:
         metrics=metrics,
         deviceType=device_type,
         raw_data=raw_data,
+        regions=regions,
         processed=True,
     )
 
@@ -214,3 +220,23 @@ def _readRawData(group: h5py.Group) -> RawData:
         t_md=t_md,
         v_md=v_md,
     )
+
+
+def _addRegions(h5Group: h5py.Group, regions: Regions):
+    regions_group: h5py.Group = h5Group.create_group("regions")
+    for region_name, ranks in regions._regions.items():
+        region_group = regions_group.create_group(region_name)
+        for rank, events in ranks.items():
+            region_group.create_dataset(f"{rank}", data=events)
+
+
+def _readRegions(group: h5py.Group) -> Regions:
+    regionsDict: Dict[str, Dict[int, np.ndarray]] = {}
+    for key, region_group in group.items():
+        if key not in regionsDict:
+            regionsDict[key] = {}
+
+        for rank, dataset in region_group.items():
+            regionsDict[key][rank] = dataset[:]
+
+    return Regions.fromDict(regionsDict)
