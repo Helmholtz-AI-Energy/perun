@@ -37,7 +37,8 @@ class IntelRAPLBackend(Backend):
         cpuInfo = cpuinfo.get_cpu_info()
         self.metadata = {}
         for key, value in cpuInfo.items():
-            self.metadata[key] = str(value)
+            if value is not None and value != "":
+                self.metadata[key] = str(value)
 
         log.debug(f"CPU info metadata: {pp.pformat(self.metadata)}")
 

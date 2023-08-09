@@ -6,10 +6,35 @@ from perun import log
 from perun.backend import Backend
 
 
-def getHostMetadata(
+def getHostMetadata() -> Dict[str, Any]:
+    """Return dictionary with the platform related metadata.
+
+    Returns
+    -------
+    Dict[str, Any]
+        Dictionary with host metadata.
+    """
+    metadata = {}
+    for name, method in platform.__dict__.items():
+        if callable(method):
+            try:
+                value = method()
+                if type(value) == tuple:
+                    value = " ".join(value)
+                value = value.strip()
+                if value != "":
+                    metadata[name] = value
+            except Exception as e:
+                log.debug(f"platform method {name} did not work")
+                log.debug(e)
+
+    return metadata
+
+
+def getBackendMetadata(
     backends: Dict[str, Backend], backendConfig: Dict[str, Set[str]]
 ) -> Dict[str, Any]:
-    """Return dictionary with the full system metadata based on the provided backend configuration.
+    """Get backend related metadata dictionary based on the current sensor configuration.
 
     Parameters
     ----------
@@ -21,23 +46,13 @@ def getHostMetadata(
     Returns
     -------
     Dict[str, Any]
-        Dictionary with host metadata.
+        Backend metadata dictionary.
     """
-    metadata = {}
-    for name, method in platform.__dict__.items():
-        if callable(method):
-            try:
-                metadata[name] = method()
-            except Exception as e:
-                log.warn(f"platform method {name} did not work")
-                log.warn(e)
-
-    metadata["backends"] = {}
+    backend_metadata: Dict[str, Any] = {}
     for backend in backends.values():
         if backend.name in backendConfig:
-            metadata["backends"][backend.name] = {}
+            backend_metadata[backend.name] = {}
             sensors = backend.getSensors(backendConfig[backend.name])
             for sensor in sensors:
-                metadata["backends"][backend.name][sensor.id] = sensor.metadata
-
-    return metadata
+                backend_metadata[backend.name][sensor.id] = sensor.metadata
+    return backend_metadata

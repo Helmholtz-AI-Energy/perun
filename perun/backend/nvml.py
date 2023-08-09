@@ -28,8 +28,8 @@ class NVMLBackend(Backend):
         pynvml.nvmlInit()
         deviceCount = pynvml.nvmlDeviceGetCount()
         self.metadata = {
-            "cuda_version": pynvml.nvmlSystemGetCudaDriverVersion(),
-            "driver_version": pynvml.nvmlSystemGetDriverVersion(),
+            "cuda_version": str(pynvml.nvmlSystemGetCudaDriverVersion()),
+            "driver_version": str(pynvml.nvmlSystemGetDriverVersion()),
             "source": "Nvidia Managment Library",
         }
 
@@ -80,7 +80,7 @@ class NVMLBackend(Backend):
                 device_type = DeviceType.GPU
                 device_metadata = {
                     "uuid": deviceId,
-                    "name": pynvml.nvmlDeviceGetName(handle),
+                    "name": str(pynvml.nvmlDeviceGetName(handle)),
                     **self.metadata,
                 }
                 max_power = np.uint32(

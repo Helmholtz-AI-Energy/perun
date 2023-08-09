@@ -34,7 +34,11 @@ class PSUTILBackend(Backend):
                 self.devices[deviceName] = Sensor(
                     deviceName,
                     DeviceType.RAM,
-                    {"total": mem.total, "available": mem.available, **self.metadata},
+                    {
+                        "total": str(mem.total),
+                        "available": str(mem.available),
+                        **self.metadata,
+                    },
                     MetricMetaData(
                         Unit.PERCENT,
                         Magnitude.ONE,

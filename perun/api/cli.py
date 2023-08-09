@@ -86,7 +86,8 @@ def metadata():
     """Print global metadata dictionaries in json format."""
     perun = Perun(config)
 
-    hostMD = perun.l_metadata
+    hostMD = perun.l_host_metadata
+    hostMD["backends"] = perun.l_backend_metadata
     allHostsMD: Optional[List[Dict]] = perun.comm.gather(hostMD, root=0)
 
     if perun.comm.Get_rank() == 0 and allHostsMD:

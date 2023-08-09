@@ -1,4 +1,5 @@
 """Core perun functionality."""
+import json
 import os
 import platform
 import pprint as pp
@@ -13,7 +14,7 @@ from typing import Any, Dict, List, Optional, Set, Type
 
 from perun import __version__, log
 from perun.backend import Backend, IntelRAPLBackend, NVMLBackend, PSUTILBackend
-from perun.backend.util import getHostMetadata
+from perun.backend.util import getBackendMetadata, getHostMetadata
 from perun.comm import Comm
 from perun.coordination import getGlobalSensorRankConfiguration, getHostRankDict
 from perun.data_model.data import DataNode, LocalRegions, NodeType, Regions
@@ -42,8 +43,8 @@ class Perun:
         self._l_sensor_config: Optional[Dict[str, Set[str]]] = None
         self._hostname: Optional[str] = None
         self._host_rank: Optional[Dict[str, List[int]]] = None
-        self._metadata: Optional[Dict] = None
-        self._l_metadata: Optional[Dict] = None
+        self._l_host_metadata: Optional[Dict[str, Any]] = None
+        self._l_backend_metadata: Optional[Dict[str, Any]] = None
         self.local_regions: Optional[LocalRegions] = None
 
     def __del__(self):
@@ -153,7 +154,7 @@ class Perun:
         return self._l_sensor_config
 
     @property
-    def l_metadata(self) -> Dict[str, Any]:
+    def l_host_metadata(self) -> Dict[str, Any]:
         """Lazy initialization of local metadata dictionary.
 
         Returns
@@ -161,15 +162,28 @@ class Perun:
         Dict[str, Any]
             Metadata dictionary
         """
-        if not self._l_metadata:
-            self._l_metadata = getHostMetadata(self.backends, self.l_sensors_config)
-        return self._l_metadata
+        if not self._l_host_metadata:
+            self._l_host_metadata = getHostMetadata()
+        return self._l_host_metadata
+
+    @property
+    def l_backend_metadata(self) -> Dict[str, Any]:
+        """Lazy initialization of local metadata dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Metadata dictionary
+        """
+        if not self._l_backend_metadata:
+            self._l_backend_metadata = getBackendMetadata(
+                self.backends, self.l_sensors_config
+            )
+        return self._l_backend_metadata
 
     def monitor_application(
         self,
         app: Path,
-        app_args: tuple = tuple(),
-        app_kwargs: dict = dict(),
     ):
         """Execute coordination, monitoring, post-processing, and reporting steps, in that order.
 
@@ -177,10 +191,6 @@ class Perun:
         ----------
         app : Path
             App script file path
-        app_args : tuple, optional
-            App args, by default tuple()
-        app_kwargs : dict, optional
-            App kwargs, by default dict()
         """
         log.debug(f"Rank {self.comm.Get_rank()} Backends: {pp.pformat(self.backends)}")
 
@@ -189,8 +199,6 @@ class Perun:
         starttime = datetime.now()
         app_name = getRunName(app)
         multirun_id = getRunId(starttime)
-        host_metadata = self.l_metadata
-        global_metadata = self.comm.gather(host_metadata, root=0)
 
         log.info(f"App: {app_name}, MR_ID: {multirun_id}")
 
@@ -216,9 +224,10 @@ class Perun:
                 multirun_id,
                 NodeType.MULTI_RUN,
                 metadata={
-                    "execution_datetime": starttime.isoformat(),
-                    "n_runs": len(multirun_nodes),
-                    "hardware_md": global_metadata,
+                    "app_name": getRunName(app),
+                    "perun_version": __version__,
+                    "execution_dt": starttime.isoformat(),
+                    "n_runs": str(len(multirun_nodes)),
                 },
                 nodes=multirun_nodes,
                 processed=False,
@@ -229,7 +238,7 @@ class Perun:
             app_data = None
             if app_data_file.exists() and app_data_file.is_file():
                 app_data = self.import_from(app_data_file, IOFormat.HDF5)
-                app_data.metadata["last_execution"] = starttime.isoformat()
+                app_data.metadata["last_execution_dt"] = starttime.isoformat()
                 previous_run_ids = list(app_data.nodes.keys())
                 multirun_id = increaseIdCounter(previous_run_ids, multirun_id)
                 multirun_node.id = multirun_id
@@ -241,8 +250,8 @@ class Perun:
                     getRunName(app),
                     NodeType.APP,
                     metadata={
-                        "creation_datetime": starttime.isoformat(),
-                        "last_execution": starttime.isoformat(),
+                        "creation_dt": starttime.isoformat(),
+                        "last_execution_dt": starttime.isoformat(),
                     },
                     nodes={multirun_id: multirun_node},
                     processed=False,
@@ -300,7 +309,6 @@ class Perun:
                     self.comm.barrier()
                     log.info(f"Rank {self.comm.Get_rank()}: Started App")
                     start_event.set()
-                    run_starttime = datetime.utcnow()
                     startime_ns = time.time_ns()
                     exec(
                         scriptFile.read(),
@@ -334,7 +342,9 @@ class Perun:
             log.info(f"Rank {self.comm.Get_rank()}: Everyone exited the subprocess")
 
             if nodeData:
-                nodeData.metadata["mpi_ranks"] = self.host_rank[self.hostname]
+                nodeData.metadata["mpi_ranks"] = json.dumps(
+                    self.host_rank[self.hostname]
+                )
 
             # 5) Collect data from everyone on the first rank
             dataNodes: Optional[List[DataNode]] = self.comm.gather(nodeData, root=0)
@@ -345,15 +355,11 @@ class Perun:
             if dataNodes and globalRegions:
                 # 6) On the first rank, create run node
                 regions = Regions.fromLocalRegions(globalRegions, startime_ns)
-                log.info(pp.pformat(regions._regions))
+                log.debug(pp.pformat(regions._regions))
                 runNode = DataNode(
                     id=run_id,
                     type=NodeType.RUN,
-                    metadata={
-                        "app_name": getRunName(app),
-                        "startime": run_starttime.isoformat(),
-                        "perun_version": __version__,
-                    },
+                    metadata={**self.l_host_metadata},
                     nodes={node.id: node for node in dataNodes if node},
                     regions=regions,
                 )

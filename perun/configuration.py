@@ -39,6 +39,10 @@ globalConfigPath = Path.home() / ".config/perun.ini"
 if globalConfigPath.exists() and globalConfigPath.is_file():
     config.read(globalConfigPath)
 
+localConfigPath = Path.cwd() / ".perun.ini"
+if globalConfigPath.exists() and globalConfigPath.is_file():
+    config.read(globalConfigPath)
+
 
 def read_custom_config(
     ctx: Optional[click.Context],

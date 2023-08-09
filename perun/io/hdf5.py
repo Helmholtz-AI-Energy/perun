@@ -1,5 +1,4 @@
 """HDF5 IO module."""
-import json
 from pathlib import Path
 from typing import Dict, Union
 
@@ -73,7 +72,7 @@ def _addNode(h5group: h5py.Group, dataNode: DataNode):
     group.attrs["type"] = dataNode.type.value
 
     for key, value in dataNode.metadata.items():
-        group.attrs[key] = json.dumps(value)
+        group.attrs[key] = value
 
     if dataNode.deviceType is not None:
         group.attrs["device_type"] = dataNode.deviceType.value
