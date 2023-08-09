@@ -20,7 +20,7 @@ from perun.data_model.data import DataNode, LocalRegions, NodeType, Regions
 from perun.io.io import IOFormat, exportTo, importFrom
 from perun.processing import processDataNode
 from perun.subprocess import perunSubprocess
-from perun.util import getRunId, getRunName, singleton
+from perun.util import getRunId, getRunName, increaseIdCounter, singleton
 
 
 @singleton
@@ -230,13 +230,10 @@ class Perun:
             if app_data_file.exists() and app_data_file.is_file():
                 app_data = self.import_from(app_data_file, IOFormat.HDF5)
                 app_data.metadata["last_execution"] = starttime.isoformat()
-                if multirun_id in app_data.nodes:
-                    log.warning(
-                        f"Trying to override data for app {app_name} and id {multirun_id}, changing id to {starttime}"
-                    )
-                    multirun_id = starttime.isoformat()
-
-                app_data.nodes[multirun_id] = multirun_node
+                previous_run_ids = list(app_data.nodes.keys())
+                multirun_id = increaseIdCounter(previous_run_ids, multirun_id)
+                multirun_node.id = multirun_id
+                app_data.nodes[multirun_node.id] = multirun_node
                 app_data.processed = False
 
             else:

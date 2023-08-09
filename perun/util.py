@@ -1,7 +1,9 @@
 """Util module."""
 import os
+import re
 from datetime import datetime
 from pathlib import Path
+from typing import List
 
 from perun import config
 
@@ -76,3 +78,23 @@ def getRunId(starttime: datetime) -> str:
         return os.environ["SLURM_JOB_ID"]
     else:
         return starttime.isoformat()
+
+
+def increaseIdCounter(existing: List[str], newId: str) -> str:
+    """Increase id counter based on number of existing entries with the same id.
+
+    Parameters
+    ----------
+    existing : List[str]
+        List of existing ids.
+    newId : str
+        New id to compare againts.
+
+    Returns
+    -------
+    str
+        newId with an added counter if any matches were found.
+    """
+    exp = re.compile(r"^" + newId + r"(_\d+)?$")
+    count = len(list(filter(lambda x: exp.match(x), existing)))
+    return newId + f"_{count}" if count > 0 else newId

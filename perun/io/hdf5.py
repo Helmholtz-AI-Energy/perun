@@ -90,7 +90,6 @@ def _addNode(h5group: h5py.Group, dataNode: DataNode):
         _addRawData(group, dataNode.raw_data)
 
     if dataNode.regions is not None:
-        print(dataNode.regions._regions)
         _addRegions(group, dataNode.regions)
 
 
