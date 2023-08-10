@@ -13,7 +13,7 @@ from perun.data_model.data import (
     MetricType,
     NodeType,
     RawData,
-    Regions,
+    Region,
     Stats,
 )
 from perun.data_model.measurement_type import Magnitude, Unit
@@ -221,21 +221,47 @@ def _readRawData(group: h5py.Group) -> RawData:
     )
 
 
-def _addRegions(h5Group: h5py.Group, regions: Regions):
+def _addRegions(h5Group: h5py.Group, regions: Dict[str, Region]):
     regions_group: h5py.Group = h5Group.create_group("regions")
-    for region_name, ranks in regions._regions.items():
-        region_group = regions_group.create_group(region_name)
-        for rank, events in ranks.items():
-            region_group.create_dataset(f"{rank}", data=events)
+    for region in regions.values():
+        _addRegion(regions_group, region)
 
 
-def _readRegions(group: h5py.Group) -> Regions:
-    regionsDict: Dict[str, Dict[int, np.ndarray]] = {}
+def _addRegion(h5Group: h5py.Group, region: Region):
+    region_group = h5Group.create_group(region.id)
+    _addMetric(region_group, region.energy)  # type: ignore
+    _addMetric(region_group, region.power)  # type: ignore
+    _addMetric(region_group, region.runs_per_rank)  # type: ignore
+    _addMetric(region_group, region.runtime)  # type: ignore
+    region_group.attrs["id"] = region.id
+    region_group.attrs["processed"] = region.processed
+    region_group.attrs["world_size"] = region.world_size
+    raw_data_group = region_group.create_group("raw_data")
+    for rank, data in region.raw_data.items():
+        raw_data_group.create_dataset(str(rank), data=data)
+
+
+def _readRegions(group: h5py.Group) -> Dict[str, Region]:
+    regionsDict: Dict[str, Region] = {}
     for key, region_group in group.items():
-        if key not in regionsDict:
-            regionsDict[key] = {}
+        regionsDict[key] = _readRegion(region_group)
+    return regionsDict
 
-        for rank, dataset in region_group.items():
-            regionsDict[key][rank] = dataset[:]
 
-    return Regions.fromDict(regionsDict)
+def _readRegion(group: h5py.Group) -> Region:
+    regionObj = Region()
+    regionObj.id = group.attrs["id"]
+    regionObj.processed = group.attrs["processed"]
+    regionObj.world_size = group.attrs["world_size"]
+
+    regionObj.energy = _readMetric(group["ENERGY"])  # type: ignore
+    regionObj.power = _readMetric(group["POWER"])  # type: ignore
+    regionObj.runtime = _readMetric(group["RUNTIME"])  # type: ignore
+    regionObj.runs_per_rank = _readMetric(group["N_RUNS"])  # type: ignore
+
+    raw_data_group = group["raw_data"]
+    regionObj.raw_data = {}
+    for key, data in raw_data_group.items():
+        regionObj.raw_data[int(key)] = data[:]
+
+    return regionObj

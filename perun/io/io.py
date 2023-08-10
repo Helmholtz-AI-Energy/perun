@@ -48,7 +48,7 @@ class IOFormat(enum.Enum):
 
 
 def exportTo(
-    output_path: Path, dataNode: DataNode, format: IOFormat, id: Optional[str] = None
+    output_path: Path, dataNode: DataNode, format: IOFormat, mr_id: Optional[str] = None
 ):
     """Export DataNode structure to the selected format.
 
@@ -67,32 +67,64 @@ def exportTo(
         log.info(f"{output_path.parent} does not exists. So lets make it.")
         output_path.parent.mkdir()
 
-    if output_path.exists() and output_path.is_file():
-        log.warn(f"Overwriting existing file {output_path}")
-
     reportStr: Union[str, bytes]
     if format == IOFormat.JSON:
         fileType = "w"
+        output_path = output_path / f"{dataNode.id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
         reportStr = exportJson(dataNode)
         with open(output_path, fileType) as file:
             file.write(reportStr)
+
     elif format == IOFormat.HDF5:
+        output_path = output_path / f"{dataNode.id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
         exportHDF5(output_path, dataNode)
+
     elif format == IOFormat.PICKLE:
         fileType = "wb"
+
+        output_path = output_path / f"{dataNode.id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
         reportStr = exportPickle(dataNode)
         with open(output_path, fileType) as file:
             file.write(reportStr)
+
     elif format == IOFormat.CSV:
-        exportCSV(output_path, dataNode)
+        output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
+        exportCSV(output_path, dataNode, mr_id)
     elif format == IOFormat.BENCH:
         fileType = "w"
-        reportStr = exportBench(dataNode)
+        output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
+        reportStr = exportBench(dataNode, mr_id)
         with open(output_path, fileType) as file:
             file.write(reportStr)
-    else:
+
+    elif format == IOFormat.TEXT:
         fileType = "w"
-        reportStr = textReport(dataNode)
+        output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
+        reportStr = textReport(dataNode, mr_id)
         with open(output_path, fileType) as file:
             file.write(reportStr)
 

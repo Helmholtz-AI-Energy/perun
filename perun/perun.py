@@ -1,5 +1,4 @@
 """Core perun functionality."""
-import json
 import os
 import platform
 import pprint as pp
@@ -17,7 +16,7 @@ from perun.backend import Backend, IntelRAPLBackend, NVMLBackend, PSUTILBackend
 from perun.backend.util import getBackendMetadata, getHostMetadata
 from perun.comm import Comm
 from perun.coordination import getGlobalSensorRankConfiguration, getHostRankDict
-from perun.data_model.data import DataNode, LocalRegions, NodeType, Regions
+from perun.data_model.data import DataNode, LocalRegions, NodeType
 from perun.io.io import IOFormat, exportTo, importFrom
 from perun.processing import processDataNode
 from perun.subprocess import perunSubprocess
@@ -247,7 +246,7 @@ class Perun:
 
             else:
                 app_data = DataNode(
-                    getRunName(app),
+                    app_name,
                     NodeType.APP,
                     metadata={
                         "creation_dt": starttime.isoformat(),
@@ -258,9 +257,9 @@ class Perun:
                 )
             app_data = processDataNode(app_data)
 
-            self.export_to(
-                data_out / f"{app_name}.{IOFormat.HDF5.suffix}", app_data, IOFormat.HDF5
-            )
+            self.export_to(data_out, app_data, IOFormat.HDF5)
+            # if format != IOFormat.HDF5:
+            #     self.export_to(data_out, app_data, format, multirun_id)
 
     def _run_application(
         self,
@@ -309,7 +308,7 @@ class Perun:
                     self.comm.barrier()
                     log.info(f"Rank {self.comm.Get_rank()}: Started App")
                     start_event.set()
-                    startime_ns = time.time_ns()
+                    starttime_ns = time.time_ns()
                     exec(
                         scriptFile.read(),
                         {"__name__": "__main__", "__file__": app.name},
@@ -342,9 +341,7 @@ class Perun:
             log.info(f"Rank {self.comm.Get_rank()}: Everyone exited the subprocess")
 
             if nodeData:
-                nodeData.metadata["mpi_ranks"] = json.dumps(
-                    self.host_rank[self.hostname]
-                )
+                nodeData.metadata["mpi_ranks"] = self.host_rank[self.hostname]
 
             # 5) Collect data from everyone on the first rank
             dataNodes: Optional[List[DataNode]] = self.comm.gather(nodeData, root=0)
@@ -354,15 +351,13 @@ class Perun:
 
             if dataNodes and globalRegions:
                 # 6) On the first rank, create run node
-                regions = Regions.fromLocalRegions(globalRegions, startime_ns)
-                log.debug(pp.pformat(regions._regions))
                 runNode = DataNode(
                     id=run_id,
                     type=NodeType.RUN,
                     metadata={**self.l_host_metadata},
                     nodes={node.id: node for node in dataNodes if node},
-                    regions=regions,
                 )
+                runNode.addRegionData(globalRegions, starttime_ns)
                 runNode = processDataNode(runNode)
 
                 return runNode
@@ -384,26 +379,35 @@ class Perun:
 
     @staticmethod
     def import_from(filePath: Path, format: IOFormat) -> DataNode:
-        """Import Data Node tree from filepath.
+        """Import data node from given filepath.
 
-        :param filePath: Perun Data file path
-        :type filePath: Path
-        :param format: File format
-        :type format: IOFormat
-        :return: Data Node object
-        :rtype: DataNode
+        Parameters
+        ----------
+        filePath : Path
+            Perun data node file path.
+        format : IOFormat
+            File format.
+
+        Returns
+        -------
+        DataNode
+            Imported DataNode.
         """
         return importFrom(filePath, format)
 
     @staticmethod
-    def export_to(dataOut: Path, dataNode: DataNode, format: IOFormat):
-        """Export existing Data Node object to the selected format.
+    def export_to(
+        dataOut: Path, dataNode: DataNode, format: IOFormat, mr_id: Optional[str] = None
+    ):
+        """Export data to selected format.
 
-        :param dataOut: Output file path
-        :type dataOut: Path
-        :param dataNode: Data Node to write to file
-        :type dataNode: DataNode
-        :param format: Output file format
-        :type format: IOFormat
+        Parameters
+        ----------
+        dataOut : Path
+            Directory where data will be saved.
+        dataNode : DataNode
+            Data node to export.
+        format : IOFormat
+            Format to export data.
         """
-        exportTo(dataOut, dataNode, format)
+        exportTo(dataOut, dataNode, format, mr_id)
