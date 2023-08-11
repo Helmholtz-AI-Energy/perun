@@ -231,7 +231,8 @@ class Region:
     runs_per_rank: Optional[Stats] = None
     runtime: Optional[Stats] = None
     power: Optional[Stats] = None
-    energy: Optional[Stats] = None
+    cpu_util: Optional[Stats] = None
+    gpu_util: Optional[Stats] = None
     processed: bool = False
 
     def toDict(self) -> Dict[str, Any]:
@@ -253,7 +254,8 @@ class Region:
         )
         result["runtime"] = asdict(self.runtime) if self.runtime else None
         result["power"] = asdict(self.power) if self.power else None
-        result["energy"] = asdict(self.energy) if self.energy else None
+        result["cpu_util"] = asdict(self.cpu_util) if self.cpu_util else None
+        result["gpu_util"] = asdict(self.gpu_util) if self.gpu_util else None
 
         return result
 
@@ -280,7 +282,8 @@ class Region:
             regionObj.runs_per_rank = Stats.fromDict(regionDictionary["runs_per_rank"])
             regionObj.runtime = Stats.fromDict(regionDictionary["runtime"])
             regionObj.power = Stats.fromDict(regionDictionary["power"])
-            regionObj.energy = Stats.fromDict(regionDictionary["energy"])
+            regionObj.cpu_util = Stats.fromDict(regionDictionary["cpu_util"])
+            regionObj.gpu_util = Stats.fromDict(regionDictionary["gpu_util"])
         return regionObj
 
 

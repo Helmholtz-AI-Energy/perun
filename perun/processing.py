@@ -54,10 +54,7 @@ def processEnergyData(
 
     if start and end:
         runtime = end - start
-        new_x = np.concatenate(
-            [[start], t_s[np.all([t_s >= start, t_s <= end], axis=0)], [end]]
-        )
-        e_J = np.interp(new_x, t_s, e_J)
+        _, e_J = getInterpolatedValues(t_s, e_J, start, end)
 
     d_energy = e_J[1:] - e_J[:-1]
 
@@ -109,11 +106,7 @@ def processPowerData(
     power_W = raw_data.values.astype("float32") * magFactor
 
     if start and end:
-        new_x = np.concatenate(
-            [[start], t_s[np.all([t_s >= start, t_s <= end], axis=0)], [end]]
-        )
-        power_W = np.interp(new_x, t_s, power_W)
-        t_s = new_x
+        t_s, power_W = getInterpolatedValues(t_s, power_W, start, end)
 
     avg_power_W = np.mean(power_W)
     energy_J = np.trapz(power_W, t_s)
@@ -390,14 +383,15 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
         Data node with sensor data.
     """
     world_size = regions[0].world_size
-    energy = [
+    power = [
         [
             [0.0 for _ in range(region.raw_data[rank].shape[0] // 2)]
             for rank in range(world_size)
         ]
         for region in regions
     ]
-    power = copy.deepcopy(energy)
+    cpu_util = copy.deepcopy(power)
+    gpu_util = copy.deepcopy(power)
 
     for hostNode in dataNode.nodes.values():
         # Get relevant ranks
@@ -412,47 +406,90 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                     if sensorNode.raw_data:
                         raw_data = sensorNode.raw_data
                         measuring_unit = raw_data.v_md.unit
-                        if measuring_unit == Unit.JOULE or measuring_unit == Unit.WATT:
+                        if (
+                            measuring_unit == Unit.JOULE
+                            or measuring_unit == Unit.WATT
+                            or measuring_unit == Unit.PERCENT
+                        ):
                             for region_idx, region in enumerate(regions):
                                 for rank in ranks:
                                     if rank in region.raw_data:
                                         events = region.raw_data[rank]
                                         for i in range(events.shape[0] // 2):
                                             if measuring_unit == Unit.JOULE:
-                                                energy_J, power_W = processEnergyData(
+                                                _, power_W = processEnergyData(
                                                     raw_data,
                                                     events[i * 2],
                                                     events[i * 2 + 1],
                                                 )
+                                                power[region_idx][rank][i] += power_W
                                             elif measuring_unit == Unit.WATT:
-                                                energy_J, power_W = processPowerData(
+                                                _, power_W = processPowerData(
                                                     raw_data,
                                                     events[i * 2],
                                                     events[i * 2 + 1],
                                                 )
-                                            energy[region_idx][rank][i] += energy_J
-                                            power[region_idx][rank][i] += power_W
+                                                power[region_idx][rank][i] += power_W
+                                            elif measuring_unit == Unit.PERCENT:
+                                                _, values = getInterpolatedValues(
+                                                    raw_data.timesteps.astype(
+                                                        "float32"
+                                                    ),
+                                                    raw_data.values,
+                                                    events[i * 2],
+                                                    events[i * 2 + 1],
+                                                )
+                                                if (
+                                                    deviceNode.deviceType
+                                                    == DeviceType.GPU
+                                                ):
+                                                    gpu_util[region_idx][rank][
+                                                        i
+                                                    ] += np.mean(values)
+                                                elif (
+                                                    deviceNode.deviceType
+                                                    == DeviceType.CPU
+                                                ):
+                                                    cpu_util[region_idx][rank][
+                                                        i
+                                                    ] += np.mean(values)
 
     for region_idx, region in enumerate(regions):
-        r_energy = np.array(list(chain(*energy[region_idx])))
         r_power = np.array(list(chain(*power[region_idx])))
+        r_gpu_util = np.array(list(chain(*gpu_util[region_idx])))
+        r_cpu_util = np.array(list(chain(*cpu_util[region_idx])))
 
-        # n_runs
-        region.energy = Stats(
-            MetricType.ENERGY,
+        region.cpu_util = Stats(
+            MetricType.CPU_UTIL,
             MetricMetaData(
-                Unit.JOULE,
+                Unit.PERCENT,
                 Magnitude.ONE,
                 np.dtype("float32"),
                 np.float32(0),
                 np.finfo("float32").max,
                 np.float32(-1),
             ),
-            r_energy.sum(),
-            r_energy.mean(),
-            r_energy.std(),
-            r_energy.max(),
-            r_energy.min(),
+            r_cpu_util.sum(),
+            r_cpu_util.mean(),
+            r_cpu_util.std(),
+            r_cpu_util.max(),
+            r_cpu_util.min(),
+        )
+        region.gpu_util = Stats(
+            MetricType.GPU_UTIL,
+            MetricMetaData(
+                Unit.PERCENT,
+                Magnitude.ONE,
+                np.dtype("float32"),
+                np.float32(0),
+                np.finfo("float32").max,
+                np.float32(-1),
+            ),
+            r_gpu_util.sum(),
+            r_gpu_util.mean(),
+            r_gpu_util.std(),
+            r_gpu_util.max(),
+            r_gpu_util.min(),
         )
         region.power = Stats(
             MetricType.POWER,
@@ -528,3 +565,29 @@ def addRunAndRuntimeInfoToRegion(region: Region):
         runtime_array.max(),
         runtime_array.min(),
     )
+
+
+def getInterpolatedValues(
+    t: np.ndarray, x: np.ndarray, start: np.number, end: np.number
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Filter timeseries with a start and end limit, and interpolate the values at the edges.
+
+    Parameters
+    ----------
+    t : np.ndarray
+        Original time steps
+    x : np.ndarray
+        Original values
+    start : np.number
+        Start of the region of interest
+    end : np.number
+        End of the roi
+
+    Returns
+    -------
+    np.ndarray
+        ROI values
+    """
+    new_t = np.concatenate([[start], t[np.all([t >= start, t <= end], axis=0)], [end]])
+    new_x = np.interp(new_t, t, x)
+    return new_t, new_x

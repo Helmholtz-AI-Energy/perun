@@ -5,7 +5,7 @@ Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 import click
 
@@ -88,7 +88,7 @@ def metadata():
 
     hostMD = perun.l_host_metadata
     hostMD["backends"] = perun.l_backend_metadata
-    allHostsMD: Optional[List[Dict]] = perun.comm.gather(hostMD, root=0)
+    allHostsMD = perun.comm.gather(hostMD, root=0)
 
     if perun.comm.Get_rank() == 0 and allHostsMD:
         metadataDict = {}
@@ -100,32 +100,31 @@ def metadata():
 
 @cli.command()
 @click.argument("input_file", type=click.Path(exists=True))
-@click.argument("output_path", type=click.Path(exists=True))
-@click.option(
-    "-f" "--format",
+@click.argument(
+    "output_format",
     type=click.Choice([format.value for format in IOFormat]),
+)
+@click.option(
+    "-i" "--id",
+    "mr_id",
+    type=str,
     default=None,
 )
-def export(input_file: str, output_path: str, output_format: Optional[str]):
+def export(input_file: str, output_format: str, mr_id: Optional[str]):
     """Export existing perun output file to another format."""
     in_file = Path(input_file)
     if not in_file.exists():
         click.echo("File does not exist.", err=True)
         return
 
-    out_path = Path(output_path)
-    if not out_path.parent.exists():
-        click.echo("Output path does not exist", err=True)
-        return
+    perun = Perun(config)
 
+    out_path = in_file.parent
     inputFormat = IOFormat.fromSuffix(in_file.suffix)
-    if output_format:
-        out_format = IOFormat(output_format)
-    else:
-        out_format = IOFormat.fromSuffix(out_path.suffix)
+    out_format = IOFormat(output_format)
 
-    dataNode = Perun.import_from(in_file, inputFormat)
-    Perun.export_to(out_path, dataNode, out_format)
+    dataNode = perun.import_from(in_file, inputFormat)
+    perun.export_to(out_path, dataNode, out_format, mr_id)
 
 
 @cli.command(context_settings={"ignore_unknown_options": True})

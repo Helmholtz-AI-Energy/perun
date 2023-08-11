@@ -1,22 +1,28 @@
-from datetime import timedelta
+"""IO Util."""
 from typing import Tuple
 
 import numpy as np
 
+from perun.data_model.data import Stats
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 
 
-def value2str(
+def getTFactorMag(
     value: np.number, metric_md: MetricMetaData
-) -> Tuple[str, float, Magnitude]:
-    """Return a printable representation of the value based on its metric metadata. A printable value should not have more than 3 digits after before the decimal comma/dot.
+) -> Tuple[float, Magnitude]:
+    """Get transformation factor and magnitude to improve string formating.
 
-    Args:
-        value (np.number): Value to format.
-        metric_md (MetricMetaData): Value metadata.
+    Parameters
+    ----------
+    value : np.number
+        Reference value
+    metric_md : MetricMetaData
+        Value description
 
-    Returns:
-        Tuple[str, float, Magnitude]: Formated value, transformation factor used, and the new magnitude prefix.
+    Returns
+    -------
+    Tuple[float, Magnitude]
+        Scaling factor and Magnitude Enum
     """
     if metric_md.unit == Unit.WATT or metric_md.unit == Unit.JOULE:
         transformFactor = 1
@@ -25,14 +31,13 @@ def value2str(
                 transformFactor = mag.value
                 break
 
-        newValue = value / transformFactor
         newMag = Magnitude(metric_md.mag.value * transformFactor)
-        return f"{newValue:.3f}", transformFactor, newMag
+        return transformFactor, newMag
 
     elif metric_md.unit == Unit.PERCENT:
-        return f"{value:.3f}", 1.0, metric_md.mag
+        return 1.0, metric_md.mag
     elif metric_md.unit == Unit.SECOND:
-        return str(timedelta(seconds=float(value))), 1.0, Magnitude.ONE
+        return 1.0, Magnitude.ONE
     elif metric_md.unit == Unit.BYTE:
         transformFactor = 1
         newMag = Magnitude.ONE
@@ -45,7 +50,44 @@ def value2str(
                 newMag = m
                 break
 
-        newValue = value / transformFactor
-        return f"{newValue:.3f}", transformFactor, newMag
+        return transformFactor, newMag
     else:
-        return f"{value:.3f}", 1.0, metric_md.mag
+        return 1.0, metric_md.mag
+
+
+def value2ValueUnitStr(value: np.number, metric_md: MetricMetaData) -> str:
+    """Return a printable representation as [Value:.3f][mag][unit] (e.g. 3.05mV) of the value based on its metric metadata.
+
+    Parameters
+    ----------
+    value : np.number
+        Value to apply formating to.
+    metric_md : MetricMetaData
+        Value metadata.
+
+    Returns
+    -------
+    str
+        String represenation
+    """
+    tfactor, new_mag = getTFactorMag(value, metric_md)
+    return f"{value/tfactor:.3f} {new_mag.symbol}{metric_md.unit.value}"
+
+
+def value2MeanStdStr(stats: Stats) -> str:
+    """Return a printable representation as [Value:.3f]±[std:.3f][mag][unit] (e.g. 3.05±0.1mV) of the value based on its metric metadata.
+
+    Parameters
+    ----------
+    stats : Stats obj
+        Stats to apply formating to.
+    metric_md : MetricMetaData
+        Value metadata.
+
+    Returns
+    -------
+    str
+        String represenation
+    """
+    tfactor, new_mag = getTFactorMag(stats.mean, stats.metric_md)
+    return f"{stats.mean/tfactor:.3f}±{stats.std/tfactor:.3f} {new_mag.symbol}{stats.metric_md.unit.value}"

@@ -194,7 +194,7 @@ class Perun:
         log.debug(f"Rank {self.comm.Get_rank()} Backends: {pp.pformat(self.backends)}")
 
         data_out = Path(self.config.get("output", "data_out"))
-        # format = IOFormat(self.config.get("output", "format"))
+        out_format = IOFormat(self.config.get("output", "format"))
         starttime = datetime.now()
         app_name = getRunName(app)
         multirun_id = getRunId(starttime)
@@ -227,6 +227,11 @@ class Perun:
                     "perun_version": __version__,
                     "execution_dt": starttime.isoformat(),
                     "n_runs": str(len(multirun_nodes)),
+                    **{
+                        option: value
+                        for section_name in self.config.sections()
+                        for option, value in self.config.items(section_name)
+                    },
                 },
                 nodes=multirun_nodes,
                 processed=False,
@@ -258,8 +263,8 @@ class Perun:
             app_data = processDataNode(app_data)
 
             self.export_to(data_out, app_data, IOFormat.HDF5)
-            # if format != IOFormat.HDF5:
-            #     self.export_to(data_out, app_data, format, multirun_id)
+            if out_format != IOFormat.HDF5:
+                self.export_to(data_out, app_data, out_format, multirun_id)
 
     def _run_application(
         self,
@@ -377,8 +382,7 @@ class Perun:
                 raise e
             return None
 
-    @staticmethod
-    def import_from(filePath: Path, format: IOFormat) -> DataNode:
+    def import_from(self, filePath: Path, format: IOFormat) -> DataNode:
         """Import data node from given filepath.
 
         Parameters
@@ -395,9 +399,12 @@ class Perun:
         """
         return importFrom(filePath, format)
 
-    @staticmethod
     def export_to(
-        dataOut: Path, dataNode: DataNode, format: IOFormat, mr_id: Optional[str] = None
+        self,
+        dataOut: Path,
+        dataNode: DataNode,
+        format: IOFormat,
+        mr_id: Optional[str] = None,
     ):
         """Export data to selected format.
 

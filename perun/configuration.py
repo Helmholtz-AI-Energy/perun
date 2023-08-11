@@ -13,6 +13,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "pue": 1.58,
         "emissions_factor": 417.80,  # gCO2eq/kWh
         "price_factor": 32.51,  # Cent/kWh
+        "price_unit": "€",
     },
     "monitor": {
         "sampling_rate": 1,

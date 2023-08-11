@@ -229,7 +229,8 @@ def _addRegions(h5Group: h5py.Group, regions: Dict[str, Region]):
 
 def _addRegion(h5Group: h5py.Group, region: Region):
     region_group = h5Group.create_group(region.id)
-    _addMetric(region_group, region.energy)  # type: ignore
+    _addMetric(region_group, region.cpu_util)  # type: ignore
+    _addMetric(region_group, region.gpu_util)  # type: ignore
     _addMetric(region_group, region.power)  # type: ignore
     _addMetric(region_group, region.runs_per_rank)  # type: ignore
     _addMetric(region_group, region.runtime)  # type: ignore
@@ -254,7 +255,8 @@ def _readRegion(group: h5py.Group) -> Region:
     regionObj.processed = group.attrs["processed"]
     regionObj.world_size = group.attrs["world_size"]
 
-    regionObj.energy = _readMetric(group["ENERGY"])  # type: ignore
+    regionObj.cpu_util = _readMetric(group["CPU_UTIL"])  # type: ignore
+    regionObj.gpu_util = _readMetric(group["GPU_UTIL"])  # type: ignore
     regionObj.power = _readMetric(group["POWER"])  # type: ignore
     regionObj.runtime = _readMetric(group["RUNTIME"])  # type: ignore
     regionObj.runs_per_rank = _readMetric(group["N_RUNS"])  # type: ignore

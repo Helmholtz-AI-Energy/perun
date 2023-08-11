@@ -1,6 +1,7 @@
 """IO Module."""
 
 import enum
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, Union
 
@@ -67,6 +68,21 @@ def exportTo(
         log.info(f"{output_path.parent} does not exists. So lets make it.")
         output_path.parent.mkdir()
 
+    if not mr_id and (
+        format == IOFormat.BENCH or format == IOFormat.TEXT or format == IOFormat.CSV
+    ):
+        log.warning("No run ID provided, using last executed run to generate output")
+        last_dt = datetime.min
+        for node in dataNode.nodes.values():
+            exec_dt = datetime.fromisoformat(node.metadata["execution_dt"])
+            if exec_dt > last_dt:
+                last_dt = exec_dt
+                mr_id = node.id
+
+    elif mr_id not in dataNode.nodes:
+        log.error("Non existent run id")
+        raise Exception("Cannot generate report with non existent id.")
+
     reportStr: Union[str, bytes]
     if format == IOFormat.JSON:
         fileType = "w"
@@ -105,7 +121,7 @@ def exportTo(
         if output_path.exists() and output_path.is_file():
             log.warn(f"Overwriting existing file {output_path}")
 
-        exportCSV(output_path, dataNode, mr_id)
+        exportCSV(output_path, dataNode, mr_id)  # type: ignore
     elif format == IOFormat.BENCH:
         fileType = "w"
         output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
@@ -113,7 +129,7 @@ def exportTo(
         if output_path.exists() and output_path.is_file():
             log.warn(f"Overwriting existing file {output_path}")
 
-        reportStr = exportBench(dataNode, mr_id)
+        reportStr = exportBench(dataNode, mr_id)  # type: ignore
         with open(output_path, fileType) as file:
             file.write(reportStr)
 
@@ -124,7 +140,7 @@ def exportTo(
         if output_path.exists() and output_path.is_file():
             log.warn(f"Overwriting existing file {output_path}")
 
-        reportStr = textReport(dataNode, mr_id)
+        reportStr = textReport(dataNode, mr_id)  # type: ignore
         with open(output_path, fileType) as file:
             file.write(reportStr)
 
