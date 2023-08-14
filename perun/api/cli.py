@@ -105,7 +105,8 @@ def metadata():
     type=click.Choice([format.value for format in IOFormat]),
 )
 @click.option(
-    "-i" "--id",
+    "-i",
+    "--id",
     "mr_id",
     type=str,
     default=None,
@@ -144,6 +145,7 @@ def export(input_file: str, output_format: str, mr_id: Optional[str]):
     expose_value=False,
 )
 @click.option(
+    "-f",
     "--format",
     type=click.Choice([format.value for format in IOFormat]),
     help="Report format.",

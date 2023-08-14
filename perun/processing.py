@@ -54,7 +54,8 @@ def processEnergyData(
 
     if start and end:
         runtime = end - start
-        _, e_J = getInterpolatedValues(t_s, e_J, start, end)
+        index = np.all([t_s >= start, t_s <= end], axis=0)
+        e_J = e_J[index]
 
     d_energy = e_J[1:] - e_J[:-1]
 

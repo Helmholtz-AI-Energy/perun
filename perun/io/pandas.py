@@ -20,6 +20,7 @@ def exportCSV(outputPath: Path, dataNode: DataNode, mr_id: str):
         Id of Multi_run node to get data from
     """
     columns = [
+        "run id",
         "hostname",
         "device_group",
         "sensor",

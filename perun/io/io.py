@@ -64,9 +64,9 @@ def exportTo(
         log.warning("Data has not been processed before import. Proceed with caution.")
         raise Exception("DataNode needs to be processed before it can be exported.")
 
-    if not output_path.parent.exists():
+    if not output_path.exists():
         log.info(f"{output_path.parent} does not exists. So lets make it.")
-        output_path.parent.mkdir()
+        output_path.mkdir()
 
     if not mr_id and (
         format == IOFormat.BENCH or format == IOFormat.TEXT or format == IOFormat.CSV
@@ -78,10 +78,6 @@ def exportTo(
             if exec_dt > last_dt:
                 last_dt = exec_dt
                 mr_id = node.id
-
-    elif mr_id not in dataNode.nodes:
-        log.error("Non existent run id")
-        raise Exception("Cannot generate report with non existent id.")
 
     reportStr: Union[str, bytes]
     if format == IOFormat.JSON:
@@ -97,7 +93,6 @@ def exportTo(
 
     elif format == IOFormat.HDF5:
         output_path = output_path / f"{dataNode.id}.{format.suffix}"
-
         if output_path.exists() and output_path.is_file():
             log.warn(f"Overwriting existing file {output_path}")
 

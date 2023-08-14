@@ -120,7 +120,7 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
                     {
                         "name": f"{region_name}_{mr_id} - {metric_name}",
                         "unit": f"{mag.symbol}{metadata.unit.symbol}",
-                        "value": values / tfactor,
+                        "value": value / tfactor,
                     }
                 )
 
