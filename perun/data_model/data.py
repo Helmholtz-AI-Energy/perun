@@ -35,6 +35,7 @@ class MetricType(str, enum.Enum):
     CPU_UTIL = "cpu_util"
     GPU_UTIL = "gpu_util"
     MEM_UTIL = "mem_util"
+    GPU_MEM = "gpu_mem"
     NET_READ = "net_read"
     NET_WRITE = "net_write"
     DISK_READ = "disk_read"
@@ -44,6 +45,7 @@ class MetricType(str, enum.Enum):
     GPU_ENERGY = "gpu_energy"
     DRAM_ENERGY = "dram_energy"
     OTHER_ENERGY = "other_energy"
+    OTHER_MEM = "other_memory"
     N_RUNS = "n_runs"
 
 

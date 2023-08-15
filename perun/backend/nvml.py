@@ -66,6 +66,11 @@ class NVMLBackend(Backend):
                 return np.uint32(pynvml.nvmlDeviceGetPowerUsage(handle))
 
             return func
+        
+        def getUsedMemCallback(handle) -> Callable[[], np.number]:
+            def func() -> np.number:
+                return np.uint64(pynvml.nvmlDeviceGetMemoryInfo(handle).used)
+            return func
 
         devices = []
 
@@ -93,18 +98,39 @@ class NVMLBackend(Backend):
                     Magnitude.MILI,
                     np.dtype("uint32"),
                     np.uint32(0),
-                    np.uint32(max_power),
+                    max_power,
                     np.uint32(0),
                 )
                 devices.append(
                     Sensor(
-                        name,
+                        name + "_POWER",
                         device_type,
                         device_metadata,
                         data_type,
                         getCallback(handle),
                     )
                 )
+                max_memory = np.uint64(pynvml.nvmlDeviceGetMemoryInfo(handle).total)
+                data_type = MetricMetaData(
+                    Unit.BYTE,
+                    Magnitude.ONE,
+                    np.dtype("uint64"),
+                    np.uint64(0),
+                    max_memory,
+                    np.uint64(0),
+                )
+                devices.append(
+                    Sensor(
+                        name + "_MEM",
+                        device_type,
+                        device_metadata,
+                        data_type,
+                        getUsedMemCallback(handle)
+                    )
+                )
+            
+                
+                
             except NVMLError as e:
                 log.warning(f"Could not find device {deviceId}")
                 log.warning(e)

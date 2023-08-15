@@ -11,7 +11,7 @@ tableMetrics = [
     MetricType.CPU_POWER,
     MetricType.CPU_UTIL,
     MetricType.GPU_POWER,
-    MetricType.GPU_UTIL,
+    MetricType.GPU_MEM,
     MetricType.DRAM_POWER,
     MetricType.MEM_UTIL,
 ]
@@ -67,7 +67,7 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
                             "Avg Runtime": value2MeanStdStr(region.runtime),
                             "Avg Power": value2MeanStdStr(region.power),
                             "Avg CPU Util": value2MeanStdStr(region.cpu_util),
-                            "Avg GPU Util": value2MeanStdStr(region.gpu_util),
+                            "Avg GPU Mem Util": value2MeanStdStr(region.gpu_util),
                         }
                     )
         for host_name, host_node in run_node.nodes.items():
