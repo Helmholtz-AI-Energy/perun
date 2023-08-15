@@ -114,7 +114,7 @@ def processPowerData(
     return energy_J, avg_power_W
 
 
-def processSensorData( sensorData: DataNode ) -> DataNode:
+def processSensorData(sensorData: DataNode) -> DataNode:
     """Calculate metrics based on raw values.
 
     Parameters
@@ -268,7 +268,7 @@ def processSensorData( sensorData: DataNode ) -> DataNode:
             )
         elif rawData.v_md.unit == Unit.BYTE:
             bytes_v = rawData.values
-            
+
             if sensorData.deviceType == DeviceType.NET:
                 if "READ" in sensorData.id:
                     metricType = MetricType.NET_READ
@@ -296,12 +296,8 @@ def processSensorData( sensorData: DataNode ) -> DataNode:
                 result = bytes_v.mean()
                 aggType = AggregateType.SUM
 
-
             sensorData.metrics[metricType] = Metric(
-                metricType,
-                result.astype(rawData.v_md.dtype),
-                rawData.v_md,
-                aggType
+                metricType, result.astype(rawData.v_md.dtype), rawData.v_md, aggType
             )
 
         sensorData.processed = True
@@ -440,38 +436,42 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                                 events[i * 2 + 1],
                                             )
                                             power[region_idx][rank][i] += power_W
-                                        elif measuring_unit == Unit.PERCENT and deviceNode.deviceType == DeviceType.CPU:
+                                        elif (
+                                            measuring_unit == Unit.PERCENT
+                                            and deviceNode.deviceType == DeviceType.CPU
+                                        ):
                                             _, values = getInterpolatedValues(
-                                                raw_data.timesteps.astype(
-                                                    "float32"
-                                                ),
+                                                raw_data.timesteps.astype("float32"),
                                                 raw_data.values,
                                                 events[i * 2],
                                                 events[i * 2 + 1],
                                             )
-                                            cpu_util[region_idx][rank][
-                                                i
-                                            ] += np.mean(values)
-                                        elif measuring_unit == Unit.BYTE and deviceNode.deviceType == DeviceType.GPU:
+                                            cpu_util[region_idx][rank][i] += np.mean(
+                                                values
+                                            )
+                                        elif (
+                                            measuring_unit == Unit.BYTE
+                                            and deviceNode.deviceType == DeviceType.GPU
+                                        ):
                                             _, values = getInterpolatedValues(
-                                                raw_data.timesteps.astype(
-                                                    "float32"
-                                                ),
+                                                raw_data.timesteps.astype("float32"),
                                                 raw_data.values,
                                                 events[i * 2],
                                                 events[i * 2 + 1],
                                             )
-                                            gpu_util[region_idx][rank][i] += (np.mean(values) * 100/ raw_data.v_md.max).astype("float32")
+                                            gpu_util[region_idx][rank][i] += (
+                                                np.mean(values)
+                                                * 100
+                                                / raw_data.v_md.max
+                                            ).astype("float32")
                                             gpu_count[region_idx][rank][i] += 1
-                                            
-
 
     for region_idx, region in enumerate(regions):
         r_power = np.array(list(chain(*power[region_idx])))
         r_cpu_util = np.array(list(chain(*cpu_util[region_idx])))
         r_gpu_util = np.array(list(chain(*gpu_util[region_idx])))
         r_gpu_count = np.array(list(chain(*gpu_count[region_idx])))
-        
+
         r_gpu_util /= r_gpu_count
 
         region.cpu_util = Stats(

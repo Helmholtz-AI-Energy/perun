@@ -66,10 +66,11 @@ class NVMLBackend(Backend):
                 return np.uint32(pynvml.nvmlDeviceGetPowerUsage(handle))
 
             return func
-        
+
         def getUsedMemCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
                 return np.uint64(pynvml.nvmlDeviceGetMemoryInfo(handle).used)
+
             return func
 
         devices = []
@@ -125,12 +126,10 @@ class NVMLBackend(Backend):
                         device_type,
                         device_metadata,
                         data_type,
-                        getUsedMemCallback(handle)
+                        getUsedMemCallback(handle),
                     )
                 )
-            
-                
-                
+
             except NVMLError as e:
                 log.warning(f"Could not find device {deviceId}")
                 log.warning(e)

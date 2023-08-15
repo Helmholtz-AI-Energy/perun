@@ -5,24 +5,32 @@ from perun.data_model.data import DataNode
 
 
 def exportPickle(dataNode: DataNode) -> bytes:
-    """Pickle data node.
+    """Export data node to pickle file.
 
-    Args:
-        dataNode (DataNode): DataNode to be pickled.
+    Parameters
+    ----------
+    dataNode : DataNode
+        Data Node
 
-    Returns:
-        bytes: Pickled DataNode
+    Returns
+    -------
+    bytes
+        Binary data to write to file.
     """
     return pickle.dumps(dataNode)
 
 
 def importPickle(pickleData: bytes) -> DataNode:
-    """Unpickle DataNode.
+    """Import DataNode from pickled data file.
 
-    Args:
-        pickleData (bytes): Pickled DataNode
+    Parameters
+    ----------
+    pickleData : bytes
+        Binary Data
 
-    Returns:
-        DataNode: Unpickled DataNode
+    Returns
+    -------
+    DataNode
+        DataNode
     """
     return pickle.loads(pickleData)

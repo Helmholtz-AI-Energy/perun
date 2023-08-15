@@ -4,11 +4,18 @@ import logging
 import logging.config
 
 
-def init_logging(level: str):
-    """Initialize default stdout logger.
+def init_logging(level: str) -> logging.Logger:
+    """Initialize logging object.
 
-    Args:
-        level (str, optional): Desired log level. Defaults to "DEBUG".
+    Parameters
+    ----------
+    level : str
+        Logging level
+
+    Returns
+    -------
+    Logger
+        Logger object
     """
     logConfig = {
         "version": 1,

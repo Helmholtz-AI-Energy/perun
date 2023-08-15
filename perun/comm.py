@@ -24,31 +24,27 @@ class Comm:
             log.warning(e)
 
     def Get_rank(self) -> int:
-        """Return MPI rank.
+        """Get local MPI rank.
 
-        Returns:
-            int: MPI Rank
+        Returns
+        -------
+        int
+            MPI Rank
         """
         return self._comm.Get_rank() if self._enabled else self._rank
 
     def Get_size(self) -> int:
-        """Return MPI world size.
+        """MPI World size.
 
-        Returns:
-            int: MPI world size
+        Returns
+        -------
+        int
+            World Size
         """
         return self._comm.Get_size() if self._enabled else self._size
 
     def gather(self, obj: Any, root: int = 0) -> Optional[List[Any]]:
-        """MPI gather operation at selected rank.
-
-        Args:
-            obj (Any): Object to be gathererd.
-            root (int, optional): Rank to gather information at. Defaults to 0.
-
-        Returns:
-            Optional[List[Any]]: List with objects from all the ranks.
-        """
+        """MPI Gather operation."""
         return self._comm.gather(obj, root=root) if self._enabled else [obj]
 
     def allgather(self, obj: Any) -> List[Any]:

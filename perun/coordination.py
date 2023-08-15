@@ -10,11 +10,17 @@ from perun.comm import Comm
 def getHostRankDict(comm: Comm, hostname: str) -> Dict[str, List[int]]:
     """Return a dictionary with all the host names with each MPI rank in them.
 
-    Args:
-        comm (Comm): MPI Communicator
+    Parameters
+    ----------
+    comm : Comm
+        MPI Communicator
+    hostname : str
+        Local rank Hostname
 
-    Returns:
-        Dict[str, List[int]]: Dictionary with key hostnames and mpi ranks as values.
+    Returns
+    -------
+    Dict[str, List[int]]
+        Global host and mpi ranks dictionary.
     """
     rank = comm.Get_rank()
 
@@ -34,12 +40,19 @@ def getGlobalSensorRankConfiguration(
 ) -> List[Dict[str, Set[str]]]:
     """Gather available sensor information from every MPI rank and assign/unassign sensors to each rank to avoid over sampling.
 
-    Args:
-        comm (Comm): MPI Communicator
-        backends (List[Backend]): List of available backends in the current rank.
+    Parameters
+    ----------
+    comm : Comm
+        MPI Communicator
+    backends : Dict[str, Backend]
+        Backend dictionary
+    globalHostRanks : Dict[str, List[int]]
+        Mapping from host to MPI ranks
 
-    Returns:
-        Tuple[Dict[str, List[int]], List[Dict[str, Set[str]]]]: Global rank and sensor configuration objects.
+    Returns
+    -------
+    List[Dict[str, Set[str]]]
+        List with apointed backend and sensors for each MPI rank.
     """
     visibleSensorsByBackend: Dict[str, Set[str]] = {
         backend.name: backend.visibleSensors() for backend in backends.values()
@@ -55,14 +68,19 @@ def getGlobalSensorRankConfiguration(
 def assignSensors(
     hostBackends: List[Dict[str, Set[str]]], hostNames: Dict[str, List[int]]
 ) -> List[Dict[str, Set[str]]]:
-    """Assign found devices to the lowest rank in each host.
+    """Assings each mpi rank a sensor based on available backends and Host to rank mapping.
 
-    Args:
-        hostSensors (List[Set[str]]): List with lenght of the mpi world size, with each index containing the devices of each rank.
-        hostNames (List[str]): Hostname of the mpi rank at the index.
+    Parameters
+    ----------
+    hostBackends : List[Dict[str, Set[str]]]
+        List with global backends
+    hostNames : Dict[str, List[int]]
+        Host to MPI Rank mapping
 
-    Returns:
-        List[Set[str]]: New list with the devices assiged to each rank.
+    Returns
+    -------
+    List[Dict[str, Set[str]]]
+        List with apointed backend and sensors for each MPI rank.
     """
     for host, ranks in hostNames.items():
         firstRank = ranks[0]
