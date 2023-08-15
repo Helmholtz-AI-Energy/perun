@@ -495,7 +495,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
         region.power = Stats(
             MetricType.POWER,
             MetricMetaData(
-                Unit.JOULE,
+                Unit.WATT,
                 Magnitude.ONE,
                 np.dtype("float32"),
                 np.float32(0),
@@ -536,7 +536,7 @@ def addRunAndRuntimeInfoToRegion(region: Region):
     region.runs_per_rank = Stats(
         MetricType.N_RUNS,
         MetricMetaData(
-            Unit.JOULE,
+            Unit.SCALAR,
             Magnitude.ONE,
             np.dtype("float32"),
             np.float32(0),
@@ -553,7 +553,7 @@ def addRunAndRuntimeInfoToRegion(region: Region):
     region.runtime = Stats(
         MetricType.RUNTIME,
         MetricMetaData(
-            Unit.JOULE,
+            Unit.SECOND,
             Magnitude.ONE,
             np.dtype("float32"),
             np.float32(0),

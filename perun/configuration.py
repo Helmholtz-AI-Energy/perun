@@ -29,7 +29,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "warmup_rounds": 0,
         # "bench_metrics": ["ENERGY", "RUNTIME"],
     },
-    "debug": {"log_lvl": "ERROR"},
+    "debug": {"log_lvl": "WARNING"},
     # "horeka": {"enabled": False, "url": "", "token": "", "org": ""},
 }
 
