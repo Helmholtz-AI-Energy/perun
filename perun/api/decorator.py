@@ -2,7 +2,6 @@
 import functools
 from typing import Optional
 
-from perun import log
 from perun.perun import Perun
 
 
@@ -28,3 +27,5 @@ def monitor(region_name: Optional[str] = None):
         return func_wrapper
 
     return inner_function
+
+from perun import log

@@ -24,7 +24,9 @@ Check out the [docs](https://perun.readthedocs.io/en/latest/)!
  - Measures energy consumption of Python scripts using Intel RAPL, Nvidia-NVML, and psutil
  - Handles MPI applications efficiently
  - Gathers data from hundreds of nodes and accumulates it efficiently
- - Can be used as a command-line tool or as a function decorator in Python scripts
+ - Monitor individual functions using decorators
+ - Tracks energy usage of the application over multiple executions
+ - Easy to benchmark applications and functions
 
 ## Installation
 
@@ -50,220 +52,64 @@ To use perun as a command-line tool, run the monitor subcommand followed by the 
 $ perun monitor path/to/your/script.py [args]
 ```
 
-perun will output a file containing runtime, energy, and other information gathered while your script runs:
+perun will output two files, and HDF5 style containing all the raw data that was gathered, and a text file with a summary of the results.
 
 
-```console
+```text
 PERUN REPORT
 
-App name: script
-Run ID: 2023-03-23T12:10:48.627214
-RUNTIME: 0:00:06.333626 s
-CPU_UTIL: 64.825 %
-MEM_UTIL: 0.563 %
-NET_READ: 1.401 kB
-NET_WRITE: 1.292 kB
-DISK_READ: 174.633 MB
-DISK_WRITE: 88.000 kB
+App name: finetune_qa_accelerate
+First run: 2023-08-15T18:56:11.202060
+Last run: 2023-08-17T13:29:29.969779
 
+
+RUN ID: 2023-08-17T13:29:29.969779
+
+|   Round # | Host                | RUNTIME   | ENERGY     | CPU_POWER   | CPU_UTIL   | GPU_POWER   | GPU_MEM    | DRAM_POWER   | MEM_UTIL   |
+|----------:|:--------------------|:----------|:-----------|:------------|:-----------|:------------|:-----------|:-------------|:-----------|
+|         0 | hkn0432.localdomain | 995.967 s | 960.506 kJ | 231.819 W   | 3.240 %    | 702.327 W   | 55.258 GB  | 29.315 W     | 0.062 %    |
+|         0 | hkn0436.localdomain | 994.847 s | 960.469 kJ | 235.162 W   | 3.239 %    | 701.588 W   | 56.934 GB  | 27.830 W     | 0.061 %    |
+|         0 | All                 | 995.967 s | 1.921 MJ   | 466.981 W   | 3.240 %    | 1.404 kW    | 112.192 GB | 57.145 W     | 0.061 %    |
+
+The application has run been run 7 times. Throught its runtime, it has used 3.128 kWh, released a total of 1.307 kgCO2e into the atmosphere, and you paid 1.02 € in electricity for it.
 ```
 
-### Function Decorator
+Perun will keep track of the energy of your application over multiple runs. 
 
-To use perun as a function decorator in your Python script, import the monitor decorator and add it to the function you want to monitor:
+### Function Monitoring
+
+Using a function decorator, information can be calculated about the runtime, power draw and component utilization while the function is executing. 
 
 ```python
 
 import time
-from perun.decorator import monitor
+from perun import monitor
 
 @monitor()
-def your_function(n: int):
+def main(n: int):
     time.sleep(n)
 ```
 
-When you run your script, perun will output a report from the function:
+After running the script with ```perun monitor```, the text report will add information about the monitored functions. 
 
-```console
-python path/to/your/script.py
+```text
+Monitored Functions
+
+|   Round # | Function                    |   Avg Calls / Rank | Avg Runtime     | Avg Power        | Avg CPU Util   | Avg GPU Mem Util   |
+|----------:|:----------------------------|-------------------:|:----------------|:-----------------|:---------------|:-------------------|
+|         0 | main                        |                  1 | 993.323±0.587 s | 964.732±0.499 W  | 3.244±0.003 %  | 35.091±0.526 %     |
+|         0 | prepare_train_features      |                 88 | 0.383±0.048 s   | 262.305±19.251 W | 4.541±0.320 %  | 3.937±0.013 %      |
+|         0 | prepare_validation_features |                 11 | 0.372±0.079 s   | 272.161±19.404 W | 4.524±0.225 %  | 4.490±0.907 %      |
 ```
-
-> :exclamation: Each time the function is run, perun will output a new report from the function.
 
 ### MPI
 
-If your python application uses mpi4py, you don't need to change anything. Perun is able to handle MPI applications, and will gather statistics in all the utilized nodes.
+Perun is compatible with MPI applications that make use of ```mpi4py```, and requires changes in the code or in the perun configuration. Simply replace the ```python``` command with ```perun monitor```.
 
 ```console
 mpirun -n 8 perun monitor path/to/your/script.py
 ```
 
-or
+## Docs
 
-```
-mpirun -n 8 python path/to/your/script.py
-```
-
-## Usage
-
-### Subcommands
-
-Perun subcommands have some shared options that are typed before the subcommands.
-
-```console
-Usage: perun [OPTIONS] COMMAND [ARGS]...
-
-  Perun: Energy measuring and reporting tool.
-
-Options:
-  --version                       Show the version and exit.
-  -c, --configuration FILE        Path to configuration file
-  -n, --app_name TEXT             Name of the monitored application. The name
-                                  is used to distinguish between multiple
-                                  applications in the same directory. If left
-                                  empty, the filename will be  used.
-  -i, --run_id TEXT               Unique id of the latest run of the
-                                  application. If left empty, perun will use
-                                  the SLURM job id, or the current date.
-  --format [text|json|hdf5|pickle|csv|bench]
-                                  Report format.
-  --data_out DIRECTORY            Where to save the output files, defaults to
-                                  the current working directory.
-  --raw                           Use the flag '--raw' if you need access to
-                                  all the raw data collected by perun. The
-                                  output will be saved on an hdf5 file on the
-                                  perun data output location.
-  --sampling_rate FLOAT           Sampling rate in seconds.
-  --pue FLOAT                     Data center Power Usage Efficiency.
-  --emissions_factor FLOAT        Emissions factor at compute resource
-                                  location.
-  --price_factor FLOAT            Electricity price factor at compute resource
-                                  location.
-  --bench                         Activate benchmarking mode.
-  --bench_rounds INTEGER          Number of rounds per function/app.
-  --bench_warmup_rounds INTEGER   Number of warmup rounds per function/app.
-  -l, --log_lvl [DEBUG|INFO|WARN|ERROR|CRITICAL]
-                                  Loggging level
-  --help                          Show this message and exit.
-
-Commands:
-  export    Export existing perun output file to another format.
-  monitor   Gather power consumption from hardware devices while SCRIPT...
-  sensors   Print sensors assigned to each rank by perun.
-  showconf  Print current perun configuration in INI format.
-```
-
-### monitor
-
-Monitor energy usage of a python script.
-
-```console
-Usage: perun monitor [OPTIONS] SCRIPT [SCRIPT_ARGS]...
-
-  Gather power consumption from hardware devices while SCRIPT [SCRIPT_ARGS] is
-  running.
-
-  SCRIPT is a path to the python script to monitor, run with arguments
-  SCRIPT_ARGS.
-
-Options:
-  --help  Show this message and exit.
-```
-
-### sensors
-
-Print available monitoring backends and each available sensors for each MPI rank.
-
-```console
-Usage: perun sensors [OPTIONS]
-
-  Print sensors assigned to each rank by perun.
-
-Options:
-  --help  Show this message and exit.
-```
-
-### export
-
-Export an existing perun output file to another format.
-
-```console
-Usage: perun export [OPTIONS] INPUT_FILE OUTPUT_PATH
-                    {text|json|hdf5|pickle|csv|bench}
-
-  Export existing perun output file to another format.
-
-Options:
-  --help  Show this message and exit.
-```
-
-### showconf
-
-Prints the current option configurations based on the global, local configurations files and command line options.
-
-```console
-Usage: perun showconf [OPTIONS]
-
-  Print current perun configuration in INI format.
-
-Options:
-  --default  Print default configuration
-  --help     Show this message and exit.
-```
-
-## Configuration
-
-There are multiple ways to configure perun, with a different level of priorities.
-
-- CMD Line options and Env Variables
-
-  The highest priority is given to command line options and environmental variables. The options are shown in the command line section. The options can also be passed as environmental variables by adding the prefix 'PERUN' to them. Ex. "--format txt" -> PERUN_FORMAT=txt
-
-- Local INI file
-
-  Perun will look into the cwd for ".perun.ini" file, where options can be fixed for the directory.
-
-  Example:
-
-  ```ini
-  [post-processing]
-  pue = 1.58
-  emissions_factor = 0.262
-  price_factor = 34.6
-
-  [monitor]
-  sampling_rate = 1
-
-  [output]
-  app_name
-  run_id
-  format = text
-  data_out = ./perun_results
-
-  [benchmarking]
-  bench_enable = False
-  bench_rounds = 10
-  bench_warmup_rounds = 1
-
-  [debug]
-  log_lvl = ERROR
-  ```
-
-  The location of the file can be changed using the option "-c" or "PERUN_CONFIGURATION".
-
-- Global INI file
-
-  If the file ~/.config/perun.ini is found, perun will override the default configuration with the contents of the file.
-
-### Priority
-
-CMD LINE and ENV > Local INI > Global INI > Default options
-
-
-## Data Output Structure
-
-When exporting data to machine readable formats like json, pickle, and hdf5, perun stores the data in a hierarchical format, with the application and individual runs at the root of data tree, and individual sensors and raw data a in the leafs. When processing, the data is propagated from the leafs (sensors), all the way to the root, where a aggregated statistics about the application are gatherd.
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/Helmholtz-AI-Energy/perun/main/docs/images/data_structure.png">
-</div>
+To get more information, check out our [docs page](https://perun.readthedocs.io/en/latest/).
