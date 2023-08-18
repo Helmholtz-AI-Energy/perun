@@ -79,17 +79,14 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
                 if metric_type in host_node.metrics:
                     m = host_node.metrics[metric_type]
                     entry[metric_type.name] = value2ValueUnitStr(m.value, m.metric_md)
-            
+
             host_device_rows.append(entry)
-        entry = {
-            "Round #": run_number,
-            "Host": "All"
-        }
+        entry = {"Round #": run_number, "Host": "All"}
         for metric_type in tableMetrics:
             if metric_type in run_node.metrics:
                 m = run_node.metrics[metric_type]
                 entry[metric_type.name] = value2ValueUnitStr(m.value, m.metric_md)
-        
+
         host_device_rows.append(entry)
 
     mr_table = pd.DataFrame.from_records(host_device_rows)

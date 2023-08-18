@@ -74,11 +74,11 @@ RUN ID: 2023-08-17T13:29:29.969779
 The application has run been run 7 times. Throught its runtime, it has used 3.128 kWh, released a total of 1.307 kgCO2e into the atmosphere, and you paid 1.02 € in electricity for it.
 ```
 
-Perun will keep track of the energy of your application over multiple runs. 
+Perun will keep track of the energy of your application over multiple runs.
 
 ### Function Monitoring
 
-Using a function decorator, information can be calculated about the runtime, power draw and component utilization while the function is executing. 
+Using a function decorator, information can be calculated about the runtime, power draw and component utilization while the function is executing.
 
 ```python
 
@@ -90,7 +90,7 @@ def main(n: int):
     time.sleep(n)
 ```
 
-After running the script with ```perun monitor```, the text report will add information about the monitored functions. 
+After running the script with ```perun monitor```, the text report will add information about the monitored functions.
 
 ```text
 Monitored Functions

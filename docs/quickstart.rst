@@ -44,7 +44,7 @@ Once your code finishes running, you will find a new directory called ``perun_re
 
 The the text report summarizes the data gathered throught the application run by individual host, and averaging power consumption of the full runtime. Perun also makes all the raw data gathered from the hardware on an HDF5 file that is located on the same results folder. To explore the data manually, we recommend the Visual Studio Code extension `H5Web <https://marketplace.visualstudio.com/items?itemName=h5web.vscode-h5web>`_, to process it with python using `h5py <https://www.h5py.org/>`_, or to export using the :code:`perun export` subcommand (see :ref:`usage`).
 
-The hdf5 file collects information over multiple runs of the application, adding a new section every time the application is executed using perun. The simplifies studying the behaviour of the application over time, make the last line in the summary report posible. 
+The hdf5 file collects information over multiple runs of the application, adding a new section every time the application is executed using perun. The simplifies studying the behaviour of the application over time, make the last line in the summary report posible.
 
 Function Monitoring
 -------------------
@@ -64,7 +64,7 @@ To get information the power consumption, runtime and hardware utilization of in
 This will add a new section to the text report and to the hdf5 file with the individual function profiles.
 
 .. code-block::
-    
+
     Monitored Functions
 
     |   Round # | Function                    |   Avg Calls / Rank | Avg Runtime     | Avg Power        | Avg CPU Util   | Avg GPU Mem Util   |
