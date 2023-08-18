@@ -2,6 +2,7 @@
 import functools
 from typing import Optional
 
+from perun import log
 from perun.perun import Perun
 
 
@@ -14,12 +15,12 @@ def monitor(region_name: Optional[str] = None):
             # Get custom config and kwargs
             region_id = region_name if region_name else func.__name__
 
-            perun = Perun()
+            perun = Perun()  # type: ignore
 
             log.info(f"Rank {perun.comm.Get_rank()}: Entering '{region_id}'")
-            perun.local_regions.addEvent(region_id)
+            perun.local_regions.addEvent(region_id)  # type: ignore
             func_result = func(*args, **kwargs)
-            perun.local_regions.addEvent(region_id)
+            perun.local_regions.addEvent(region_id)  # type: ignore
             log.info(f"Rank {perun.comm.Get_rank()}: Leaving '{region_id}'")
 
             return func_result
@@ -27,5 +28,3 @@ def monitor(region_name: Optional[str] = None):
         return func_wrapper
 
     return inner_function
-
-from perun import log
