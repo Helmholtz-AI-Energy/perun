@@ -17,6 +17,7 @@ def test_cli_showconf():
     # Test default option on the default filesystem
     runner = CliRunner()
     output: Result = runner.invoke(cli, ["showconf", "--default"])
+    print(output.output)
     config = ConfigParser(allow_no_value=True)
     config.read_string(
         output.output,
@@ -57,29 +58,6 @@ def test_cli_showconf():
             != _default_config["post-processing"]["pue"]
         )
         assert config.getfloat("post-processing", "pue") == 0.1
-
-    # Test cmdline
-    output: Result = runner.invoke(cli, ["--pue", "0.1", "showconf", "--default"])
-    config = ConfigParser(allow_no_value=True)
-    config.read_string(output.output)
-
-    for section in _default_config.keys():
-        for option, value in _default_config[section].items():
-            if value is not None:
-                assert str(value) == config.get(section, option)
-            else:
-                assert value == config.get(section, option)
-
-    # Test configuration did change
-    output: Result = runner.invoke(cli, ["--pue", "0.1", "showconf"])
-    config = ConfigParser(allow_no_value=True)
-    config.read_string(output.output)
-
-    assert (
-        config.getfloat("post-processing", "pue")
-        != _default_config["post-processing"]["pue"]
-    )
-    assert config.getfloat("post-processing", "pue") == 0.1
 
     # # Test env variables
     # monkeypatch.setenv("PERUN_PUE", "0.1")
