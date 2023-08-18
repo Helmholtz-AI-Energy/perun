@@ -1,101 +1,118 @@
 """Text report module."""
-
+import pandas as pd
 
 from perun import config, log
-from perun.data_model.data import DataNode, MetricType, NodeType, Stats
-from perun.util import value2str
+from perun.data_model.data import DataNode, MetricType
+from perun.io.util import value2MeanStdStr, value2ValueUnitStr
+
+tableMetrics = [
+    MetricType.RUNTIME,
+    MetricType.ENERGY,
+    MetricType.CPU_POWER,
+    MetricType.CPU_UTIL,
+    MetricType.GPU_POWER,
+    MetricType.GPU_MEM,
+    MetricType.DRAM_POWER,
+    MetricType.MEM_UTIL,
+]
 
 
-def textReport(dataNode: DataNode) -> str:
+def textReport(dataNode: DataNode, mr_id: str) -> str:
+    """Create text report from selected MULTI_RUN node.
+
+    Parameters
+    ----------
+    dataNode : DataNode
+        Application data node
+    mr_id : str
+        Multirun id
+
+    Returns
+    -------
+    str
+        Report string
     """
-    Create text report from based on root node of the DataNode tree.
-
-    Args:
-        dataNode: Root of DataNode tree.
-
-    Returns:
-        str: txt report
-    """
-    if dataNode.type != NodeType.MULTI_RUN and dataNode.type != NodeType.RUN:
-        log.error(
-            "Text reports are meant for only to get a brief overview of individual runs or of benchmark results over multiple runs."
-        )
-        raise Exception("Invalid dataNode type.")
-
     if not dataNode.processed:
         log.error("Data has not been processed, unable to create report.")
         raise Exception("Cannot generate report from unprocessed data node.")
 
-    reportStr = (
-        "------------------------------------------\n"
+    if mr_id not in dataNode.nodes:
+        log.error("Non existent run id")
+        raise Exception("Cannot generate report with non existent id.")
+
+    # Report header
+    report_header = (
         "PERUN REPORT\n"
         "\n"
-        f"App name: {dataNode.metadata['app_name']}\n"
-        f"Run ID: {dataNode.id}\n"
+        f"App name: {dataNode.id}\n"
+        f"First run: {dataNode.metadata['creation_dt']}\n"
+        f"Last run: {dataNode.metadata['last_execution_dt']}\n"
+        "\n\n"
     )
 
-    if dataNode.type == NodeType.MULTI_RUN:
-        columns = ["Name", "Unit", "mean", "std", "max", "min"]
-        column_widths = [4, 4, 8, 8, 8, 8]
-        entries = {}
-        for metricType in MetricType:
-            if metricType in dataNode.metrics:
-                metric = dataNode.metrics[metricType]
-                if isinstance(metric, Stats):
-                    value, tfactor, mag = value2str(metric.value, metric.metric_md)
-                    unit_str = f"{mag.symbol}{metric.metric_md.unit.value}"
-                    column_widths[0] = (
-                        column_widths[0]
-                        if column_widths[0] > len(metricType.name)
-                        else len(metricType.name)
-                    )
-                    column_widths[1] = (
-                        column_widths[1]
-                        if column_widths[1] > len(unit_str)
-                        else len(unit_str)
-                    )
-                    entries[metricType.name] = [
-                        unit_str,
-                        f"{metric.mean/tfactor:.3f}",
-                        f"{metric.std/tfactor:.3f}",
-                        f"{metric.max/tfactor:.3f}",
-                        f"{metric.min/tfactor:.3f}",
-                    ]
+    # Host and device table
+    host_device_rows = []
+    region_rows = []
+    mr_node: DataNode = dataNode.nodes[mr_id]
 
-        reportStr += "\n"
-        header_row: str = "|" + "".join(
-            [
-                " {0:^{width}} |".format(column, width=width)
-                for column, width in zip(columns, column_widths)
-            ]
+    for run_number, run_node in mr_node.nodes.items():
+        if run_node.regions:
+            for region_name, region in run_node.regions.items():
+                if region.processed:
+                    region_rows.append(
+                        {
+                            "Round #": run_node.id,
+                            "Function": region_name,
+                            "Avg Calls / Rank": region.runs_per_rank.mean,
+                            "Avg Runtime": value2MeanStdStr(region.runtime),
+                            "Avg Power": value2MeanStdStr(region.power),
+                            "Avg CPU Util": value2MeanStdStr(region.cpu_util),
+                            "Avg GPU Mem Util": value2MeanStdStr(region.gpu_util),
+                        }
+                    )
+        for host_name, host_node in run_node.nodes.items():
+            entry = {
+                "Round #": run_number,
+                "Host": host_name,
+            }
+            for metric_type in tableMetrics:
+                if metric_type in host_node.metrics:
+                    m = host_node.metrics[metric_type]
+                    entry[metric_type.name] = value2ValueUnitStr(m.value, m.metric_md)
+
+            host_device_rows.append(entry)
+        entry = {"Round #": run_number, "Host": "All"}
+        for metric_type in tableMetrics:
+            if metric_type in run_node.metrics:
+                m = run_node.metrics[metric_type]
+                entry[metric_type.name] = value2ValueUnitStr(m.value, m.metric_md)
+
+        host_device_rows.append(entry)
+
+    mr_table = pd.DataFrame.from_records(host_device_rows)
+    mr_report_str = f"RUN ID: {mr_id}\n\n" + mr_table.to_markdown(index=False) + "\n\n"
+
+    # Regions
+    if len(region_rows) > 0:
+        region_table = pd.DataFrame.from_records(region_rows)
+        region_report_str = (
+            "Monitored Functions\n\n" + region_table.to_markdown(index=False) + "\n\n"
         )
-        table_width = len(header_row)
-        reportStr += header_row + "\n"
-        reportStr += ("-" * table_width) + "\n"
-        for key, values in entries.items():
-            name = "| {0:<{width}} |".format(key, width=column_widths[0])
-            values_str = "".join(
-                [
-                    " {0:>{w}} |".format(v, w=w)
-                    for v, w in zip(values, column_widths[1:])
-                ]
-            )
-            reportStr += name + values_str + "\n"
-
     else:
-        for metricType in MetricType:
-            if metricType in dataNode.metrics:
-                metric = dataNode.metrics[metricType]
-                value, _, mag = value2str(metric.value, metric.metric_md)
-                reportStr += f"{metricType.name}: {value} {mag.symbol}{metric.metric_md.unit.value}\n"
+        region_report_str = ""
 
-        if MetricType.ENERGY in dataNode.metrics:
-            e_metric = dataNode.metrics[MetricType.ENERGY]
-            e_pue = e_metric.value * config.getfloat("post-processing", "pue")
-            e_kWh = e_pue / (3600 * 1e3)
-            kgCO2 = e_kWh * config.getfloat("post-processing", "emissions_factor") / 1e3
-            euro = e_kWh * config.getfloat("post-processing", "price_factor") / 1e2
+    # Summary
+    n_runs = len(dataNode.nodes)
+    if MetricType.ENERGY in dataNode.metrics:
+        total_energy = dataNode.metrics[MetricType.ENERGY].sum  # type: ignore
+        e_pue = total_energy * config.getfloat("post-processing", "pue")
+        e_kWh = e_pue / (3600 * 1e3)
+        kgCO2 = e_kWh * config.getfloat("post-processing", "emissions_factor") / 1e3
+        money = e_kWh * config.getfloat("post-processing", "price_factor") / 1e2
+        money_icon = config.get("post-processing", "price_unit")
 
-            reportStr += f"\nThe application used a total of {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2eq into the atmosphere, and you paid {euro:.2f} € for it.\n"
+        summary_str = f"The application has run been run {n_runs} times. Throught its runtime, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it.\n"
+    else:
+        summary_str = f"The application has run been run {n_runs} times."
 
-    return reportStr
+    return report_header + mr_report_str + region_report_str + summary_str

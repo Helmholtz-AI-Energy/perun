@@ -1,6 +1,5 @@
 """IO Json module."""
 import json
-from typing import Optional
 
 import numpy as np
 
@@ -11,10 +10,12 @@ class NumpyEncoder(json.JSONEncoder):
     """Json Numpy object encoder."""
 
     def default(self, obj):
-        """Transform numpy objects.
+        """Encode obj to json or to a supported format.
 
-        Args:
-            obj (_type_): Numpy object
+        :param obj: Object to encode.
+        :type obj: _type_
+        :return: Encoded obj.
+        :rtype: _type_
         """
         if isinstance(obj, np.integer):
             return int(obj)
@@ -28,21 +29,16 @@ class NumpyEncoder(json.JSONEncoder):
             return super(NumpyEncoder, self).default(obj)
 
 
-def exportJson(
-    dataNode: DataNode, depth: Optional[int] = None, include_raw: bool = False
-) -> str:
+def exportJson(dataNode: DataNode) -> str:
     """Export DataNode to json.
 
-    Args:
-        dataNode (DataNode): DataNode
-        depth (Optional[int], optional): If specified, export only the first 'depth' levels of the DataNode tree. Defaults to None.
-        include_raw (bool, optional): If raw data should be included. Defaults to False.
-
-    Returns:
-        str: json string from dataNode
+    :param dataNode: DataNode
+    :type dataNode: DataNode
+    :return: Json string of data node.
+    :rtype: str
     """
-    dataDict = dataNode.toDict(depth, include_raw)
-    return json.dumps(dataDict, indent=4, cls=NumpyEncoder)
+    dataDict = dataNode.toDict(True)
+    return json.dumps(dataDict, cls=NumpyEncoder)
 
 
 def importJson(jsonString: str) -> DataNode:

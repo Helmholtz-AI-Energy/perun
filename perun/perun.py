@@ -1,219 +1,377 @@
 """Core perun functionality."""
+import os
 import platform
+import pprint as pp
+import time
 
 # import sys
-import time
-import types
+from configparser import ConfigParser
 from datetime import datetime
 from multiprocessing import Event, Process, Queue
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Type
 
-import numpy as np
+from perun import __version__, log
+from perun.backend.backend import Backend
+from perun.backend.intel_rapl import IntelRAPLBackend
+from perun.backend.nvml import NVMLBackend
+from perun.backend.psutil import PSUTILBackend
+from perun.backend.util import getBackendMetadata, getHostMetadata
+from perun.comm import Comm
+from perun.coordination import getGlobalSensorRankConfiguration, getHostRankDict
+from perun.data_model.data import DataNode, LocalRegions, NodeType
+from perun.io.io import IOFormat, exportTo, importFrom
+from perun.processing import processDataNode
+from perun.subprocess import perunSubprocess
+from perun.util import getRunId, getRunName, increaseIdCounter, singleton
 
-from perun import COMM_WORLD, __version__, log
-from perun.configuration import config
-from perun.coordination import getLocalSensorRankConfiguration
-from perun.data_model.data import DataNode, NodeType, RawData
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
-from perun.data_model.sensor import DeviceType, Sensor
-from perun.io.io import IOFormat, exportTo
-from perun.processing import processDataNode, processSensorData
-from perun.util import getRunId, getRunName
 
+@singleton
+class Perun:
+    """Perun object."""
 
-def monitor_application(
-    app: Union[Path, Callable], app_args: tuple = tuple(), app_kwargs: dict = dict()
-) -> Optional[Any]:
-    """Execute coordination, monitoring, post-processing, and reporting steps, in that order.
+    def __init__(self, config: ConfigParser) -> None:
+        """Init perun with configuration.
 
-    Raises:
-        executionError: From cmd line execution, raises any error found on the monitored app.
-        functionError:  From decorator execution, raises any error found on the monitored method.
+        Parameters
+        ----------
+        config : ConfigParser
+            Global configuration object
+        """
+        self.config = config
+        self._comm: Optional[Comm] = None
+        self._backends: Optional[Dict[str, Backend]] = None
+        self._sensors_config: Optional[List[Dict[str, Set[str]]]] = None
+        self._l_sensor_config: Optional[Dict[str, Set[str]]] = None
+        self._hostname: Optional[str] = None
+        self._host_rank: Optional[Dict[str, List[int]]] = None
+        self._l_host_metadata: Optional[Dict[str, Any]] = None
+        self._l_backend_metadata: Optional[Dict[str, Any]] = None
+        self.local_regions: Optional[LocalRegions] = None
 
-    Returns:
-        Optional[Any]: In decorator mode, return the output of the decorated method.
-    """
-    # outPath: Path = Path(config.get("output", "data_out"))
+    def __del__(self):
+        """Perun object destructor."""
+        self._close_backends()
 
-    # Get node devices
-    from perun.backend import backends
+    @property
+    def comm(self) -> Comm:
+        """Lazy initialization of mpi communication object."""
+        if not self._comm:
+            os.environ["OMPI_MCA_mpi_warn_on_fork"] = "0"
+            os.environ["IBV_FORK_SAFE"] = "1"
+            os.environ["RDMAV_FORK_SAFE"] = "1"
 
-    log.debug(f"Rank {COMM_WORLD.Get_rank()} Backends: {backends}")
+            self._comm = Comm()
 
-    starttime = datetime.utcnow()
-    app_results: Optional[Any] = None
-    data_out = Path(config.get("output", "data_out"))
-    format = IOFormat(config.get("output", "format"))
-    includeRawData = config.getboolean("output", "raw")
-    depthStr = config.get("output", "depth")
-    if depthStr:
-        depth = int(depthStr)
-    else:
-        depth = None
+        return self._comm
 
-    if not config.getboolean("benchmarking", "bench_enable"):
-        app_results, dataNode = _run_application(
-            backends, app, app_args, app_kwargs, record=True
-        )
-        if dataNode:
-            # Only on first rank, export data
-            exportTo(data_out, dataNode, format, includeRawData, depth)
-    else:
-        # Start with warmup rounds
-        log.info(f"Rank {COMM_WORLD.Get_rank()} : Started warmup rounds")
-        for i in range(config.getint("benchmarking", "bench_warmup_rounds")):
-            log.info(f"Warmup run: {i}")
-            app_results, _ = _run_application(
-                backends, app, app_args, app_kwargs, record=False
+    @property
+    def hostname(self) -> str:
+        """Lazy initialization of hostname.
+
+        Returns
+        -------
+        str
+            Local rank hostname.
+        """
+        if not self._hostname:
+            self._hostname = platform.node()
+        return self._hostname
+
+    @property
+    def backends(self) -> Dict[str, Backend]:
+        """Lazy initialization of backends dictionary.
+
+        Returns
+        -------
+        Dict[str, Backend]
+            Dictionary of available backends.
+        """
+        if not self._backends:
+            self._backends = {}
+            classList: List[Type[Backend]] = [
+                IntelRAPLBackend,
+                NVMLBackend,
+                PSUTILBackend,
+            ]
+            for backend in classList:
+                try:
+                    backend_instance = backend()
+                    self._backends[backend_instance.id] = backend_instance
+                except ImportError as ie:
+                    log.warning(f"Missing dependencies for backend {backend.__name__}")
+                    log.warning(ie)
+                except Exception as e:
+                    log.warning(f"Unknown error loading dependecy {backend.__name__}")
+                    log.warning(e)
+
+        return self._backends
+
+    def _close_backends(self):
+        """Close available backends."""
+        for backend in self.backends.values():
+            backend.close()
+
+    @property
+    def host_rank(self) -> Dict[str, List[int]]:
+        """Lazy initialization of host_rank dictionary.
+
+        Returns
+        -------
+        Dict[str, List[int]]
+            Dictionary with key (hostname) and values (list of ranks in host)
+        """
+        if not self._host_rank:
+            self._host_rank = getHostRankDict(self.comm, self.hostname)
+
+        return self._host_rank
+
+    @property
+    def sensors_config(self) -> List[Dict[str, Set[str]]]:
+        """Lazy initialization of global sensor configuration.
+
+        Returns
+        -------
+        List[Dict[str, Set[str]]]
+            Global sensor configuration.
+        """
+        if not self._sensors_config:
+            self._sensors_config = getGlobalSensorRankConfiguration(
+                self.comm, self.backends, self.host_rank
             )
+        return self._sensors_config
 
-        log.info(f"Rank {COMM_WORLD.Get_rank()} : Started bench rounds")
-        runNodes: List[DataNode] = []
-        for i in range(config.getint("benchmarking", "bench_rounds")):
-            log.info(f"Rank {COMM_WORLD.Get_rank()} : Bench run: {i}")
-            app_results, runNode = _run_application(
-                backends, app, app_args, app_kwargs, record=True, run_id=str(i)
+    @property
+    def l_sensors_config(self) -> Dict[str, Set[str]]:
+        """Lazy initialization of local sensor configuration.
+
+        Returns
+        -------
+        Dict[str, Set[str]]
+            Local sensor configuration.
+        """
+        if not self._l_sensor_config:
+            self._l_sensor_config = self.sensors_config[self.comm.Get_rank()]
+
+        return self._l_sensor_config
+
+    @property
+    def l_host_metadata(self) -> Dict[str, Any]:
+        """Lazy initialization of local metadata dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Metadata dictionary
+        """
+        if not self._l_host_metadata:
+            self._l_host_metadata = getHostMetadata()
+        return self._l_host_metadata
+
+    @property
+    def l_backend_metadata(self) -> Dict[str, Any]:
+        """Lazy initialization of local metadata dictionary.
+
+        Returns
+        -------
+        Dict[str, Any]
+            Metadata dictionary
+        """
+        if not self._l_backend_metadata:
+            self._l_backend_metadata = getBackendMetadata(
+                self.backends, self.l_sensors_config
             )
-            if runNode:
-                runNodes.append(runNode)
+        return self._l_backend_metadata
 
-        if len(runNodes) > 0:
-            benchNode = DataNode(
-                id=getRunId(starttime),
-                type=NodeType.MULTI_RUN,
+    def monitor_application(
+        self,
+        app: Path,
+    ):
+        """Execute coordination, monitoring, post-processing, and reporting steps, in that order.
+
+        Parameters
+        ----------
+        app : Path
+            App script file path
+        """
+        log.debug(f"Rank {self.comm.Get_rank()} Backends: {pp.pformat(self.backends)}")
+
+        data_out = Path(self.config.get("output", "data_out"))
+        out_format = IOFormat(self.config.get("output", "format"))
+        starttime = datetime.now()
+        app_name = getRunName(app)
+        multirun_id = getRunId(starttime)
+
+        log.info(f"App: {app_name}, MR_ID: {multirun_id}")
+
+        if self.config.getint("benchmarking", "warmup_rounds"):
+            log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
+            for i in range(self.config.getint("benchmarking", "warmup_rounds")):
+                log.info(f"Warmup run: {i}")
+                _ = self._run_application(app, str(i), record=False)
+
+        log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
+        multirun_nodes: Dict[str, DataNode] = {}
+        for i in range(self.config.getint("benchmarking", "rounds")):
+            runNode: Optional[DataNode] = self._run_application(
+                app, str(i), record=True
+            )
+            if self.comm.Get_rank() == 0 and runNode:
+                multirun_nodes[str(i)] = runNode
+
+        # Get app node data if it exists
+        if self.comm.Get_rank() == 0 and len(multirun_nodes) > 0:
+            # Multi_run data processing
+            multirun_node = DataNode(
+                multirun_id,
+                NodeType.MULTI_RUN,
                 metadata={
                     "app_name": getRunName(app),
-                    "startime": starttime.isoformat(),
-                    # "perun_version": __version__,
+                    "perun_version": __version__,
+                    "execution_dt": starttime.isoformat(),
+                    "n_runs": str(len(multirun_nodes)),
+                    **{
+                        option: value
+                        for section_name in self.config.sections()
+                        for option, value in self.config.items(section_name)
+                    },
                 },
-                nodes={node.id: node for node in runNodes},
+                nodes=multirun_nodes,
+                processed=False,
             )
-            benchNode = processDataNode(benchNode)
+            multirun_node = processDataNode(multirun_node)
 
-            exportTo(data_out, benchNode, format, includeRawData, depth)
+            app_data_file = data_out / f"{app_name}.{IOFormat.HDF5.suffix}"
+            app_data = None
+            if app_data_file.exists() and app_data_file.is_file():
+                app_data = self.import_from(app_data_file, IOFormat.HDF5)
+                app_data.metadata["last_execution_dt"] = starttime.isoformat()
+                previous_run_ids = list(app_data.nodes.keys())
+                multirun_id = increaseIdCounter(previous_run_ids, multirun_id)
+                multirun_node.id = multirun_id
+                app_data.nodes[multirun_node.id] = multirun_node
+                app_data.processed = False
 
-    return app_results
+            else:
+                app_data = DataNode(
+                    app_name,
+                    NodeType.APP,
+                    metadata={
+                        "creation_dt": starttime.isoformat(),
+                        "last_execution_dt": starttime.isoformat(),
+                    },
+                    nodes={multirun_id: multirun_node},
+                    processed=False,
+                )
+            app_data = processDataNode(app_data)
 
+            self.export_to(data_out, app_data, IOFormat.HDF5)
+            if out_format != IOFormat.HDF5:
+                self.export_to(data_out, app_data, out_format, multirun_id)
 
-def _run_application(
-    backends: List,
-    app: Union[Path, Callable],
-    app_args: tuple = tuple(),
-    app_kwargs: dict = dict(),
-    record: bool = True,
-    run_id: Optional[str] = None,
-) -> Tuple[Optional[Any], Optional[DataNode]]:
-    app_result: Optional[Any] = None
+    def _run_application(
+        self,
+        app: Path,
+        run_id: str,
+        record: bool = True,
+    ) -> Optional[DataNode]:
+        log.info(f"Rank {self.comm.Get_rank()}: _run_application")
+        if record:
+            # 1) Get sensor configuration
+            sp_ready_event = Event()
+            start_event = Event()
+            stop_event = Event()
 
-    log.info(f"Rank {COMM_WORLD.Get_rank()}: _run_application")
-    if record:
-        # 1) Get sensor configuration
-        mpiRanks, localBackends = getLocalSensorRankConfiguration(COMM_WORLD, backends)
+            queue: Optional[Queue] = None
+            perunSP: Optional[Process] = None
 
-        start_event = Event()
-        stop_event = Event()
+            # 2) If assigned devices, create subprocess
+            if len(self.l_sensors_config.keys()) > 0:
+                log.debug(
+                    f"Rank {self.comm.Get_rank()} - Local Backendens : {pp.pformat(self.l_sensors_config)}"
+                )
+                queue = Queue()
+                perunSP = Process(
+                    target=perunSubprocess,
+                    args=[
+                        queue,
+                        self.comm.Get_rank(),
+                        self.backends,
+                        self.l_sensors_config,
+                        sp_ready_event,
+                        start_event,
+                        stop_event,
+                        self.config.getfloat("monitor", "sampling_rate"),
+                    ],
+                )
+                perunSP.start()
+            else:
+                sp_ready_event.set()
 
-        queue: Optional[Queue] = None
-        perunSP: Optional[Process] = None
-
-        # 2) If assigned devices, create subprocess
-        if len(localBackends.keys()) > 0:
-            log.debug(
-                f"Rank {COMM_WORLD.Get_rank()} - Local Backendens : {localBackends}"
-            )
-            queue = Queue()
-            perunSP = Process(
-                target=perunSubprocess,
-                args=[
-                    queue,
-                    start_event,
-                    stop_event,
-                    localBackends,
-                    config.getfloat("monitor", "sampling_rate"),
-                ],
-            )
-            perunSP.start()
-        else:
-            start_event.set()
-
-        # 3) Start application
-
-        if isinstance(app, Path):
+            # 3) Start application
             try:
+                sp_ready_event.wait()
                 with open(str(app), "r") as scriptFile:
-                    start_event.wait()
-                    COMM_WORLD.barrier()
-                    log.info(f"Rank {COMM_WORLD.Get_rank()}: Started App")
-                    run_starttime = datetime.utcnow()
+                    self.local_regions = LocalRegions()
+                    self.comm.barrier()
+                    log.info(f"Rank {self.comm.Get_rank()}: Started App")
+                    start_event.set()
+                    starttime_ns = time.time_ns()
                     exec(
                         scriptFile.read(),
                         {"__name__": "__main__", "__file__": app.name},
                     )
-                    log.info(f"Rank {COMM_WORLD.Get_rank()}: App Stopped")
+                    # run_stoptime = datetime.utcnow()
+                    log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
                     stop_event.set()
             except Exception as e:
                 log.error(
-                    f"Rank {COMM_WORLD.Get_rank()}:  Found error on monitored script: {str(app)}"
+                    f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
                 )
                 stop_event.set()
                 raise e
 
-        elif isinstance(app, types.FunctionType):
-            try:
-                start_event.wait()
-                COMM_WORLD.barrier()
-                log.info(f"Rank {COMM_WORLD.Get_rank()}: Started App")
-                run_starttime = datetime.utcnow()
+            # 4) App finished, stop subrocess and get data
+            if queue and perunSP:
+                log.info(f"Rank {self.comm.Get_rank()}: Getting queue contents")
+                nodeData = queue.get(block=True)
+                log.info(f"Rank {self.comm.Get_rank()}: Got queue contents")
+                log.info(
+                    f"Rank {self.comm.Get_rank()}: Waiting for subprocess to close"
+                )
+                perunSP.join()
+                perunSP.close()
+                log.info(f"Rank {self.comm.Get_rank()}: Subprocess closed")
+                queue.close()
+            else:
+                nodeData = None
 
-                app_result = app(*app_args, **app_kwargs)
-                log.info(f"Rank {COMM_WORLD.Get_rank()}: Stopped App")
-            except Exception as e:
-                stop_event.set()
-                raise e
-            stop_event.set()
+            log.info(f"Rank {self.comm.Get_rank()}: Everyone exited the subprocess")
 
-        # 4) App finished, stop subrocess and get data
-        if queue and perunSP:
-            log.info(f"Rank {COMM_WORLD.Get_rank()}: Getting queue contents")
-            nodeData = queue.get(block=True)
-            log.info(f"Rank {COMM_WORLD.Get_rank()}: Got queue contents")
-            log.info(f"Rank {COMM_WORLD.Get_rank()}: Waiting for subprocess to close")
-            perunSP.join()
-            perunSP.close()
-            log.info(f"Rank {COMM_WORLD.Get_rank()}: Subprocess closed")
-            queue.close()
-        else:
-            nodeData = None
+            if nodeData:
+                nodeData.metadata["mpi_ranks"] = self.host_rank[self.hostname]
 
-        COMM_WORLD.barrier()
-        log.info(f"Rank {COMM_WORLD.Get_rank()}: Everyone exited the subprocess")
-
-        if nodeData:
-            nodeData.metadata["mpi_ranks"] = mpiRanks
-
-        # 5) Collect data from everyone on the first rank
-        dataNodes: Optional[List[DataNode]] = COMM_WORLD.gather(nodeData, root=0)
-        if dataNodes:
-            # 6) On the first rank, create run node
-            runNode = DataNode(
-                id=run_id if run_id is not None else getRunId(run_starttime),
-                type=NodeType.RUN,
-                metadata={
-                    "app_name": getRunName(app),
-                    "startime": run_starttime.isoformat(),
-                    "perun_version": __version__,
-                },
-                nodes={node.id: node for node in dataNodes if node},
+            # 5) Collect data from everyone on the first rank
+            dataNodes: Optional[List[DataNode]] = self.comm.gather(nodeData, root=0)
+            globalRegions: Optional[List[LocalRegions]] = self.comm.gather(
+                self.local_regions, root=0
             )
-            runNode = processDataNode(runNode)
 
-            return app_result, runNode
-        return app_result, None
+            if dataNodes and globalRegions:
+                # 6) On the first rank, create run node
+                runNode = DataNode(
+                    id=run_id,
+                    type=NodeType.RUN,
+                    metadata={**self.l_host_metadata},
+                    nodes={node.id: node for node in dataNodes if node},
+                )
+                runNode.addRegionData(globalRegions, starttime_ns)
+                runNode = processDataNode(runNode)
 
-    else:
-        if isinstance(app, Path):
-            # filePath = app
+                return runNode
+            return None
+
+        else:
             try:
                 with open(str(app), "r") as scriptFile:
                     exec(
@@ -222,125 +380,44 @@ def _run_application(
                     )
             except Exception as e:
                 log.error(
-                    f"Rank {COMM_WORLD.Get_rank()}: Found error on monitored script: {str(app)}"
+                    f"Rank {self.comm.Get_rank()}: Found error on monitored script: {str(app)}"
                 )
                 raise e
+            return None
 
-        elif isinstance(app, types.FunctionType):
-            # filePath = Path(sys.argv[0])
-            try:
-                app_result = app(*app_args, **app_kwargs)
-            except Exception as e:
-                raise e
+    def import_from(self, filePath: Path, format: IOFormat) -> DataNode:
+        """Import data node from given filepath.
 
-        return app_result, None
+        Parameters
+        ----------
+        filePath : Path
+            Perun data node file path.
+        format : IOFormat
+            File format.
 
+        Returns
+        -------
+        DataNode
+            Imported DataNode.
+        """
+        return importFrom(filePath, format)
 
-def perunSubprocess(
-    queue: Queue,
-    start_event,
-    stop_event,
-    backendConfig: Dict[str, Set[str]],
-    sampling_rate: float,
-):
-    """
-    Parallel function that samples energy values from hardware libraries.
+    def export_to(
+        self,
+        dataOut: Path,
+        dataNode: DataNode,
+        format: IOFormat,
+        mr_id: Optional[str] = None,
+    ):
+        """Export data to selected format.
 
-    Args:
-        queue (Queue): multiprocessing Queue object where the results are sent after finish
-        start_event (_type_): Marks that perun finished setting up and started sampling from devices
-        stop_event (_type_): Signal the subprocess that the monitored processed has finished
-        deviceIds (Set[str]): List of device ids to sample from
-        sampling_rate (int): Sampling rate in s
-    """
-    from perun.backend import backends
-
-    lSensors: List[Sensor] = []
-    for backend in backends:
-        if backend.name in backendConfig:
-            backend.setup()
-            lSensors += backend.getSensors(backendConfig[backend.name])
-
-    timesteps = []
-    t_mT = MetricMetaData(
-        Unit.SECOND,
-        Magnitude.ONE,
-        np.dtype("float32"),
-        np.float32(0),
-        np.finfo("float32").max,
-        np.float32(-1),
-    )
-    rawValues: List[List[np.number]] = []
-    for _ in lSensors:
-        rawValues.append([])
-
-    log.debug(f"Rank {COMM_WORLD.Get_rank()}: perunSP lSensors: {lSensors}")
-
-    start_event.set()
-    timesteps.append(time.time_ns())
-    for idx, device in enumerate(lSensors):
-        rawValues[idx].append(device.read())
-
-    while not stop_event.wait(sampling_rate):
-        timesteps.append(time.time_ns())
-        for idx, device in enumerate(lSensors):
-            rawValues[idx].append(device.read())
-
-    timesteps.append(time.time_ns())
-    for idx, device in enumerate(lSensors):
-        rawValues[idx].append(device.read())
-
-    log.info(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Stop event received.")
-
-    sensorNodes: Dict = {}
-
-    t_s = np.array(timesteps)
-    t_s -= t_s[0]
-    t_s = t_s.astype("float32")
-    t_s *= 1e-9
-
-    for sensor, values in zip(lSensors, rawValues):
-        if sensor.type not in sensorNodes:
-            sensorNodes[sensor.type] = []
-
-        dn = DataNode(
-            id=sensor.id,
-            type=NodeType.SENSOR,
-            metadata=sensor.metadata,
-            deviceType=sensor.type,
-            raw_data=RawData(t_s, np.array(values), t_mT, sensor.dataType),
-        )
-        # Apply processing to sensor node
-        dn = processSensorData(dn)
-        sensorNodes[sensor.type].append(dn)
-
-    log.info(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Preprocessed Sensor Data")
-    deviceGroupNodes = []
-    for deviceType, sensorNodes in sensorNodes.items():
-        if deviceType != DeviceType.NODE:
-            dn = DataNode(
-                id=deviceType.value,
-                type=NodeType.DEVICE_GROUP,
-                metadata={},
-                nodes={sensor.id: sensor for sensor in sensorNodes},
-                deviceType=deviceType,
-            )
-
-            dn = processDataNode(dn)
-            deviceGroupNodes.append(dn)
-        else:
-            deviceGroupNodes.extend(sensorNodes)
-
-    log.info(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Preprocessed Device Data")
-
-    hostNode = DataNode(
-        id=platform.node(),
-        type=NodeType.NODE,
-        metadata={},
-        nodes={node.id: node for node in deviceGroupNodes},
-    )
-    processDataNode(hostNode)
-
-    # This should send a single processed node for the current computational node
-    queue.put(hostNode, block=True)
-    log.info(f"Rank {COMM_WORLD.Get_rank()}: Subprocess: Sent data")
+        Parameters
+        ----------
+        dataOut : Path
+            Directory where data will be saved.
+        dataNode : DataNode
+            Data node to export.
+        format : IOFormat
+            Format to export data.
+        """
+        exportTo(dataOut, dataNode, format, mr_id)

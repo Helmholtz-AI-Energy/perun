@@ -4,32 +4,23 @@ from typing import Any, List, Tuple
 
 import pandas as pd
 
-from perun.data_model.data import DataNode, NodeType
+from perun.data_model.data import DataNode
 
 
-def exportCSV(outputPath: Path, dataNode: DataNode):
-    """Export all raw data collected to a csv file using pandas.
+def exportCSV(outputPath: Path, dataNode: DataNode, mr_id: str):
+    """Export data node to csv format.
 
-    Args:
-        outputPath (Path): Output path
-        dataNode (DataNode): Perun data node with raw data.
-    """
-    df = _dataNode2Pandas(dataNode)
-    df.to_csv(outputPath)
-
-
-def _dataNode2Pandas(dataNode: DataNode) -> pd.DataFrame:
-    """Create a pandas dataframe for Data Node raw data.
-
-    Args:
-        dataNode (DataNode): Perun Data Node
-
-    Returns:
-        pd.DataFrame: DataFrame
+    Parameters
+    ----------
+    outputPath : Path
+        Path to export data to.
+    dataNode : DataNode
+        Perun data node.
+    mr_id : str
+        Id of Multi_run node to get data from
     """
     columns = [
-        "app_name",
-        "run_id",
+        "run id",
         "hostname",
         "device_group",
         "sensor",
@@ -40,30 +31,28 @@ def _dataNode2Pandas(dataNode: DataNode) -> pd.DataFrame:
     ]
 
     rows = []
-    exp_name = dataNode.metadata["app_name"]
-    if dataNode.type == NodeType.MULTI_RUN:
-        for id, node in dataNode.nodes.items():
-            rows.extend(_rowsFromRunNode(node, exp_name, id))
+    mrNode = dataNode.nodes[mr_id]
+    for run_n, runNode in mrNode.nodes.items():
+        rows.extend(_rowsFromRunNode(runNode, run_n))
 
-    else:
-        id = dataNode.id
-        rows = _rowsFromRunNode(dataNode, exp_name, id)
-
-    return pd.DataFrame(rows, columns=columns)
+    df = pd.DataFrame(rows, columns=columns)
+    df.to_csv(outputPath)
 
 
-def _rowsFromRunNode(
-    runNode: DataNode, app_name: str, run_id: str
-) -> List[Tuple[Any, ...]]:
-    """Read raw data from data nodes and arrange it as rows.
+def _rowsFromRunNode(runNode: DataNode, run_n: int) -> List[Tuple[Any, ...]]:
+    """Create table rows from a RUN type data node.
 
-    Args:
-        runNode (DataNode): Data node.
-        app_name (str): Application name.
-        run_id (str): Run id.
+    Parameters
+    ----------
+    runNode : DataNode
+        RUN type node
+    run_n : int
+        Id number of data node
 
-    Returns:
-        List[Tuple[Any]]: Rows with raw data.
+    Returns
+    -------
+    List[Tuple[Any, ...]]
+        List of tuples with table entries.
     """
     rows: List[Tuple[Any, ...]] = []
     for hostId, hostNode in runNode.nodes.items():
@@ -76,8 +65,7 @@ def _rowsFromRunNode(
                     for i in range(len(rawData.timesteps)):
                         rows.append(
                             (
-                                app_name,
-                                run_id,
+                                run_n,
                                 hostId,
                                 deviceGroupId,
                                 sensorId,

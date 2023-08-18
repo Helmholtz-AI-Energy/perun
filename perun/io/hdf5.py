@@ -1,6 +1,6 @@
 """HDF5 IO module."""
 from pathlib import Path
-from typing import Union
+from typing import Dict, Union
 
 import h5py
 import numpy as np
@@ -13,6 +13,7 @@ from perun.data_model.data import (
     MetricType,
     NodeType,
     RawData,
+    Region,
     Stats,
 )
 from perun.data_model.measurement_type import Magnitude, Unit
@@ -22,26 +23,35 @@ from perun.data_model.sensor import DeviceType
 def exportHDF5(filePath: Path, dataNode: DataNode):
     """Export perun data nodes to an HDF5 file.
 
-    Args:
-        filePath (Path): Output path.
-        dataNode (DataNode): DataNode.
+    Parameters
+    ----------
+    filePath : Path
+        Output path
+    dataNode : DataNode
+        Root of data node tree.
     """
-    h5_file = h5py.File(filePath, "a")
+    h5_file = h5py.File(filePath, "w")
     _addNode(h5_file, dataNode)
     h5_file.close()
 
 
 def importHDF5(filePath: Path) -> DataNode:
-    """Import HDF5 created by perun.
+    """Import DataNode from HDF5 format.
 
-    Args:
-        filePath (Path): File path.
+    Parameters
+    ----------
+    filePath : Path
+        HDF5 file path.
 
-    Raises:
-        ValueError: Incompatible hdf5 file.
+    Returns
+    -------
+    DataNode
+        Perun data node.
 
-    Returns:
-        DataNode: Recoverd perun DataNode
+    Raises
+    ------
+    ValueError
+        Incompatible HDF5 file.
     """
     h5_file = h5py.File(filePath, "r")
     rootEntries = list(h5_file.keys())
@@ -60,6 +70,7 @@ def _addNode(h5group: h5py.Group, dataNode: DataNode):
     """Write node into hdf5 file."""
     group = h5group.create_group(dataNode.id)
     group.attrs["type"] = dataNode.type.value
+
     for key, value in dataNode.metadata.items():
         group.attrs[key] = value
 
@@ -67,15 +78,18 @@ def _addNode(h5group: h5py.Group, dataNode: DataNode):
         group.attrs["device_type"] = dataNode.deviceType.value
 
     metricGroup = group.create_group("metrics")
-    for metricId, metric in dataNode.metrics.items():
+    for metric in dataNode.metrics.values():
         _addMetric(metricGroup, metric)
 
     nodesGroup = group.create_group("nodes")
-    for nodeId, node in dataNode.nodes.items():
+    for node in dataNode.nodes.values():
         _addNode(nodesGroup, node)
 
     if dataNode.raw_data is not None:
         _addRawData(group, dataNode.raw_data)
+
+    if dataNode.regions is not None:
+        _addRegions(group, dataNode.regions)
 
 
 def _readNode(group: h5py.Group) -> DataNode:
@@ -101,6 +115,7 @@ def _readNode(group: h5py.Group) -> DataNode:
         metrics[metric.type] = metric
 
     raw_data = _readRawData(group["raw_data"]) if "raw_data" in group else None  # type: ignore
+    regions = _readRegions(group["regions"]) if "regions" in group else None  # type: ignore
 
     return DataNode(
         id=id,
@@ -110,6 +125,7 @@ def _readNode(group: h5py.Group) -> DataNode:
         metrics=metrics,
         deviceType=device_type,
         raw_data=raw_data,
+        regions=regions,
         processed=True,
     )
 
@@ -126,6 +142,7 @@ def _addMetric(h5Group: h5py.Group, metric: Union[Metric, Stats]):
         metricGroup.attrs["agg_type"] = metric.agg.value
         metricGroup.attrs.create("value", metric.value, dtype=metadata.dtype)
     else:
+        metricGroup.attrs.create("sum", metric.sum, dtype=metadata.dtype)
         metricGroup.attrs.create("mean", metric.mean, dtype=metadata.dtype)
         metricGroup.attrs.create("min", metric.min, dtype=metadata.dtype)
         metricGroup.attrs.create("max", metric.max, dtype=metadata.dtype)
@@ -146,6 +163,7 @@ def _readMetric(group: h5py.Group) -> Union[Metric, Stats]:
         return Stats(
             type=MetricType(group.attrs["type"]),
             metric_md=metric_md,
+            sum=group.attrs["sum"],  # type: ignore
             mean=group.attrs["mean"],  # type: ignore
             std=group.attrs["std"],  # type: ignore
             min=group.attrs["min"],  # type: ignore
@@ -201,3 +219,51 @@ def _readRawData(group: h5py.Group) -> RawData:
         t_md=t_md,
         v_md=v_md,
     )
+
+
+def _addRegions(h5Group: h5py.Group, regions: Dict[str, Region]):
+    regions_group: h5py.Group = h5Group.create_group("regions")
+    for region in regions.values():
+        _addRegion(regions_group, region)
+
+
+def _addRegion(h5Group: h5py.Group, region: Region):
+    region_group = h5Group.create_group(region.id)
+    _addMetric(region_group, region.cpu_util)  # type: ignore
+    _addMetric(region_group, region.gpu_util)  # type: ignore
+    _addMetric(region_group, region.power)  # type: ignore
+    _addMetric(region_group, region.runs_per_rank)  # type: ignore
+    _addMetric(region_group, region.runtime)  # type: ignore
+    region_group.attrs["id"] = region.id
+    region_group.attrs["processed"] = region.processed
+    region_group.attrs["world_size"] = region.world_size
+    raw_data_group = region_group.create_group("raw_data")
+    for rank, data in region.raw_data.items():
+        raw_data_group.create_dataset(str(rank), data=data)
+
+
+def _readRegions(group: h5py.Group) -> Dict[str, Region]:
+    regionsDict: Dict[str, Region] = {}
+    for key, region_group in group.items():
+        regionsDict[key] = _readRegion(region_group)
+    return regionsDict
+
+
+def _readRegion(group: h5py.Group) -> Region:
+    regionObj = Region()
+    regionObj.id = group.attrs["id"]
+    regionObj.processed = group.attrs["processed"]
+    regionObj.world_size = group.attrs["world_size"]
+
+    regionObj.cpu_util = _readMetric(group["CPU_UTIL"])  # type: ignore
+    regionObj.gpu_util = _readMetric(group["GPU_UTIL"])  # type: ignore
+    regionObj.power = _readMetric(group["POWER"])  # type: ignore
+    regionObj.runtime = _readMetric(group["RUNTIME"])  # type: ignore
+    regionObj.runs_per_rank = _readMetric(group["N_RUNS"])  # type: ignore
+
+    raw_data_group = group["raw_data"]
+    regionObj.raw_data = {}
+    for key, data in raw_data_group.items():
+        regionObj.raw_data[int(key)] = data[:]
+
+    return regionObj

@@ -21,49 +21,66 @@ Once your code finishes running, you will find a new directory called ``perun_re
 
     PERUN REPORT
 
-    App name: script
-    Run ID: 2023-03-23T12:10:48.627214
-    RUNTIME: 0:00:06.333626 s
-    CPU_UTIL: 64.825 %
-    MEM_UTIL: 0.563 %
-    NET_READ: 1.401 kB
-    NET_WRITE: 1.292 kB
-    DISK_READ: 174.633 MB
-    DISK_WRITE: 88.000 kB
+    App name: finetune_qa_accelerate
+    First run: 2023-08-15T18:56:11.202060
+    Last run: 2023-08-17T13:29:29.969779
+
+
+    RUN ID: 2023-08-17T13:29:29.969779
+
+    |   Round # | Host                | RUNTIME   | ENERGY     | CPU_POWER   | CPU_UTIL   | GPU_POWER   | GPU_MEM    | DRAM_POWER   | MEM_UTIL   |
+    |----------:|:--------------------|:----------|:-----------|:------------|:-----------|:------------|:-----------|:-------------|:-----------|
+    |         0 | hkn0432.localdomain | 995.967 s | 960.506 kJ | 231.819 W   | 3.240 %    | 702.327 W   | 55.258 GB  | 29.315 W     | 0.062 %    |
+    |         0 | hkn0436.localdomain | 994.847 s | 960.469 kJ | 235.162 W   | 3.239 %    | 701.588 W   | 56.934 GB  | 27.830 W     | 0.061 %    |
+    |         0 | All                 | 995.967 s | 1.921 MJ   | 466.981 W   | 3.240 %    | 1.404 kW    | 112.192 GB | 57.145 W     | 0.061 %    |
+
+    The application has run been run 7 times. Throught its runtime, it has used 3.128 kWh, released a total of 1.307 kgCO2e into the atmosphere, and you paid 1.02 € in electricity for it.
+
 
 .. note::
 
     Depending on the hardware you are running and the available interfaces, the output might look different than the one listed here. For more details on the support data sources used by perun, check the :ref:`dependencies` section
 
 
-perun can also be used as a function decorator to target specific code regions.
+The the text report summarizes the data gathered throught the application run by individual host, and averaging power consumption of the full runtime. Perun also makes all the raw data gathered from the hardware on an HDF5 file that is located on the same results folder. To explore the data manually, we recommend the Visual Studio Code extension `H5Web <https://marketplace.visualstudio.com/items?itemName=h5web.vscode-h5web>`_, to process it with python using `h5py <https://www.h5py.org/>`_, or to export using the :code:`perun export` subcommand (see :ref:`usage`).
+
+The hdf5 file collects information over multiple runs of the application, adding a new section every time the application is executed using perun. The simplifies studying the behaviour of the application over time, make the last line in the summary report posible.
+
+Function Monitoring
+-------------------
+
+To get information the power consumption, runtime and hardware utilization of individual functions while the application is being monitored, perun includes a function decorator.
 
 .. code-block:: python
 
     import time
-    from perun.decorator import monitor
+    from perun import monitor
 
     @monitor()
-    def your_sleep_function(n: int):
+    def main(n: int):
         time.sleep(n)
 
 
-If you need more detailed output or access to the raw data that perun gathered, you can configure python both in the command line or as decorator to get the data you want.
+This will add a new section to the text report and to the hdf5 file with the individual function profiles.
 
+.. code-block::
+
+    Monitored Functions
+
+    |   Round # | Function                    |   Avg Calls / Rank | Avg Runtime     | Avg Power        | Avg CPU Util   | Avg GPU Mem Util   |
+    |----------:|:----------------------------|-------------------:|:----------------|:-----------------|:---------------|:-------------------|
+    |         0 | main                        |                  1 | 993.323±0.587 s | 964.732±0.499 W  | 3.244±0.003 %  | 35.091±0.526 %     |
+    |         0 | prepare_train_features      |                 88 | 0.383±0.048 s   | 262.305±19.251 W | 4.541±0.320 %  | 3.937±0.013 %      |
+    |         0 | prepare_validation_features |                 11 | 0.372±0.079 s   | 272.161±19.404 W | 4.524±0.225 %  | 4.490±0.907 %      |
+
+
+MPI Compatibility
+-----------------
+
+Perun is capable of handling applications that make use of MPI using the `mpi4py <https://mpi4py.readthedocs.io/en/stable/>`_ library without any need to reconfigure or modify the existing code.
 
 .. code-block:: console
 
-    $ perun --format json --raw monitor you_script.py
+    mpirun -n 4 perun monitor mpi_app.py
 
-The same options can be given to the function decorator.
-
-.. code-block:: python
-
-    import time
-    from perun.decorator import monitor
-
-    @monitor(format="hdf5", sampling_rate=2)
-    def your_sleep_function(n: int):
-        time.sleep(n)
-
-perun has more subcommand and configuration, to accomodate various use cases and workflows. For more information, check out the :ref:`usage` and :ref:`configuration` sections of the documentation.
+Perun has multiple subcommands and configuration options to accomodate various use cases and workflows. For more information, check out the :ref:`usage` and :ref:`configuration` sections of the documentation, or use the help flag :code:`-h` in the command line.

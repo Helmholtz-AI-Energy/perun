@@ -13,25 +13,23 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "pue": 1.58,
         "emissions_factor": 417.80,  # gCO2eq/kWh
         "price_factor": 32.51,  # Cent/kWh
+        "price_unit": "€",
     },
     "monitor": {
-        "sampling_rate": 5,
+        "sampling_rate": 1,
     },
     "output": {
         "app_name": None,
         "run_id": None,
-        "format": "pickle",
+        "format": "text",
         "data_out": "./perun_results",
-        "depth": None,
-        "raw": True,
     },
     "benchmarking": {
-        "bench_enable": False,
-        "bench_rounds": 10,
-        "bench_warmup_rounds": 1,
+        "rounds": 1,
+        "warmup_rounds": 0,
         # "bench_metrics": ["ENERGY", "RUNTIME"],
     },
-    "debug": {"log_lvl": "ERROR"},
+    "debug": {"log_lvl": "WARNING"},
     # "horeka": {"enabled": False, "url": "", "token": "", "org": ""},
 }
 
@@ -42,19 +40,24 @@ globalConfigPath = Path.home() / ".config/perun.ini"
 if globalConfigPath.exists() and globalConfigPath.is_file():
     config.read(globalConfigPath)
 
+localConfigPath = Path.cwd() / ".perun.ini"
+if globalConfigPath.exists() and globalConfigPath.is_file():
+    config.read(globalConfigPath)
+
 
 def read_custom_config(
     ctx: Optional[click.Context],
     param: Optional[Union[click.Option, click.Parameter]],
     pathStr: str,
 ) -> None:
-    """
-    Read an INI configuration file and overrides the values from the default and global configuration.
+    """Read an INI configuration file and overrides the values from the default and global configuration.
 
-    Args:
-        ctx (click.Context): Commandline context object (irrelevant)
-        param (Union[click.Option, click.Parameter]): Click cli object (irrelevant)
-        pathStr (str): String to configuration file
+    :param ctx: Command line context object (ignore)
+    :type ctx: Optional[click.Context]
+    :param param: Click CLI object (ignore)
+    :type param: Optional[Union[click.Option, click.Parameter]]
+    :param pathStr: String to configuration file (don't ignore)
+    :type pathStr: str
     """
     configPath: Path = Path(pathStr)
     if configPath.exists() and configPath.is_file():
@@ -64,13 +67,14 @@ def read_custom_config(
 def save_to_config_callback(
     ctx: click.Context, param: Union[click.Option, click.Parameter], value: Any
 ):
-    """
-    Override configuration with click cli options.
+    """Override configuration with click cli options.
 
-    Args:
-        ctx (click.Context): Click context
-        param (Union[click.Option, click.Parameter]): Click option/param object
-        value (Any): New configuration value
+    :param ctx: Click context (ignore)
+    :type ctx: click.Context
+    :param param: Click parameters/options
+    :type param: Union[click.Option, click.Parameter]
+    :param value: New configuration value
+    :type value: Any
     """
     if value and isinstance(param, click.Option):
         key: Optional[str] = param.name
@@ -79,12 +83,12 @@ def save_to_config_callback(
 
 
 def save_to_config(key: str, value: Any):
-    """
-    Override indivial configuration values.
+    """Override individual configuration values.
 
-    Args:
-        key (str): Option name
-        value (Any): New option value
+    :param key: Option name
+    :type key: str
+    :param value: Option value
+    :type value: Any
     """
     for section in config.sections():
         if config.has_option(section, key):

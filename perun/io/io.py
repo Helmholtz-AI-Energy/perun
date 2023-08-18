@@ -1,11 +1,12 @@
 """IO Module."""
 
 import enum
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, Union
 
 from perun import log
-from perun.data_model.data import DataNode, NodeType
+from perun.data_model.data import DataNode
 from perun.io.bench import exportBench
 from perun.io.hdf5 import exportHDF5, importHDF5
 from perun.io.json import exportJson, importJson
@@ -48,82 +49,106 @@ class IOFormat(enum.Enum):
 
 
 def exportTo(
-    data_out: Path,
-    dataNode: DataNode,
-    format: IOFormat,
-    rawData: bool = False,
-    depth: Optional[int] = None,
+    output_path: Path, dataNode: DataNode, format: IOFormat, mr_id: Optional[str] = None
 ):
     """Export DataNode structure to the selected format.
 
-    Args:
-        dataNode (DataNode): DataNode tree with processed metrics.
-        format (IOFormat, optional): Output format. Defaults to IOFormat.TEXT.
-        rawData (bool, optional): If raw data should be included. Limits available formats. Defaults to False.
+    :param data_out: Output path
+    :type data_out: Path
+    :param dataNode: DataNode tree with processed metrics
+    :type dataNode: DataNode
+    :param format: Output format.
+    :type format: IOFormat
     """
     if not dataNode.processed:
         log.warning("Data has not been processed before import. Proceed with caution.")
         raise Exception("DataNode needs to be processed before it can be exported.")
 
-    if not data_out.exists():
-        log.info(f"{data_out} does not exists. So lets make it.")
-        data_out.mkdir()
+    if not output_path.exists():
+        log.info(f"{output_path.parent} does not exists. So lets make it.")
+        output_path.mkdir()
 
-    if format == IOFormat.BENCH and dataNode.type != NodeType.MULTI_RUN:
-        log.warning(
-            "BENCH format can only be used with 'bench' mode enabled. Using pickle instead."
-        )
-        format = IOFormat.PICKLE
-
-    filename = f"{dataNode.metadata['app_name']}_{dataNode.id}"
-    output_path: Path = data_out / filename
-
-    existing_files = [path for path in output_path.parent.glob(f"{filename}*")]
-    if len(existing_files) > 0:
-        log.warning(f"File {output_path} already exists and will.")
-        idx = len(existing_files)
-        filename += f"_{idx}"
-        dataNode.id += f"_{idx}"
+    if not mr_id and (
+        format == IOFormat.BENCH or format == IOFormat.TEXT or format == IOFormat.CSV
+    ):
+        log.warning("No run ID provided, using last executed run to generate output")
+        last_dt = datetime.min
+        for node in dataNode.nodes.values():
+            exec_dt = datetime.fromisoformat(node.metadata["execution_dt"])
+            if exec_dt > last_dt:
+                last_dt = exec_dt
+                mr_id = node.id
 
     reportStr: Union[str, bytes]
     if format == IOFormat.JSON:
-        filename += ".json"
         fileType = "w"
-        reportStr = exportJson(dataNode, depth, rawData)
-        with open(data_out / filename, fileType) as file:
+        output_path = output_path / f"{dataNode.id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
+        reportStr = exportJson(dataNode)
+        with open(output_path, fileType) as file:
             file.write(reportStr)
+
     elif format == IOFormat.HDF5:
-        filename += ".hdf5"
-        exportHDF5(data_out / filename, dataNode)
+        output_path = output_path / f"{dataNode.id}.{format.suffix}"
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
+        exportHDF5(output_path, dataNode)
+
     elif format == IOFormat.PICKLE:
-        filename += ".pkl"
         fileType = "wb"
+
+        output_path = output_path / f"{dataNode.id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
         reportStr = exportPickle(dataNode)
-        with open(data_out / filename, fileType) as file:
+        with open(output_path, fileType) as file:
             file.write(reportStr)
+
     elif format == IOFormat.CSV:
-        filename += ".cvs"
-        exportCSV(data_out / filename, dataNode)
+        output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
+        exportCSV(output_path, dataNode, mr_id)  # type: ignore
     elif format == IOFormat.BENCH:
-        filename += ".json"
         fileType = "w"
-        reportStr = exportBench(dataNode)
-        with open(data_out / filename, fileType) as file:
+        output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
+        reportStr = exportBench(dataNode, mr_id)  # type: ignore
+        with open(output_path, fileType) as file:
             file.write(reportStr)
-    else:
-        filename += ".txt"
+
+    elif format == IOFormat.TEXT:
         fileType = "w"
-        reportStr = textReport(dataNode)
-        with open(data_out / filename, fileType) as file:
+        output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
+
+        if output_path.exists() and output_path.is_file():
+            log.warn(f"Overwriting existing file {output_path}")
+
+        reportStr = textReport(dataNode, mr_id)  # type: ignore
+        with open(output_path, fileType) as file:
             file.write(reportStr)
 
 
 def importFrom(filePath: Path, format: IOFormat) -> DataNode:
-    """Import DataNode structure from path. If no format is given, it is inferred form path sufix.
+    """Import DataNode structure from path. If no format is given, it is inferred from the file suffix.
 
-    Args:
-        filePath (Path): Path to file
-        format (Optional[IOFormat], optional): File format. Defaults to None.
+    :param filePath: Path to file
+    :type filePath: Path
+    :param format: File format
+    :type format: IOFormat
+    :return: Perun DataNode structure
+    :rtype: DataNode
     """
     if format == IOFormat.JSON:
         with open(filePath, "r") as file:

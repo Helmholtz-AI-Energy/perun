@@ -4,23 +4,23 @@ from typing import Callable, List, Set
 import numpy as np
 import psutil
 
-from perun import log
-from perun.backend.backend import Backend, backend
+from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType, Sensor
+from perun.util import singleton
 
 
-@backend
+@singleton
 class PSUTILBackend(Backend):
     """PSUTIL Backend class."""
 
+    id: str = "psutil"
     name: str = "PSUTIL"
     description: str = "Obtain hardware data from psutil"
 
     def __init__(self) -> None:
         """Create psutil backend."""
         super().__init__()
-        log.info("Init PSUTIL")
 
     def setup(self):
         """Configure psutil backend."""
@@ -34,7 +34,11 @@ class PSUTILBackend(Backend):
                 self.devices[deviceName] = Sensor(
                     deviceName,
                     DeviceType.RAM,
-                    {"total": mem.total, "available": mem.available, **self.metadata},
+                    {
+                        "total": str(mem.total),
+                        "available": str(mem.available),
+                        **self.metadata,
+                    },
                     MetricMetaData(
                         Unit.PERCENT,
                         Magnitude.ONE,
@@ -82,14 +86,16 @@ class PSUTILBackend(Backend):
 
     def visibleSensors(self) -> Set[str]:
         """Return list of visible devices."""
-        return {
+        sensors = {
             "RAM_USAGE",
             "CPU_USAGE",
-            "DISK_READ_BYTES",
-            "DISK_WRITE_BYTES",
             "NET_WRITE_BYTES",
             "NET_READ_BYTES",
         }
+        if psutil.disk_io_counters(nowrap=True) is not None:
+            sensors.add("DISK_READ_BYTES")
+            sensors.add("DISK_WRITE_BYTES")
+        return sensors
 
     def _getCallback(self, device: str) -> Callable[[], np.number]:
         """Return measuring function for each device."""
@@ -106,12 +112,12 @@ class PSUTILBackend(Backend):
         elif device == "DISK_READ_BYTES":
 
             def func() -> np.number:
-                return np.uint32(psutil.disk_io_counters(nowrap=True).read_bytes)
+                return np.uint32(psutil.disk_io_counters(nowrap=True).read_bytes)  # type: ignore
 
         elif device == "DISK_WRITE_BYTES":
 
             def func() -> np.number:
-                return np.uint32(psutil.disk_io_counters(nowrap=True).write_bytes)
+                return np.uint32(psutil.disk_io_counters(nowrap=True).write_bytes)  # type: ignore
 
         elif device == "NET_WRITE_BYTES":
 
@@ -131,6 +137,3 @@ class PSUTILBackend(Backend):
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
         """Return desired device objects."""
         return [self.devices[deviceName] for deviceName in deviceList]
-
-
-PSUTILBackend()

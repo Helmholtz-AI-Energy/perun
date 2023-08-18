@@ -14,13 +14,16 @@ class Unit(str, enum.Enum):
     BYTE = "B"
     SECOND = "s"
     PERCENT = "%"
+    SCALAR = ""
 
     @property
     def symbol(self) -> str:
         """Symbol associated with Unit.
 
-        Returns:
-            str: String with unit symbol.
+        Returns
+        -------
+        str
+            Unit symbol string.
         """
         return self.value
 
@@ -46,8 +49,10 @@ class Magnitude(float, enum.Enum):
     def symbol(self) -> str:
         """Symbol associated with magnitude prefix.
 
-        Returns:
-            str: String with magnitude symbol.
+        Returns
+        -------
+        str
+            String symbol
         """
         _symbols: Dict = {
             "PICO": "p",
@@ -89,4 +94,21 @@ class MetricMetaData:
             dtype.type(mdDict["min"]),
             dtype.type(mdDict["max"], dtype=dtype),
             dtype.type(mdDict["fill"], dtype=dtype),
+        )
+
+    def copy(self):
+        """Copy MetricMetaData object.
+
+        Returns
+        -------
+        _type_
+            Copy of object.
+        """
+        return MetricMetaData(
+            Unit(self.unit.value),
+            Magnitude(self.mag.value),
+            self.dtype,
+            self.min.copy(),
+            self.max.copy(),
+            self.fill.copy(),
         )
