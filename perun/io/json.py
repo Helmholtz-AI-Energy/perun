@@ -38,7 +38,7 @@ def exportJson(dataNode: DataNode) -> str:
     :rtype: str
     """
     dataDict = dataNode.toDict(True)
-    return json.dumps(dataDict, indent=4, cls=NumpyEncoder)
+    return json.dumps(dataDict, cls=NumpyEncoder)
 
 
 def importJson(jsonString: str) -> DataNode:

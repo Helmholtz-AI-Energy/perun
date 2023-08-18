@@ -86,14 +86,16 @@ class PSUTILBackend(Backend):
 
     def visibleSensors(self) -> Set[str]:
         """Return list of visible devices."""
-        return {
+        sensors = {
             "RAM_USAGE",
             "CPU_USAGE",
-            "DISK_READ_BYTES",
-            "DISK_WRITE_BYTES",
             "NET_WRITE_BYTES",
             "NET_READ_BYTES",
         }
+        if psutil.disk_io_counters(nowrap=True) is not None:
+            sensors.add("DISK_READ_BYTES")
+            sensors.add("DISK_WRITE_BYTES")
+        return sensors
 
     def _getCallback(self, device: str) -> Callable[[], np.number]:
         """Return measuring function for each device."""
@@ -110,12 +112,12 @@ class PSUTILBackend(Backend):
         elif device == "DISK_READ_BYTES":
 
             def func() -> np.number:
-                return np.uint32(psutil.disk_io_counters(nowrap=True).read_bytes)
+                return np.uint32(psutil.disk_io_counters(nowrap=True).read_bytes)  # type: ignore
 
         elif device == "DISK_WRITE_BYTES":
 
             def func() -> np.number:
-                return np.uint32(psutil.disk_io_counters(nowrap=True).write_bytes)
+                return np.uint32(psutil.disk_io_counters(nowrap=True).write_bytes)  # type: ignore
 
         elif device == "NET_WRITE_BYTES":
 

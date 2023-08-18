@@ -15,6 +15,12 @@ or if you need the latests updates, you can install from the main branch of gith
 
     $ pip install https://github.com/Helmholtz-AI-Energy/perun
 
+If you are going to work with MPI, you can install it as an extra dependecy.
+
+.. code-block:: console
+
+    $ pip install perun[mpi]
+
 If you want to get the source code and modify it, you can clone the source code using git.
 
 .. code-block:: console

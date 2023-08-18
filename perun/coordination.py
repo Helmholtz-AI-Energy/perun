@@ -3,7 +3,7 @@ import pprint as pp
 from typing import Dict, List, Set, Tuple
 
 from perun import log
-from perun.backend import Backend
+from perun.backend.backend import Backend
 from perun.comm import Comm
 
 

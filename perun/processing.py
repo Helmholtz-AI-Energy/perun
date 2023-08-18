@@ -401,8 +401,11 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
         for region in regions
     ]
     cpu_util = copy.deepcopy(power)
+
     gpu_util = copy.deepcopy(power)
     gpu_count = copy.deepcopy(power)
+
+    has_gpu = False
 
     for hostNode in dataNode.nodes.values():
         # Get relevant ranks
@@ -453,6 +456,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                             measuring_unit == Unit.BYTE
                                             and deviceNode.deviceType == DeviceType.GPU
                                         ):
+                                            has_gpu = True
                                             _, values = getInterpolatedValues(
                                                 raw_data.timesteps.astype("float32"),
                                                 raw_data.values,
@@ -469,10 +473,12 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
     for region_idx, region in enumerate(regions):
         r_power = np.array(list(chain(*power[region_idx])))
         r_cpu_util = np.array(list(chain(*cpu_util[region_idx])))
+
         r_gpu_util = np.array(list(chain(*gpu_util[region_idx])))
         r_gpu_count = np.array(list(chain(*gpu_count[region_idx])))
 
-        r_gpu_util /= r_gpu_count
+        if has_gpu:
+            r_gpu_util /= r_gpu_count
 
         region.cpu_util = Stats(
             MetricType.CPU_UTIL,

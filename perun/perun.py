@@ -12,7 +12,10 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Type
 
 from perun import __version__, log
-from perun.backend import Backend, IntelRAPLBackend, NVMLBackend, PSUTILBackend
+from perun.backend.backend import Backend
+from perun.backend.intel_rapl import IntelRAPLBackend
+from perun.backend.nvml import NVMLBackend
+from perun.backend.psutil import PSUTILBackend
 from perun.backend.util import getBackendMetadata, getHostMetadata
 from perun.comm import Comm
 from perun.coordination import getGlobalSensorRankConfiguration, getHostRankDict
