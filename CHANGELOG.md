@@ -2,6 +2,55 @@
 
 
 
+## v0.4.0 (2023-08-18)
+
+### Feature
+
+* feat: Perun Singleton Class
+
+
+BREAKING CHANGE:
+Rework of main perun modules to enable regions.
+Deprecated old monitor decorator in favour of &#39;function monitoring&#39;
+Changes to output files, always produces a hdf5, and an optional second file (default text report)
+
+Individual Commits
+* wip: created perun class, created singleton decorator, removed backend decorator
+* wip: removed _cached_sensors_config from coordination, handled by perun class
+* wip: perun class progress, removed decorator
+* wip: decorator is back on (sadly), started export command refactoring
+* refactor: export command and configuration options (removed depth and raw options)
+* refactor: changed api, removed bench prefix, commeted decorator out
+* fix: corrections in suprocess and backends
+* refactor: return to single file that acumulates everything, but slightly different
+* fix: intel_rapl dram max value, wrong overwriting of hdf5 file
+* wip: regions
+* feat: regions
+* fix: overlapping id correction
+* refactor: metadata storage
+* feat: actual regions
+* refactor: io formating
+* fix: io fixes
+* fix: regions metric units, dependencies
+* fix: gpu utilization and memory
+* fix: formatting
+* fix: missing total run node.
+* wip:update docs
+* docs: updated docs
+* test: updated tests
+* ci: appeasing mypy
+* [pre-commit.ci] auto fixes from pre-commit.com hooks for more information, see https://pre-commit.ci
+* ci: pydocstyle ignores docs/
+---------
+
+Co-authored-by: io3047@kit.edu &lt;io3047@hkn1990.localdomain&gt;
+Co-authored-by: pre-commit-ci[bot] &lt;66853113+pre-commit-ci[bot]@users.noreply.github.com&gt; ([`574b340`](https://github.com/Helmholtz-AI-Energy/perun/commit/574b3408ad5e9d7ce9cde5d16ae7ae95e9c53b83))
+
+### Unknown
+
+* Merge branch &#39;release&#39; ([`aa53d94`](https://github.com/Helmholtz-AI-Energy/perun/commit/aa53d948d06ed6ad77d20b206765452e35c4992c))
+
+
 ## v0.3.3 (2023-07-24)
 
 ### Documentation
