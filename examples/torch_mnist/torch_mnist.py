@@ -8,6 +8,8 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 
+from perun import monitor
+
 
 class Net(nn.Module):
     def __init__(self):
@@ -35,6 +37,7 @@ class Net(nn.Module):
         return output
 
 
+@monitor()
 def train(args, model, device, train_loader, test_loader, optimizer, scheduler):
     for epoch in range(1, args.epochs + 1):
         train_epoch(args, model, device, train_loader, optimizer, epoch)
@@ -42,6 +45,7 @@ def train(args, model, device, train_loader, test_loader, optimizer, scheduler):
         scheduler.step()
 
 
+@monitor()
 def train_epoch(args, model, device, train_loader, optimizer, epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -65,6 +69,7 @@ def train_epoch(args, model, device, train_loader, optimizer, epoch):
                 break
 
 
+@monitor()
 def test(model, device, test_loader):
     model.eval()
     test_loss = 0
