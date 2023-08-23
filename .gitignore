@@ -133,3 +133,5 @@ dmypy.json
 *.out
 poetry.lock
 .perun.ini
+examples/data
+examples/**/perun_results

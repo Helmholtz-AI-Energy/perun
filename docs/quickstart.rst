@@ -3,6 +3,10 @@
 Quick Start
 ===========
 
+.. hint::
+
+   Check a `full example  <https://github.com/Helmholtz-AI-Energy/perun/blob/main/examples/torch_mnist/README.md>`_ on our github repository
+
 To start using perun, the first step is to install it using pip.
 
 .. code-block:: console

@@ -17,7 +17,7 @@
 
 perun is a Python package that calculates the energy consumption of Python scripts by sampling usage statistics from Intel RAPL, Nvidia-NVML, and psutil. It can handle MPI applications, gather data from hundreds of nodes, and accumulate it efficiently. perun can be used as a command-line tool or as a function decorator in Python scripts.
 
-Check out the [docs](https://perun.readthedocs.io/en/latest/)!
+Check out the [docs](https://perun.readthedocs.io/en/latest/) or a working [example](https://github.com/Helmholtz-AI-Energy/perun/blob/main/examples/torch_mnist/README.md)!
 
 ## Key Features
 
