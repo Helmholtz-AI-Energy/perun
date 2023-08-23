@@ -72,7 +72,7 @@ Monitored Functions
 The application has run been run 1 times. Throught its runtime, it has used 0.012 kWh, released a total of 0.005 kgCO2e into the atmosphere, and you paid 0.00 € in electricity for it.
 ```
 
-The results display data about the functions *train*, *test_epoch* and *test*. Those functions were specialy marked using the ```@monitor()``` decorator. 
+The results display data about the functions *train*, *test_epoch* and *test*. Those functions were specialy marked using the ```@monitor()``` decorator.
 
 ```python
 @monitor()
