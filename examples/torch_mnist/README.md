@@ -70,8 +70,19 @@ Monitored Functions
 |         0 | test        |                  5 | 1.098±0.003 s  | 274.947±83.746 W | 0.804±0.030 %  | 2.808±0.025 %      |
 
 The application has run been run 1 times. Throught its runtime, it has used 0.012 kWh, released a total of 0.005 kgCO2e into the atmosphere, and you paid 0.00 € in electricity for it.
-
 ```
+
+The results display data about the functions *train*, *test_epoch* and *test*. Those functions were specialy marked using the ```@monitor()``` decorator. 
+
+```python
+@monitor()
+def train(args, model, device, train_loader, test_loader, optimizer, scheduler):
+    for epoch in range(1, args.epochs + 1):
+        train_epoch(args, model, device, train_loader, optimizer, epoch)
+        test(model, device, test_loader)
+        scheduler.step()
+```
+
 
 ## Benchmarking
 
