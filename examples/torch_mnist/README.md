@@ -83,7 +83,6 @@ def train(args, model, device, train_loader, test_loader, optimizer, scheduler):
         scheduler.step()
 ```
 
-
 ## Benchmarking
 
 If you need to run your code multiple times to gather statistics, perun includes an option called ```--rounds```. The application will be run multiple times, with each run added to similar tables as the one generated for a single run.
