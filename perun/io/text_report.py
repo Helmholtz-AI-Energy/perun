@@ -111,8 +111,8 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
         money = e_kWh * config.getfloat("post-processing", "price_factor") / 1e2
         money_icon = config.get("post-processing", "price_unit")
 
-        summary_str = f"The application has run been run {n_runs} times. Throught its runtime, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it.\n"
+        summary_str = f"The application has been run {n_runs} times. Throught its runtime, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it.\n"
     else:
-        summary_str = f"The application has run been run {n_runs} times."
+        summary_str = f"The application has been run {n_runs} times."
 
     return report_header + mr_report_str + region_report_str + summary_str
