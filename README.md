@@ -113,3 +113,34 @@ mpirun -n 8 perun monitor path/to/your/script.py
 ## Docs
 
 To get more information, check out our [docs page](https://perun.readthedocs.io/en/latest/).
+
+## Citing perun
+
+If you found perun usefull, please consider citing the conference paper:
+
+ * Gutiérrez Hermosillo Muriedas, J.P., Flügel, K., Debus, C., Obermaier, H., Streit, A., Götz, M.: perun: Benchmarking Energy Consumption of High-Performance Computing Applications. In: Cano, J., Dikaiakos, M.D., Papadopoulos, G.A., Pericàs, M., and Sakellariou, R. (eds.) Euro-Par 2023: Parallel Processing. pp. 17–31. Springer Nature Switzerland, Cham (2023). https://doi.org/10.1007/978-3-031-39698-4_2.
+
+
+```bibtex
+@InProceedings{10.1007/978-3-031-39698-4_2,
+  author="Guti{\'e}rrez Hermosillo Muriedas, Juan Pedro
+  and Fl{\"u}gel, Katharina
+  and Debus, Charlotte
+  and Obermaier, Holger
+  and Streit, Achim
+  and G{\"o}tz, Markus",
+  editor="Cano, Jos{\'e}
+  and Dikaiakos, Marios D.
+  and Papadopoulos, George A.
+  and Peric{\`a}s, Miquel
+  and Sakellariou, Rizos",
+  title="perun: Benchmarking Energy Consumption of High-Performance Computing Applications",
+  booktitle="Euro-Par 2023: Parallel Processing",
+  year="2023",
+  publisher="Springer Nature Switzerland",
+  address="Cham",
+  pages="17--31",
+  abstract="Looking closely at the Top500 list of high-performance computers (HPC) in the world, it becomes clear that computing power is not the only number that has been growing in the last three decades. The amount of power required to operate such massive computing machines has been steadily increasing, earning HPC users a higher than usual carbon footprint. While the problem is well known in academia, the exact energy requirements of hardware, software and how to optimize it are hard to quantify. To tackle this issue, we need tools to understand the software and its relationship with power consumption in today's high performance computers. With that in mind, we present perun, a Python package and command line interface to measure energy consumption based on hardware performance counters and selected physical measurement sensors. This enables accurate energy measurements on various scales of computing, from a single laptop to an MPI-distributed HPC application. We include an analysis of the discrepancies between these sensor readings and hardware performance counters, with particular focus on the power draw of the usually overlooked non-compute components such as memory. One of our major insights is their significant share of the total energy consumption. We have equally analyzed the runtime and energy overhead perun generates when monitoring common HPC applications, and found it to be minimal. Finally, an analysis on the accuracy of different measuring methodologies when applied at large scales is presented.",
+  isbn="978-3-031-39698-4"
+}
+```
