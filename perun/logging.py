@@ -19,12 +19,13 @@ def init_logging(level: str) -> logging.Logger:
     """
     logConfig = {
         "version": 1,
-        "root": {"handlers": ["console"], "level": level},
+        "loggers": {"perun": {"level": level, "handlers": ["console"]}},
         "handlers": {
             "console": {
                 "formatter": "std_out",
                 "class": "logging.StreamHandler",
                 "level": "DEBUG",
+                "stream": "ext://sys.stdout",
             }
         },
         "formatters": {
