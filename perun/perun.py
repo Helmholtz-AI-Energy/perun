@@ -110,8 +110,9 @@ class Perun:
 
     def _close_backends(self):
         """Close available backends."""
-        for backend in self.backends.values():
-            backend.close()
+        if self._backends:
+            for backend in self._backends.values():
+                backend.close()
 
     @property
     def host_rank(self) -> Dict[str, List[int]]:
