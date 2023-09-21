@@ -33,10 +33,10 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
     mrNode = dataNode.nodes[mr_id]
 
     bench_units: Dict[str, Magnitude] = {
-        "JOULE": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.JOULE"]),
-        "SECOND": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.SECOND"]),
-        "WATT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.WATT"]),
-        "PERCENT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.PERCENT"]),
+        "JOULE": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.joule"]),
+        "SECOND": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.second"]),
+        "WATT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.power"]),
+        "PERCENT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.percent"]),
     }
 
     for metricType, metric in mrNode.metrics.items():

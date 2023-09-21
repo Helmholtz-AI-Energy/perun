@@ -90,21 +90,21 @@ class Perun:
         """
         if not self._backends:
             self._backends = {}
-            classList: List[Type[Backend]] = [
-                IntelRAPLBackend,
-                NVMLBackend,
-                PSUTILBackend,
-            ]
-            for backend in classList:
+            classList: Dict[str, Type[Backend]] = {
+                "IntelRAPL": IntelRAPLBackend,
+                "NVML": NVMLBackend,
+                "PSUTIL": PSUTILBackend,
+            }
+            for name, backend in classList.items():
                 try:
                     backend_instance = backend()
                     self._backends[backend_instance.id] = backend_instance
                 except ImportError as ie:
-                    log.info(f"Missing dependencies for backend {backend.name}")
+                    log.info(f"Missing dependencies for backend {name}")
                     log.info(ie)
                 except Exception as e:
-                    log.warning(f"Unknown error loading dependecy {backend.name}")
-                    log.warning(e)
+                    log.info(f"Unknown error loading dependecy {name}")
+                    log.info(e)
 
         return self._backends
 
