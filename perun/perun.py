@@ -48,6 +48,7 @@ class Perun:
         self._l_host_metadata: Optional[Dict[str, Any]] = None
         self._l_backend_metadata: Optional[Dict[str, Any]] = None
         self.local_regions: Optional[LocalRegions] = None
+        self.warmup_round: bool = False
 
     def __del__(self):
         """Perun object destructor."""
@@ -206,9 +207,12 @@ class Perun:
 
         if self.config.getint("benchmarking", "warmup_rounds"):
             log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
+            self.warmup_round = True
             for i in range(self.config.getint("benchmarking", "warmup_rounds")):
                 log.info(f"Warmup run: {i}")
                 _ = self._run_application(app, str(i), record=False)
+
+            self.warmup_round = False
 
         log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
         multirun_nodes: Dict[str, DataNode] = {}
