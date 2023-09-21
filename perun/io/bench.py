@@ -1,10 +1,12 @@
 """Bench io module."""
 import json
+from typing import Dict, List, Tuple
 
 import numpy as np
 
 from perun import log
 from perun.data_model.data import DataNode, MetricType, Stats
+from perun.data_model.measurement_type import Magnitude, MetricMetaData
 from perun.io.util import getTFactorMag
 
 lessIsBetterMetrics = [MetricType.RUNTIME, MetricType.ENERGY]
@@ -30,10 +32,22 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
     metricDict = []
     mrNode = dataNode.nodes[mr_id]
 
+    bench_units: Dict[str, Magnitude] = {
+        "JOULE": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.JOULE"]),
+        "SECOND": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.SECOND"]),
+        "WATT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.WATT"]),
+        "PERCENT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.PERCENT"]),
+    }
+
     for metricType, metric in mrNode.metrics.items():
         if metricType in lessIsBetterMetrics:
-            metric_md = metric.metric_md
-            tfactor, mag = getTFactorMag(metric.value, metric_md)
+            metric_md: MetricMetaData = metric.metric_md
+            if metric_md.unit.name in bench_units:
+                mag = bench_units[metric_md.unit.name]
+                old_mag = metric_md.mag
+                tfactor = mag.value / old_mag.value
+            else:
+                tfactor, mag = getTFactorMag(metric.value, metric_md)
 
             if isinstance(metric, Stats):
                 metricDict.append(
@@ -53,9 +67,9 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
                     }
                 )
 
-    region_data = {}
+    region_data: Dict[str, Dict[str, Tuple[List[np.number], MetricMetaData]]] = {}
     if len(mrNode.nodes) > 1:
-        log.warning(
+        log.info(
             "When generating benchmarks for regions, it is preferable to if each function only runs a single time."
         )
 
@@ -100,11 +114,14 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
             values = data[0]
             metadata = data[1]
             if len(values) > 1:
-                values = data[0]
-                metadata = data[1]
                 mean = np.mean(values)
                 std = np.std(values)
-                tfactor, mag = getTFactorMag(mean, metadata)
+                if metadata.unit.name in bench_units:
+                    mag = bench_units[metadata.unit.name]
+                    old_mag = metadata.mag
+                    tfactor = mag.value / old_mag.value
+                else:
+                    tfactor, mag = getTFactorMag(mean, metadata)
                 metricDict.append(
                     {
                         "name": f"{region_name}_{mr_id} - {metric_name}",
@@ -115,7 +132,12 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
                 )
             else:
                 value = values[0]
-                tfactor, mag = getTFactorMag(value, metadata)
+                if metadata.unit.name in bench_units:
+                    mag = bench_units[metadata.unit.name]
+                    old_mag = metadata.mag
+                    tfactor = mag.value / old_mag.value
+                else:
+                    tfactor, mag = getTFactorMag(value, metadata)
                 metricDict.append(
                     {
                         "name": f"{region_name}_{mr_id} - {metric_name}",

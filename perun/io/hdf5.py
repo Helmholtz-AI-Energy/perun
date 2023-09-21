@@ -188,7 +188,7 @@ def _readMetricMetadata(group: Union[h5py.Group, h5py.Dataset]) -> MetricMetaDat
     dtype = np.dtype(group.attrs["dtype"])
     return MetricMetaData(
         unit=Unit(group.attrs["unit"]),
-        mag=Magnitude(group.attrs["mag"]),
+        mag=Magnitude(group.attrs["mag"]),  # type: ignore
         dtype=dtype,
         min=group.attrs["valid_min"],  # type: ignore
         max=group.attrs["valid_max"],  # type: ignore
@@ -251,9 +251,9 @@ def _readRegions(group: h5py.Group) -> Dict[str, Region]:
 
 def _readRegion(group: h5py.Group) -> Region:
     regionObj = Region()
-    regionObj.id = group.attrs["id"]
-    regionObj.processed = group.attrs["processed"]
-    regionObj.world_size = group.attrs["world_size"]
+    regionObj.id = group.attrs["id"]  # type: ignore
+    regionObj.processed = group.attrs["processed"]  # type: ignore
+    regionObj.world_size = group.attrs["world_size"]  # type: ignore
 
     regionObj.cpu_util = _readMetric(group["CPU_UTIL"])  # type: ignore
     regionObj.gpu_util = _readMetric(group["GPU_UTIL"])  # type: ignore
@@ -263,7 +263,7 @@ def _readRegion(group: h5py.Group) -> Region:
 
     raw_data_group = group["raw_data"]
     regionObj.raw_data = {}
-    for key, data in raw_data_group.items():
+    for key, data in raw_data_group.items():  # type: ignore
         regionObj.raw_data[int(key)] = data[:]
 
     return regionObj

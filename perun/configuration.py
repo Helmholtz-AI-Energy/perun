@@ -27,7 +27,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
     "benchmarking": {
         "rounds": 1,
         "warmup_rounds": 0,
-        # "bench_metrics": ["ENERGY", "RUNTIME"],
+        "units": {"JOULE": "k", "SECOND": "", "PERCENT": "", "POWER": ""},
     },
     "debug": {"log_lvl": "WARNING"},
     # "horeka": {"enabled": False, "url": "", "token": "", "org": ""},

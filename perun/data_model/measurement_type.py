@@ -5,6 +5,8 @@ from typing import Dict
 
 import numpy as np
 
+from perun import log
+
 
 class Unit(str, enum.Enum):
     """Unit enum."""
@@ -32,6 +34,19 @@ class Unit(str, enum.Enum):
         return self.symbol
 
 
+_mag_symbols: Dict[str, str] = {
+    "PICO": "p",
+    "NANO": "n",
+    "MICRO": "µ",
+    "MILI": "m",
+    "ONE": "",
+    "KILO": "k",
+    "MEGA": "M",
+    "GIGA": "G",
+    "TERA": "T",
+}
+
+
 class Magnitude(float, enum.Enum):
     """Magnitude prefix enum."""
 
@@ -45,6 +60,32 @@ class Magnitude(float, enum.Enum):
     GIGA = 1e9
     TERA = 1e12
 
+    @classmethod
+    def fromSymbol(cls, symbol: str):
+        """Create a Magniture objet from a magnigure symbol.
+
+        Parameters
+        ----------
+        symbol : str
+            Magnigure symbol string.
+
+        Returns
+        -------
+        _type_
+            Magniture Enum object.
+
+        Raises
+        ------
+        ValueError
+            If an invalid symbol is given.
+        """
+        for key, value in _mag_symbols.items():
+            if value == symbol:
+                return cls[key]
+        msg = f"Magnitude symbol {symbol} does not exist."
+        log.error(msg)
+        raise ValueError(msg)
+
     @property
     def symbol(self) -> str:
         """Symbol associated with magnitude prefix.
@@ -54,18 +95,7 @@ class Magnitude(float, enum.Enum):
         str
             String symbol
         """
-        _symbols: Dict = {
-            "PICO": "p",
-            "NANO": "n",
-            "MICRO": "µ",
-            "MILI": "m",
-            "ONE": "",
-            "KILO": "k",
-            "MEGA": "M",
-            "GIGA": "G",
-            "TERA": "T",
-        }
-        return _symbols[self.name]
+        return _mag_symbols[self.name]
 
     def __str__(self) -> str:
         """Convert object to string."""

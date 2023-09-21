@@ -100,10 +100,10 @@ class Perun:
                     backend_instance = backend()
                     self._backends[backend_instance.id] = backend_instance
                 except ImportError as ie:
-                    log.warning(f"Missing dependencies for backend {backend.__name__}")
-                    log.warning(ie)
+                    log.info(f"Missing dependencies for backend {backend.name}")
+                    log.info(ie)
                 except Exception as e:
-                    log.warning(f"Unknown error loading dependecy {backend.__name__}")
+                    log.warning(f"Unknown error loading dependecy {backend.name}")
                     log.warning(e)
 
         return self._backends
@@ -235,7 +235,7 @@ class Perun:
                     "execution_dt": starttime.isoformat(),
                     "n_runs": str(len(multirun_nodes)),
                     **{
-                        option: value
+                        f"{section_name}.{option}": value
                         for section_name in self.config.sections()
                         for option, value in self.config.items(section_name)
                     },
