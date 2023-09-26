@@ -1,6 +1,6 @@
 repos:
 - repo: https://github.com/commitizen-tools/commitizen
-  rev: 3.6.0
+  rev: 3.10.0
   hooks:
   - id: commitizen
     stages: [commit-msg]
@@ -36,7 +36,7 @@ repos:
     - id: isort
       name: isort (python)
 - repo: https://github.com/psf/black
-  rev: 23.7.0
+  rev: 23.9.1
   hooks:
   - id: black
 - repo: https://github.com/pre-commit/pre-commit-hooks
