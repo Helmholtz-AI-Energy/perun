@@ -13,8 +13,7 @@ from perun.perun import Perun
 log = logging.getLogger("perun")
 
 
-def cli():
-    """Command line entrypoint."""
+def _get_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="perun",
         description="Distributed performance and energy monitoring tool",
@@ -126,6 +125,12 @@ def cli():
     monitor_parser.add_argument("script", required=True, type=str)
     monitor_parser.add_argument("script_args", required=True, nargs=argparse.REMAINDER)
     monitor_parser.set_defaults(func=monitor)
+    return parser
+
+
+def cli():
+    """Command line entrypoint."""
+    parser = _get_arg_parser()
 
     # parse and read conf file and env
     args, remaining = parser.parse_known_args()
