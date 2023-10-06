@@ -21,7 +21,7 @@ def _get_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("-c", "--configuration", default="./.perun.ini")
     parser.add_argument(
-        "-l", "--log_lvl", choice=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
+        "-l", "--log_lvl", choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
     )
     parser.add_argument(
         "--version", action="version", version=f"perun {perun.__version__}"
@@ -61,13 +61,10 @@ def _get_arg_parser() -> argparse.ArgumentParser:
     )
     export_parser.add_argument(
         "input_file",
-        required=True,
         help="Existing perun output file. Should be hdf5, json or pickle.",
     )
     export_parser.add_argument(
         "format",
-        dest="output_format",
-        required=True,
         help="Desired data output format.",
     )
     export_parser.set_defaults(func=export)
@@ -122,8 +119,8 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         type=int,
         help="Number of warmup rounds to run the app. A warmup round is a full run of the application without gathering performance data.",
     )
-    monitor_parser.add_argument("script", required=True, type=str)
-    monitor_parser.add_argument("script_args", required=True, nargs=argparse.REMAINDER)
+    monitor_parser.add_argument("script", type=str)
+    monitor_parser.add_argument("script_args", nargs=argparse.REMAINDER)
     monitor_parser.set_defaults(func=monitor)
     return parser
 
@@ -146,7 +143,8 @@ def cli():
     log.setLevel(config.get("debug", "log_lvl"))
 
     # start function
-    args.func(args)
+    if hasattr(args, "func"):
+        args.func(args)
 
 
 def showconf(args: argparse.Namespace):
@@ -205,7 +203,7 @@ def export(args: argparse.Namespace):
 
     out_path = in_file.parent
     inputFormat = IOFormat.fromSuffix(in_file.suffix)
-    out_format = IOFormat(args.output_format)
+    out_format = IOFormat(args.format)
 
     dataNode = perun.import_from(in_file, inputFormat)
     if args.run_id:
@@ -227,8 +225,9 @@ def monitor(args: argparse.Namespace):
     log.debug(f"Script args: { sys.argv }")
 
     # Setup script arguments
-    for key, value in args.vars().items():
-        save_to_config(key, value)
+    for key, value in vars(args).items():
+        if value:
+            save_to_config(key, value)
 
     perun = Perun(config)
 

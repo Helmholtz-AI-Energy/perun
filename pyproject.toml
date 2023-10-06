@@ -8,7 +8,7 @@ readme = "README.md"
 homepage = "https://github.com/Helmholtz-AI-Energy/perun"
 
 [tool.poetry.scripts]
-perun = "perun.api.cli:main"
+perun = "perun.api.cli:cli"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
