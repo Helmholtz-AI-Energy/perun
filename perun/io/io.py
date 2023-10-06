@@ -53,15 +53,24 @@ def exportTo(
 ):
     """Export DataNode structure to the selected format.
 
-    :param data_out: Output path
-    :type data_out: Path
-    :param dataNode: DataNode tree with processed metrics
-    :type dataNode: DataNode
-    :param format: Output format.
-    :type format: IOFormat
+    Parameters
+    ----------
+    output_path : Path
+        Output Path
+    dataNode : DataNode
+        DataNode Object
+    format : IOFormat
+        Selected output format
+    mr_id : Optional[str], optional
+        Run id to extract from DataNode, by default None
+
+    Raises
+    ------
+    Exception
+        If the data has not been processed.
     """
     if not dataNode.processed:
-        log.warning("Data has not been processed before import. Proceed with caution.")
+        log.error("Data has not been processed before import. Proceed with caution.")
         raise Exception("DataNode needs to be processed before it can be exported.")
 
     if not output_path.exists():
@@ -71,7 +80,7 @@ def exportTo(
     if not mr_id and (
         format == IOFormat.BENCH or format == IOFormat.TEXT or format == IOFormat.CSV
     ):
-        log.warning("No run ID provided, using last executed run to generate output")
+        log.info("No run ID provided, using last executed run to generate output")
         last_dt = datetime.min
         for node in dataNode.nodes.values():
             exec_dt = datetime.fromisoformat(node.metadata["execution_dt"])
@@ -85,7 +94,7 @@ def exportTo(
         output_path = output_path / f"{dataNode.id}.{format.suffix}"
 
         if output_path.exists() and output_path.is_file():
-            log.warn(f"Overwriting existing file {output_path}")
+            log.info(f"Overwriting existing file {output_path}")
 
         reportStr = exportJson(dataNode)
         with open(output_path, fileType) as file:
@@ -94,7 +103,7 @@ def exportTo(
     elif format == IOFormat.HDF5:
         output_path = output_path / f"{dataNode.id}.{format.suffix}"
         if output_path.exists() and output_path.is_file():
-            log.warn(f"Overwriting existing file {output_path}")
+            log.info(f"Overwriting existing file {output_path}")
 
         exportHDF5(output_path, dataNode)
 
@@ -104,7 +113,7 @@ def exportTo(
         output_path = output_path / f"{dataNode.id}.{format.suffix}"
 
         if output_path.exists() and output_path.is_file():
-            log.warn(f"Overwriting existing file {output_path}")
+            log.info(f"Overwriting existing file {output_path}")
 
         reportStr = exportPickle(dataNode)
         with open(output_path, fileType) as file:
@@ -114,7 +123,7 @@ def exportTo(
         output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
 
         if output_path.exists() and output_path.is_file():
-            log.warn(f"Overwriting existing file {output_path}")
+            log.info(f"Overwriting existing file {output_path}")
 
         exportCSV(output_path, dataNode, mr_id)  # type: ignore
     elif format == IOFormat.BENCH:
@@ -122,7 +131,7 @@ def exportTo(
         output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
 
         if output_path.exists() and output_path.is_file():
-            log.warn(f"Overwriting existing file {output_path}")
+            log.info(f"Overwriting existing file {output_path}")
 
         reportStr = exportBench(dataNode, mr_id)  # type: ignore
         with open(output_path, fileType) as file:
@@ -133,7 +142,7 @@ def exportTo(
         output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
 
         if output_path.exists() and output_path.is_file():
-            log.warn(f"Overwriting existing file {output_path}")
+            log.info(f"Overwriting existing file {output_path}")
 
         reportStr = textReport(dataNode, mr_id)  # type: ignore
         with open(output_path, fileType) as file:

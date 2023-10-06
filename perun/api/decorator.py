@@ -16,12 +16,14 @@ def monitor(region_name: Optional[str] = None):
             region_id = region_name if region_name else func.__name__
 
             perun = Perun()  # type: ignore
-
-            log.info(f"Rank {perun.comm.Get_rank()}: Entering '{region_id}'")
-            perun.local_regions.addEvent(region_id)  # type: ignore
-            func_result = func(*args, **kwargs)
-            perun.local_regions.addEvent(region_id)  # type: ignore
-            log.info(f"Rank {perun.comm.Get_rank()}: Leaving '{region_id}'")
+            if perun.warmup_round:
+                func_result = func(*args, **kwargs)
+            else:
+                log.info(f"Rank {perun.comm.Get_rank()}: Entering '{region_id}'")
+                perun.local_regions.addEvent(region_id)  # type: ignore
+                func_result = func(*args, **kwargs)
+                perun.local_regions.addEvent(region_id)  # type: ignore
+                log.info(f"Rank {perun.comm.Get_rank()}: Leaving '{region_id}'")
 
             return func_result
 

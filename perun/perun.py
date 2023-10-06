@@ -48,6 +48,7 @@ class Perun:
         self._l_host_metadata: Optional[Dict[str, Any]] = None
         self._l_backend_metadata: Optional[Dict[str, Any]] = None
         self.local_regions: Optional[LocalRegions] = None
+        self.warmup_round: bool = False
 
     def __del__(self):
         """Perun object destructor."""
@@ -89,28 +90,29 @@ class Perun:
         """
         if not self._backends:
             self._backends = {}
-            classList: List[Type[Backend]] = [
-                IntelRAPLBackend,
-                NVMLBackend,
-                PSUTILBackend,
-            ]
-            for backend in classList:
+            classList: Dict[str, Type[Backend]] = {
+                "IntelRAPL": IntelRAPLBackend,
+                "NVML": NVMLBackend,
+                "PSUTIL": PSUTILBackend,
+            }
+            for name, backend in classList.items():
                 try:
                     backend_instance = backend()
                     self._backends[backend_instance.id] = backend_instance
                 except ImportError as ie:
-                    log.warning(f"Missing dependencies for backend {backend.__name__}")
-                    log.warning(ie)
+                    log.info(f"Missing dependencies for backend {name}")
+                    log.info(ie)
                 except Exception as e:
-                    log.warning(f"Unknown error loading dependecy {backend.__name__}")
-                    log.warning(e)
+                    log.info(f"Unknown error loading dependecy {name}")
+                    log.info(e)
 
         return self._backends
 
     def _close_backends(self):
         """Close available backends."""
-        for backend in self.backends.values():
-            backend.close()
+        if self._backends:
+            for backend in self._backends.values():
+                backend.close()
 
     @property
     def host_rank(self) -> Dict[str, List[int]]:
@@ -206,9 +208,12 @@ class Perun:
 
         if self.config.getint("benchmarking", "warmup_rounds"):
             log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
+            self.warmup_round = True
             for i in range(self.config.getint("benchmarking", "warmup_rounds")):
                 log.info(f"Warmup run: {i}")
                 _ = self._run_application(app, str(i), record=False)
+
+            self.warmup_round = False
 
         log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
         multirun_nodes: Dict[str, DataNode] = {}
@@ -231,7 +236,7 @@ class Perun:
                     "execution_dt": starttime.isoformat(),
                     "n_runs": str(len(multirun_nodes)),
                     **{
-                        option: value
+                        f"{section_name}.{option}": value
                         for section_name in self.config.sections()
                         for option, value in self.config.items(section_name)
                     },
