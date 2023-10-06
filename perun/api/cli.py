@@ -1,88 +1,179 @@
-"""Command line api definition.
-
-Uses click https://click.palletsprojects.com/en/8.1.x/ to manage complex cmdline configurations.
-"""
+"""Command line API."""
+import argparse
 import json
+import logging
 import sys
 from pathlib import Path
-from typing import Optional
-
-import click
 
 import perun
-from perun import log
-from perun.configuration import config, read_custom_config, save_to_config_callback
+from perun.configuration import config, read_custom_config, read_environ, save_to_config
 from perun.io.io import IOFormat
 from perun.perun import Perun
 
+log = logging.getLogger("perun")
 
-@click.group()
-@click.version_option(version=perun.__version__)
-@click.option(
-    "-c",
-    "--configuration",
-    default="./.perun.ini",
-    help="Path to configuration file",
-    type=click.Path(exists=False, dir_okay=False, readable=True),
-    is_eager=True,
-    callback=read_custom_config,
-    expose_value=False,
-)
-@click.option(
-    "-l",
-    "--log_lvl",
-    type=click.Choice(["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]),
-    help="Loggging level",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
+
 def cli():
-    """Perun: Energy measuring and reporting tool."""
+    """Command line entrypoint."""
+    parser = argparse.ArgumentParser(
+        prog="perun",
+        description="Distributed performance and energy monitoring tool",
+        allow_abbrev=False,
+    )
+    parser.add_argument("-c", "--configuration", default="./.perun.ini")
+    parser.add_argument(
+        "-l", "--log_lvl", choice=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
+    )
+    parser.add_argument(
+        "--version", action="version", version=f"perun {perun.__version__}"
+    )
+    subparsers = parser.add_subparsers(dest="subcommand")
+
+    # showconf
+    showconf_parser = subparsers.add_parser(
+        "showconf", help="Print perun configuration in INI format."
+    )
+    showconf_parser.add_argument(
+        "--default",
+        action="store_true",
+        help="Print the default configuration",
+        dest="showconf_default",
+    )
+    showconf_parser.set_defaults(func=showconf)
+
+    # sensors
+    sensor_parser = subparsers.add_parser(
+        "sensors", help="Print available sensors by host and rank."
+    )
+    sensor_parser.set_defaults(func=sensors)
+
+    # metadata
+    metadata_parser = subparsers.add_parser(
+        "metadata", help="Print available metadata."
+    )
+    metadata_parser.set_defaults(func=metadata)
+
+    # export
+    export_parser = subparsers.add_parser(
+        "export", help="Export existing output file to another format."
+    )
+    export_parser.add_argument(
+        "-i", "--id", dest="run_id", help="Run id to export, last one by default"
+    )
+    export_parser.add_argument(
+        "input_file",
+        required=True,
+        help="Existing perun output file. Should be hdf5, json or pickle.",
+    )
+    export_parser.add_argument(
+        "format",
+        dest="output_format",
+        required=True,
+        help="Desired data output format.",
+    )
+    export_parser.set_defaults(func=export)
+
+    # monitor
+    monitor_parser = subparsers.add_parser(
+        "monitor",
+        help="""
+    Gather power consumption from hardware devices while SCRIPT [SCRIPT_ARGS] is running.
+
+    SCRIPT is a path to the python script to monitor, run with arguments SCRIPT_ARGS.
+    """,
+    )
+    monitor_parser.add_argument(
+        "-n",
+        "--app_name",
+        dest="app_name",
+        help="Name o the monitored application. The name is used to distinguish between multiple application in the same directory. If left empty, the file name will be used.",
+    )
+    monitor_parser.add_argument(
+        "-i",
+        "--run_id",
+        dest="run_id",
+        help="Unique id of the latest run of the application. If left empty, perun will use the current date.",
+    )
+    monitor_parser.add_argument(
+        "-f",
+        "--format",
+        help="Secondary report format.",
+        choices=[format.value for format in IOFormat],
+    )
+    monitor_parser.add_argument(
+        "--data_out",
+        help="Directory where output files are saved. Defaults to ./perun_results",
+    )
+    monitor_parser.add_argument(
+        "--sampling_rate", type=float, help="Sampling rate in seconds"
+    )
+    monitor_parser.add_argument(
+        "--pue", type=float, help="Data center Power Usage Effectiveness"
+    )
+    monitor_parser.add_argument(
+        "--price_factor",
+        type=float,
+        help="Electricity to Currency convertion factor in the form of Currency/kWh",
+    )
+    monitor_parser.add_argument(
+        "--rounds", type=int, help="Number of warmup rounds to run app."
+    )
+    monitor_parser.add_argument(
+        "--warmup_rounds",
+        type=int,
+        help="Number of warmup rounds to run the app. A warmup round is a full run of the application without gathering performance data.",
+    )
+    monitor_parser.add_argument("script", required=True, type=str)
+    monitor_parser.add_argument("script_args", required=True, nargs=argparse.REMAINDER)
+    monitor_parser.set_defaults(func=monitor)
+
+    # parse and read conf file and env
+    args, remaining = parser.parse_known_args()
+    if args.configuration:
+        read_custom_config(args.configuration)
+
+    read_environ()
+
+    if args.log_lvl:
+        save_to_config("log_lvl", args.log_lvl)
+
+    # set logging
     log.setLevel(config.get("debug", "log_lvl"))
 
+    # start function
+    args.func(args)
 
-@cli.command()
-@click.option(
-    "--default",
-    is_flag=True,
-    show_default=True,
-    default=False,
-    help="Print default configuration",
-)
-def showconf(default: bool):
+
+def showconf(args: argparse.Namespace):
     """Print current perun configuration in INI format."""
-    import sys
-
     from perun.configuration import _default_config
 
-    if default:
+    if args.showconf_default:
         config.read_dict(_default_config)
         config.write(sys.stdout)
     else:
         config.write(sys.stdout)
 
 
-@cli.command()
-def sensors():
+def sensors(args: argparse.Namespace):
     """Print sensors assigned to each rank by perun."""
     perun = Perun(config)
     if perun.comm.Get_rank() == 0:
         for rank, bes in enumerate(perun.sensors_config):
-            click.echo(f"Rank: {rank}")
+            print(f"Rank: {rank}")
             for key, items in bes.items():
                 if len(items) > 0:
-                    click.echo(f"   {key}:")
+                    print(f"   {key}:")
                     for device in items:
-                        click.echo(f"       {device}")
-                    click.echo("")
+                        print(f"       {device}")
+                    print("")
 
-        click.echo("Hostnames: ")
+        print("Hostnames: ")
         for host, ranks in perun.host_rank.items():
-            click.echo(f"   {host}: {ranks}")
+            print(f"   {host}: {ranks}")
 
 
-@cli.command()
-def metadata():
+def metadata(args: argparse.Namespace):
     """Print global metadata dictionaries in json format."""
     perun = Perun(config)
 
@@ -98,140 +189,44 @@ def metadata():
         json.dump(metadataDict, sys.stdout, indent=4)
 
 
-@cli.command()
-@click.argument("input_file", type=click.Path(exists=True))
-@click.argument(
-    "output_format",
-    type=click.Choice([format.value for format in IOFormat]),
-)
-@click.option(
-    "-i",
-    "--id",
-    "mr_id",
-    type=str,
-    default=None,
-)
-def export(input_file: str, output_format: str, mr_id: Optional[str]):
+def export(args: argparse.Namespace):
     """Export existing perun output file to another format."""
-    in_file = Path(input_file)
+    in_file = Path(args.input_file)
     if not in_file.exists():
-        click.echo("File does not exist.", err=True)
-        return
+        log.error("File does not exist.")
+        return -1
 
     perun = Perun(config)
 
     out_path = in_file.parent
     inputFormat = IOFormat.fromSuffix(in_file.suffix)
-    out_format = IOFormat(output_format)
+    out_format = IOFormat(args.output_format)
 
     dataNode = perun.import_from(in_file, inputFormat)
-    perun.export_to(out_path, dataNode, out_format, mr_id)
+    if args.run_id:
+        perun.export_to(out_path, dataNode, out_format, args.run_id)
+    else:
+        perun.export_to(out_path, dataNode, out_format)
 
 
-@cli.command(context_settings={"ignore_unknown_options": True})
-# Output option
-@click.option(
-    "-n",
-    "--app_name",
-    help="Name of the monitored application. The name is used to distinguish between multiple applications in the same directory. If left empty, the filename will be  used.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.option(
-    "-i",
-    "--run_id",
-    help="Unique id of the latest run of the application. If left empty, perun will use the SLURM job id, or the current date.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.option(
-    "-f",
-    "--format",
-    type=click.Choice([format.value for format in IOFormat]),
-    help="Report format.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.option(
-    "--data_out",
-    type=click.Path(exists=False, dir_okay=True, file_okay=False),
-    help="Where to save the output files, defaults to the current working directory.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-# Sampling Options
-@click.option(
-    "--sampling_rate",
-    type=float,
-    help="Sampling rate in seconds.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-# Post processing options
-@click.option(
-    "--pue",
-    type=float,
-    help="Data center Power Usage Efficiency.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.option(
-    "--emissions_factor",
-    type=float,
-    help="Emissions factor at compute resource location.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.option(
-    "--price_factor",
-    type=float,
-    help="Electricity price factor at compute resource location.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-# Benchmarking
-@click.option(
-    "--rounds",
-    type=int,
-    help="Number of rounds to run the app.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.option(
-    "--warmup_rounds",
-    type=int,
-    help="Number of warmup rounds to run the app.",
-    callback=save_to_config_callback,
-    expose_value=False,
-)
-@click.argument("script", type=click.Path(exists=True))
-@click.argument("script_args", nargs=-1)
-def monitor(
-    script: str,
-    script_args: tuple,
-):
+def monitor(args: argparse.Namespace):
     """
     Gather power consumption from hardware devices while SCRIPT [SCRIPT_ARGS] is running.
 
     SCRIPT is a path to the python script to monitor, run with arguments SCRIPT_ARGS.
     """
-    # Setup script arguments
-
-    import sys
-
-    perun = Perun(config)
-
-    filePath: Path = Path(script)
+    filePath: Path = Path(args.script)
     log.debug(f"Script path: {filePath}")
-    argIndex = sys.argv.index(script)
+    argIndex = sys.argv.index(args.script)
     sys.argv = sys.argv[argIndex:]
     log.debug(f"Script args: { sys.argv }")
+
+    # Setup script arguments
+    for key, value in args.vars().items():
+        save_to_config(key, value)
+
+    perun = Perun(config)
 
     sys.path.insert(0, str(filePath.parent.absolute()))
 
     perun.monitor_application(filePath)
-
-
-def main():
-    """Cli entrypoint."""
-    cli(auto_envvar_prefix="PERUN")
