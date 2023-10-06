@@ -164,7 +164,7 @@ To get a quick overview of the current configuration that perun is using, use th
     [post-processing]
     pue = 1.58
     emissions_factor = 417.8
-    price_factor = 32.51
+    price_factor = 0.3251
     price_unit = €
 
     [monitor]
