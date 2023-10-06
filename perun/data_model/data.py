@@ -1,15 +1,17 @@
 """Storage Module."""
 import dataclasses
 import enum
+import logging
 import time
 from dataclasses import asdict
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
-from perun import log
 from perun.data_model.measurement_type import MetricMetaData
 from perun.data_model.sensor import DeviceType
+
+log = logging.getLogger("perun")
 
 
 class NodeType(enum.Enum):

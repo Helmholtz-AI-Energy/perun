@@ -1,7 +1,8 @@
 """Comm module."""
+import logging
 from typing import Any, List, Optional
 
-from perun import log
+log = logging.getLogger("perun")
 
 
 class Comm:

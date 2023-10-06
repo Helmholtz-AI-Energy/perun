@@ -1,9 +1,11 @@
 """Backend util."""
+import logging
 import platform
 from typing import Any, Dict, Set
 
-from perun import log
 from perun.backend.backend import Backend
+
+log = logging.getLogger("perun")
 
 
 def getHostMetadata() -> Dict[str, Any]:

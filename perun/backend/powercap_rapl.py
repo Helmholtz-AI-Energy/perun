@@ -1,4 +1,5 @@
 """Defines Intel RAPL related classes."""
+import logging
 import os
 import pprint as pp
 import re
@@ -9,11 +10,12 @@ from typing import Callable, List, Set
 import cpuinfo
 import numpy as np
 
-from perun import log
 from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 from perun.util import singleton
+
+log = logging.getLogger("perun")
 
 RAPL_PATH = "/sys/class/powercap/"
 

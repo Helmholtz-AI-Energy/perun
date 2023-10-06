@@ -1,9 +1,11 @@
 """Decorator module."""
 import functools
+import logging
 from typing import Optional
 
-from perun import log
 from perun.perun import Perun
+
+log = logging.getLogger("perun")
 
 
 def monitor(region_name: Optional[str] = None):

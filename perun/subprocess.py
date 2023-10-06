@@ -1,4 +1,5 @@
 """Perun subprocess module."""
+import logging
 import platform
 import time
 from multiprocessing import Queue
@@ -6,12 +7,13 @@ from typing import Dict, List, Set
 
 import numpy as np
 
-from perun import log
 from perun.backend.backend import Backend
 from perun.data_model.data import DataNode, NodeType, RawData
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 from perun.processing import processDataNode, processSensorData
+
+log = logging.getLogger("perun")
 
 
 def perunSubprocess(

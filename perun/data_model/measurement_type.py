@@ -1,11 +1,12 @@
 """Unit module."""
 import dataclasses
 import enum
+import logging
 from typing import Dict
 
 import numpy as np
 
-from perun import log
+log = logging.getLogger("perun")
 
 
 class Unit(str, enum.Enum):

@@ -1,11 +1,11 @@
 """IO Module."""
 
 import enum
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Union
 
-from perun import log
 from perun.data_model.data import DataNode
 from perun.io.bench import exportBench
 from perun.io.hdf5 import exportHDF5, importHDF5
@@ -13,6 +13,8 @@ from perun.io.json import exportJson, importJson
 from perun.io.pandas import exportCSV
 from perun.io.pickle import exportPickle, importPickle
 from perun.io.text_report import textReport
+
+log = logging.getLogger("perun")
 
 _suffixes = {
     "text": "txt",
