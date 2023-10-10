@@ -47,8 +47,7 @@ class ROCMBackend(Backend):
         """
         devices = set()
         for i in range(rocml.smi_get_device_count()):
-            device_id = rocml.smi_get_device_unique_id(i)
-            devices.add(device_id)
+            devices.add(str(i))
         return devices
 
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
@@ -80,10 +79,11 @@ class ROCMBackend(Backend):
 
         devices = []
 
-        for deviceId in deviceList:
+        for deviceStr in deviceList:
+            deviceId = int(deviceStr)
             log.debug(f"Setting up device {deviceId}")
 
-            name = f"ROCM:{deviceId}"
+            name = f"{rocml.smi_get_device_name(deviceId)}_{deviceId}"
             device_type = DeviceType.GPU
             device_metadata = {
                 "uuid": deviceId,
