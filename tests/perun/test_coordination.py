@@ -102,7 +102,3 @@ def test_assignSensors():
 
     output = assignSensors(devices, hosts)
     assert compareNestedListDictSet(output, result)
-
-
-# def test_perunSubprocess(monkeypatch: MonkeyPatch, backends):
-#     monkeypatch.setattr(target="perun.backend.backend", name="backends", )

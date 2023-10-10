@@ -9,6 +9,7 @@ import perun
 from perun.configuration import config, read_custom_config, read_environ, save_to_config
 from perun.io.io import IOFormat
 from perun.perun import Perun
+from perun.util import printableSensorConfiguration
 
 log = logging.getLogger("perun")
 
@@ -131,6 +132,11 @@ def cli():
 
     # parse and read conf file and env
     args, remaining = parser.parse_known_args()
+
+    if args.subcommand is None:
+        parser.print_help()
+        return
+
     if args.configuration:
         read_custom_config(args.configuration)
 
@@ -162,18 +168,10 @@ def sensors(args: argparse.Namespace):
     """Print sensors assigned to each rank by perun."""
     perun = Perun(config)
     if perun.comm.Get_rank() == 0:
-        for rank, bes in enumerate(perun.sensors_config):
-            print(f"Rank: {rank}")
-            for key, items in bes.items():
-                if len(items) > 0:
-                    print(f"   {key}:")
-                    for device in items:
-                        print(f"       {device}")
-                    print("")
-
-        print("Hostnames: ")
-        for host, ranks in perun.host_rank.items():
-            print(f"   {host}: {ranks}")
+        printableConfig = printableSensorConfiguration(
+            perun.sensors_config, perun.host_rank
+        )
+        print(printableConfig)
 
 
 def metadata(args: argparse.Namespace):
