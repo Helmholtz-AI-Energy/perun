@@ -22,15 +22,15 @@ SUBDIR_RGX = r"intel-rapl:\d:\d$"
 
 
 @singleton
-class IntelRAPLBackend(Backend):
-    """Intel RAPL as a source of cpu and memory devices.
+class PowercapRAPLBackend(Backend):
+    """Powercap RAPL as a source of cpu and memory devices.
 
-    Uses pyRAPL to gather device information and creates metrics for each available device
+    Uses the powercap filesystem files to gather device information and creates metrics for each available device
     """
 
-    id = "intel_rapl"
-    name = "Intel RAPL"
-    description = "Reads energy usage from CPUs and DRAM using Intel RAPL"
+    id = "powercap_rapl"
+    name = "Powercap RAPL"
+    description = "Reads energy usage from CPUs and DRAM using Powercap RAPL"
 
     def setup(self):
         """Check Intel RAPL access."""
@@ -167,7 +167,7 @@ class IntelRAPLBackend(Backend):
                 del self.devices[pkg.id]
 
         log.debug(
-            f"IntelRapl devices {pp.pformat([deviceId for deviceId in self.devices])}"
+            f"Powercap RAPL devices {pp.pformat([deviceId for deviceId in self.devices])}"
         )
 
     def close(self) -> None:
