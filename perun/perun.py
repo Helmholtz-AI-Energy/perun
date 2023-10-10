@@ -13,9 +13,10 @@ from typing import Any, Dict, List, Optional, Set, Type
 
 from perun import __version__, log
 from perun.backend.backend import Backend
-from perun.backend.intel_rapl import IntelRAPLBackend
 from perun.backend.nvml import NVMLBackend
+from perun.backend.powercap_rapl import PowercapRAPLBackend
 from perun.backend.psutil import PSUTILBackend
+from perun.backend.rocmsmi import ROCMBackend
 from perun.backend.util import getBackendMetadata, getHostMetadata
 from perun.comm import Comm
 from perun.coordination import getGlobalSensorRankConfiguration, getHostRankDict
@@ -91,9 +92,10 @@ class Perun:
         if not self._backends:
             self._backends = {}
             classList: Dict[str, Type[Backend]] = {
-                "IntelRAPL": IntelRAPLBackend,
+                "PowercapRAPL": PowercapRAPLBackend,
                 "NVML": NVMLBackend,
                 "PSUTIL": PSUTILBackend,
+                "ROCM": ROCMBackend,
             }
             for name, backend in classList.items():
                 try:

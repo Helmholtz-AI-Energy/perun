@@ -1,15 +1,17 @@
 """Nvidia Mangement Library Source definition."""
+import logging
 from typing import Callable, List, Set
 
 import numpy as np
 import pynvml
 from pynvml import NVMLError
 
-from perun import log
 from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 from perun.util import singleton
+
+log = logging.getLogger("perun")
 
 
 @singleton
@@ -42,8 +44,10 @@ class NVMLBackend(Backend):
     def visibleSensors(self) -> Set[str]:
         """Return string ids of visible devices.
 
-        :return: Set with string ids.
-        :rtype: Set[str]
+        Returns
+        -------
+        Set[str]
+            Set with sensor ids.
         """
         devices = set()
         for i in range(pynvml.nvmlDeviceGetCount()):
@@ -52,12 +56,17 @@ class NVMLBackend(Backend):
         return devices
 
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
-        """Gather sensor objects based on a set of device ids.
+        """Gather sensor object based on a set of device ids.
 
-        :param deviceList: Set containing device ids.
-        :type deviceList: Set[str]
-        :return: List with sensor objects
-        :rtype: List[Sensor]
+        Parameters
+        ----------
+        deviceList : Set[str]
+            Set containing divice ids.
+
+        Returns
+        -------
+        List[Sensor]
+            List with Sensor objects.
         """
         pynvml.nvmlInit()
 
