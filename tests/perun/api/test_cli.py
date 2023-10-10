@@ -1,3 +1,4 @@
+import configparser
 import subprocess
 
 from perun.api.cli import _get_arg_parser
@@ -22,7 +23,16 @@ def test_sensors_command(perun: Perun):
 
 
 def test_showconf_command(perun: Perun):
+    # 1) Are the outputs the same?
     processorOut = subprocess.run(
         ["perun", "showconf"], capture_output=True, text=True
     ).stdout
-    print(processorOut)
+    parser = configparser.ConfigParser(allow_no_value=True)
+    parser.read_string(processorOut)
+    assert parser == perun.config
+
+    # 2) Are cli arguments correctly set?
+
+    # 3) Are files read correctly?
+
+    # 4) Does default ignore everything?
