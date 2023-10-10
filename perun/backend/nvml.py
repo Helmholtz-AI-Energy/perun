@@ -1,10 +1,9 @@
 """Nvidia Mangement Library Source definition."""
+import importlib
 import logging
 from typing import Callable, List, Set
 
 import numpy as np
-import pynvml
-from pynvml import NVMLError
 
 from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
@@ -27,11 +26,12 @@ class NVMLBackend(Backend):
 
     def setup(self):
         """Init pynvml and gather number of devices."""
-        pynvml.nvmlInit()
-        deviceCount = pynvml.nvmlDeviceGetCount()
+        self.pynvml = importlib.import_module("pynmvl")
+        self.pynvml.nvmlInit()
+        deviceCount = self.pynvml.nvmlDeviceGetCount()
         self.metadata = {
-            "cuda_version": str(pynvml.nvmlSystemGetCudaDriverVersion()),
-            "driver_version": str(pynvml.nvmlSystemGetDriverVersion()),
+            "cuda_version": str(self.pynvml.nvmlSystemGetCudaDriverVersion()),
+            "driver_version": str(self.pynvml.nvmlSystemGetDriverVersion()),
             "source": "Nvidia Managment Library",
         }
 
@@ -39,7 +39,7 @@ class NVMLBackend(Backend):
 
     def close(self):
         """Backend shutdown code."""
-        pynvml.nvmlShutdown()
+        self.pynvml.nvmlShutdown()
 
     def visibleSensors(self) -> Set[str]:
         """Return string ids of visible devices.
@@ -50,9 +50,9 @@ class NVMLBackend(Backend):
             Set with sensor ids.
         """
         devices = set()
-        for i in range(pynvml.nvmlDeviceGetCount()):
-            handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-            devices.add(pynvml.nvmlDeviceGetUUID(handle))
+        for i in range(self.pynvml.nvmlDeviceGetCount()):
+            handle = self.pynvml.nvmlDeviceGetHandleByIndex(i)
+            devices.add(self.pynvml.nvmlDeviceGetUUID(handle))
         return devices
 
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
@@ -68,17 +68,17 @@ class NVMLBackend(Backend):
         List[Sensor]
             List with Sensor objects.
         """
-        pynvml.nvmlInit()
+        self.pynvml.nvmlInit()
 
         def getCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
-                return np.uint32(pynvml.nvmlDeviceGetPowerUsage(handle))
+                return np.uint32(self.pynvml.nvmlDeviceGetPowerUsage(handle))
 
             return func
 
         def getUsedMemCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
-                return np.uint64(pynvml.nvmlDeviceGetMemoryInfo(handle).used)
+                return np.uint64(self.pynvml.nvmlDeviceGetMemoryInfo(handle).used)
 
             return func
 
@@ -87,19 +87,19 @@ class NVMLBackend(Backend):
         for deviceId in deviceList:
             try:
                 log.debug(f"Getting handle from '{deviceId}'")
-                handle = pynvml.nvmlDeviceGetHandleByUUID(deviceId)
-                index = pynvml.nvmlDeviceGetIndex(handle)
+                handle = self.pynvml.nvmlDeviceGetHandleByUUID(deviceId)
+                index = self.pynvml.nvmlDeviceGetIndex(handle)
                 log.debug(f"Index: {index} - Handle : {handle}")
 
                 name = f"CUDA:{index}"
                 device_type = DeviceType.GPU
                 device_metadata = {
                     "uuid": deviceId,
-                    "name": str(pynvml.nvmlDeviceGetName(handle)),
+                    "name": str(self.pynvml.nvmlDeviceGetName(handle)),
                     **self.metadata,
                 }
                 max_power = np.uint32(
-                    pynvml.nvmlDeviceGetPowerManagementDefaultLimit(handle)
+                    self.pynvml.nvmlDeviceGetPowerManagementDefaultLimit(handle)
                 )
                 log.debug(f"Device {deviceId} Max Power : {max_power}")
 
@@ -120,7 +120,9 @@ class NVMLBackend(Backend):
                         getCallback(handle),
                     )
                 )
-                max_memory = np.uint64(pynvml.nvmlDeviceGetMemoryInfo(handle).total)
+                max_memory = np.uint64(
+                    self.pynvml.nvmlDeviceGetMemoryInfo(handle).total
+                )
                 data_type = MetricMetaData(
                     Unit.BYTE,
                     Magnitude.ONE,
@@ -139,7 +141,7 @@ class NVMLBackend(Backend):
                     )
                 )
 
-            except NVMLError as e:
+            except self.pynvml.NVMLError as e:
                 log.warning(f"Could not find device {deviceId}")
                 log.warning(e)
 

@@ -1,9 +1,9 @@
 """ROCM Backend."""
+import importlib
 import logging
 from typing import Callable, List, Set
 
 import numpy as np
-from pyrsmi import rocml
 
 from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
@@ -26,16 +26,17 @@ class ROCMBackend(Backend):
 
     def setup(self):
         """Init rocm object."""
-        rocml.smi_initialize()
+        self.rocml = importlib.import_module("pyrsmi").rocml
+        self.rocml.smi_initialize()
         self.metadata = {
-            "rocm_smi_version": rocml.smi_get_version(),
-            "rocm_kernel_version": rocml.smi_get_kernel_version(),
+            "rocm_smi_version": self.rocml.smi_get_version(),
+            "rocm_kernel_version": self.rocml.smi_get_kernel_version(),
             "source": "ROCM SMI",
         }
 
     def close(self):
         """Backend cleanup."""
-        rocml.smi_shutdown()
+        self.rocml.smi_shutdown()
 
     def visibleSensors(self) -> Set[str]:
         """Return string ids of visible devices.
@@ -46,7 +47,7 @@ class ROCMBackend(Backend):
             Set with sensor ids.
         """
         devices = set()
-        for i in range(rocml.smi_get_device_count()):
+        for i in range(self.rocml.smi_get_device_count()):
             devices.add(str(i))
         return devices
 
@@ -63,17 +64,17 @@ class ROCMBackend(Backend):
         List[Sensor]
             List with Sensor objects.
         """
-        rocml.smi_initialize()
+        self.rocml.smi_initialize()
 
         def getPowerCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
-                return np.float32(rocml.smi_get_device_average_power(handle))
+                return np.float32(self.rocml.smi_get_device_average_power(handle))
 
             return func
 
         def getMemCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
-                return np.float32(rocml.smi_get_device_memory_used(handle))
+                return np.float32(self.rocml.smi_get_device_memory_used(handle))
 
             return func
 
@@ -83,11 +84,11 @@ class ROCMBackend(Backend):
             deviceId = int(deviceStr)
             log.debug(f"Setting up device {deviceId}")
 
-            name = f"{rocml.smi_get_device_name(deviceId)}_{deviceId}"
+            name = f"{self.rocml.smi_get_device_name(deviceId)}_{deviceId}"
             device_type = DeviceType.GPU
             device_metadata = {
                 "uuid": deviceId,
-                "name": rocml.smi_get_device_name(deviceId),
+                "name": self.rocml.smi_get_device_name(deviceId),
                 **self.metadata,
             }
 
@@ -108,7 +109,7 @@ class ROCMBackend(Backend):
                     getPowerCallback(deviceId),
                 )
             )
-            max_memory = np.uint64(rocml.smi_get_device_memory_total(deviceId))
+            max_memory = np.uint64(self.rocml.smi_get_device_memory_total(deviceId))
             data_type = MetricMetaData(
                 Unit.BYTE,
                 Magnitude.ONE,
