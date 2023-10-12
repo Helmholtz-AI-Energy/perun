@@ -38,6 +38,7 @@ mypy = "*"
 black = "*"
 pre-commit = "*"
 pydocstyle = "*"
+python-semantic-release = "^8.1.1"
 
 [tool.poetry.group.docs]
 optional = true
@@ -57,7 +58,10 @@ mpi4py = "^3.1"
 version_variable = [ "perun/__init__.py:__version__", "docs/conf.py:release" ]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 commit_message = "{version} [skip ci]"
-build_command = "pip install poetry && poetry build"
+
+[tool.semantic_release.branches.test]
+match = "cx/continous-release-refactor"
+prerelease = false
 
 [tool.semantic_release.branches.release]
 match = "release"
