@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - release
+      - release-test
+
+jobs:
+  Test:
+    uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@cx/continous-release-refactor
+  Version-And-Changelog:
+    needs: Test
+    concurrency: publish
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-python@v4
+    - name: Install dependencies
+      run: |
+        pip install poetry
+        poetry install --with dev
+    - name: Update version and changelog
+      run: |
+        semantic-release version --skip-build --no-vcs-release
+      env:
+        GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+  Release:
+    needs: [Test, Version-And-Changelog]
+    runs-on: ubuntu-latest
+    environment: release
+    concurrency: publish
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+    - name: Install dependencies
+      run: |
+        pip install poetry
+        poetry install --with dev

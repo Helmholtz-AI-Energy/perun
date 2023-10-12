@@ -59,6 +59,9 @@ version_variable = [ "perun/__init__.py:__version__", "docs/conf.py:release" ]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 commit_message = "{version} [skip ci]"
 
+[tool.semantic_release.remote.token]
+env = "GH_TOKEN"
+
 [tool.semantic_release.branches.test]
 match = "cx/continous-release-refactor"
 prerelease = false
