@@ -55,7 +55,7 @@ optional = true
 mpi4py = "^3.1"
 
 [tool.semantic_release]
-version_variable = [ "perun/__init__.py:__version__", "docs/conf.py:release" ]
+version_variables = [ "perun/__init__.py:__version__", "docs/conf.py:release" ]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 commit_message = "{version} [skip ci]"
 
