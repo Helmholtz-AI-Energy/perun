@@ -9,7 +9,7 @@ on:
 jobs:
   Test:
     uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@cx/continous-release-refactor
-  Version-And-Changelog:
+  VersionAndChangelog:
     needs: Test
     concurrency: publish
     permissions:
@@ -32,11 +32,11 @@ jobs:
         poetry run semantic-release version --no-vcs-release --skip-build
         NEW_VERSION="$(git describe)"
         echo $NEW_VERSION
-        echo "newVersion=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+        echo "newVersion=$NEW_VERSION" >> $GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
   Release-to-Pypi:
-    needs: Version-And-Changelog
+    needs: VersionAndChangelog
     runs-on: ubuntu-latest
     environment: release
     concurrency: publish
@@ -46,7 +46,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
-        ref: ${{ needs.Version-And-Changelog.outputs.newVersion }}
+        ref: ${{ needs.VersionAndChangelog.outputs.newVersion }}
     - uses: actions/setup-python@v4
     - name: Install dependencies
       run: |
@@ -71,7 +71,7 @@ jobs:
         poetry config pypi-token.testpypi ${{ secrets.TESTPYPI_TOKEN }}
         poetry publish --repository testpypi
   Release-to-GitHub:
-    needs: [Version-And-Changelog, Release-to-Pypi]
+    needs: [VersionAndChangelog, Release-to-Pypi]
     runs-on: ubuntu-latest
     permissions:
       contents: write  # IMPORTANT: mandatory for making GitHub Releases
@@ -93,5 +93,5 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: >-
           gh release upload
-          '${{ needs.Version-and-Changelog.outputs.newVersion }}' dist/**
+          '${{ needs.VersionAndChangelog.outputs.newVersion }}' dist/**
           --repo '${{ github.repository }}'
