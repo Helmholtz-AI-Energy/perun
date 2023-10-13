@@ -3,9 +3,8 @@ name: Test
 on:
   push:
     branches:
-      - '*'
-      - '*/*'
-      - '!release'
+      - '!release-*'
+      - '!main'
   workflow_call:
 
 jobs:
