@@ -15,6 +15,8 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
+    outputs:
+      newVersion: ${{ steps.semanticRelease.outptus.newVersion }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -25,8 +27,11 @@ jobs:
         pip install poetry
         poetry install --with dev
     - name: Update version and changelog
+      id: semanticRelease
       run: |
-        poetry run semantic-release version --skip-build --no-vcs-release
+        poetry run semantic-release version --no-vcs-release --skip-build
+        newTag=$(poetry run semantic-release version --print)
+        echo "newVersion=${newTag}" >> "$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
   Release-to-Pypi:
@@ -39,6 +44,8 @@ jobs:
       id-token: write
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.Version-And-Changelog.outputs.newVersion }}
     - uses: actions/setup-python@v4
     - name: Install dependencies
       run: |
@@ -52,18 +59,18 @@ jobs:
         name: python-package-distributions
         path: dist/
     - name: Publish to Pypi
-      if: ${{ github.head_ref == 'release' }}
+      if: ${{ github.ref_name == 'release' }}
       run: |
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
     - name: Publish to Test Pypi
-      if: ${{ github.head_ref == 'release-test' }}
+      if: ${{ github.ref_name == 'release-test' }}
       run: |
         poetry config repositories.testpypi https://test.pypi.org/legacy/
         poetry config pypi-token.testpypi ${{ secrets.TESTPYPI_TOKEN }}
         poetry publish --repostitory testpypi
   Release-to-GitHub:
-    needs: Release-to-Pypi
+    needs: [Version-And-Changelog, Release-to-Pypi]
     runs-on: ubuntu-latest
     permissions:
       contents: write  # IMPORTANT: mandatory for making GitHub Releases
@@ -85,5 +92,5 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: >-
           gh release upload
-          '${{ github.ref_name }}' dist/**
+          '${{ needs.Version-and-Changelog.outputs.newVersion }}' dist/**
           --repo '${{ github.repository }}'
