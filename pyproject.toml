@@ -43,7 +43,7 @@ pydocstyle = "*"
 optional = true
 
 [tool.poetry.group.docs.dependencies]
-sphinx = "<7.0"
+sphinx = "*"
 sphinx-rtd-theme = "*"
 sphinx-autoapi = "*"
 

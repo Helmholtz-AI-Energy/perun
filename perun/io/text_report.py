@@ -89,12 +89,12 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
 
         host_device_rows.append(entry)
 
-    mr_table = pd.DataFrame.from_records(host_device_rows)
+    mr_table = pd.DataFrame.from_records(host_device_rows).sort_values(by="Host")
     mr_report_str = f"RUN ID: {mr_id}\n\n" + mr_table.to_markdown(index=False) + "\n\n"
 
     # Regions
     if len(region_rows) > 0:
-        region_table = pd.DataFrame.from_records(region_rows)
+        region_table = pd.DataFrame.from_records(region_rows).sort_values("Function")
         region_report_str = (
             "Monitored Functions\n\n" + region_table.to_markdown(index=False) + "\n\n"
         )
