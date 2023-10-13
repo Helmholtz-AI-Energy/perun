@@ -15,15 +15,14 @@
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Documentation Status](https://readthedocs.org/projects/perun/badge/?version=latest)](https://perun.readthedocs.io/en/latest/?badge=latest)
 
-perun is a Python package that calculates the energy consumption of Python scripts by sampling usage statistics from Intel RAPL, Nvidia-NVML, and psutil. It can handle MPI applications, gather data from hundreds of nodes, and accumulate it efficiently. perun can be used as a command-line tool or as a function decorator in Python scripts.
+perun is a Python package that calculates the energy consumption of Python scripts by sampling usage statistics from your Intel, Nvidia or AMD hardware components. It can handle MPI applications, gather data from hundreds of nodes, and accumulate it efficiently. perun can be used as a command-line tool or as a function decorator in Python scripts.
 
 Check out the [docs](https://perun.readthedocs.io/en/latest/) or a working [example](https://github.com/Helmholtz-AI-Energy/perun/blob/main/examples/torch_mnist/README.md)!
 
 ## Key Features
 
- - Measures energy consumption of Python scripts using Intel RAPL, Nvidia-NVML, and psutil
- - Handles MPI applications efficiently
- - Gathers data from hundreds of nodes and accumulates it efficiently
+ - Measures energy consumption of Python scripts using Intel RAPL, ROCM-SMI, Nvidia-NVML, and psutil
+ - Capable of handling MPI application, gathering data from hundreds of nodes efficiently
  - Monitor individual functions using decorators
  - Tracks energy usage of the application over multiple executions
  - Easy to benchmark applications and functions
@@ -34,6 +33,11 @@ From PyPI:
 
 ```console
 pip install perun
+```
+
+> Extra dependencies like nvidia-smi, rocm-smi and mpi can be installed through pip as well:
+```console
+pip install perun[nvidia, rocm, mpi]
 ```
 
 From Github:
