@@ -16,7 +16,7 @@ jobs:
       contents: write
     runs-on: ubuntu-latest
     outputs:
-      newVersion: ${{ steps.semanticRelease.outptus.newVersion }}
+      newVersion: ${{ steps.semanticRelease.outputs.newVersion }}
     steps:
     - uses: actions/checkout@v4
       with:
@@ -30,8 +30,7 @@ jobs:
       id: semanticRelease
       run: |
         poetry run semantic-release version --no-vcs-release --skip-build
-        newTag=$(poetry run semantic-release version --print)
-        echo "newVersion=${newTag}" >> "$GITHUB_OUTPUT"
+        echo "newVersion=$(git describe)" >> "$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
   Release-to-Pypi:
