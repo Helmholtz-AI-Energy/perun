@@ -30,7 +30,9 @@ jobs:
       id: semanticRelease
       run: |
         poetry run semantic-release version --no-vcs-release --skip-build
-        echo "newVersion=$(git describe)" >> "$GITHUB_OUTPUT"
+        NEW_VERSION="$(git describe)"
+        echo $NEW_VERSION
+        echo "newVersion=$NEW_VERSION" >> "$GITHUB_OUTPUT"
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
   Release-to-Pypi:
