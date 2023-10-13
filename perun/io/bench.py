@@ -1,13 +1,16 @@
 """Bench io module."""
 import json
+import logging
 from typing import Dict, List, Tuple
 
 import numpy as np
 
-from perun import log
 from perun.data_model.data import DataNode, MetricType, Stats
 from perun.data_model.measurement_type import Magnitude, MetricMetaData
 from perun.io.util import getTFactorMag
+
+log = logging.getLogger("perun")
+
 
 lessIsBetterMetrics = [MetricType.RUNTIME, MetricType.ENERGY]
 

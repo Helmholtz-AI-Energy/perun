@@ -1,18 +1,16 @@
 """Configuration module."""
 # gCO2eq/kWh - source: https://ourworldindata.org/grapher/carbon-intensity-electricity Global Average
-# cent/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ 03.05.2023
+# Currency/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ 03.05.2023
 import configparser
 import os
 from pathlib import Path
-from typing import Any, Mapping, Optional, Union
-
-import click
+from typing import Any, Mapping
 
 _default_config: Mapping[str, Mapping[str, Any]] = {
     "post-processing": {
         "pue": 1.58,
         "emissions_factor": 417.80,  # gCO2eq/kWh
-        "price_factor": 32.51,  # Cent/kWh
+        "price_factor": 0.3251,  # Currency/kWh
         "price_unit": "€",
     },
     "monitor": {
@@ -46,49 +44,29 @@ if globalConfigPath.exists() and globalConfigPath.is_file():
 
 
 def read_custom_config(
-    ctx: Optional[click.Context],
-    param: Optional[Union[click.Option, click.Parameter]],
     pathStr: str,
 ) -> None:
-    """Read an INI configuration file and overrides the values from the default and global configuration.
+    """Read INI config file and save in global configuration objects.
 
-    :param ctx: Command line context object (ignore)
-    :type ctx: Optional[click.Context]
-    :param param: Click CLI object (ignore)
-    :type param: Optional[Union[click.Option, click.Parameter]]
-    :param pathStr: String to configuration file (don't ignore)
-    :type pathStr: str
+    Parameters
+    ----------
+    pathStr : str
+        Path to configuration file.
     """
     configPath: Path = Path(pathStr)
     if configPath.exists() and configPath.is_file():
         config.read(configPath)
 
 
-def save_to_config_callback(
-    ctx: click.Context, param: Union[click.Option, click.Parameter], value: Any
-):
-    """Override configuration with click cli options.
-
-    :param ctx: Click context (ignore)
-    :type ctx: click.Context
-    :param param: Click parameters/options
-    :type param: Union[click.Option, click.Parameter]
-    :param value: New configuration value
-    :type value: Any
-    """
-    if value and isinstance(param, click.Option):
-        key: Optional[str] = param.name
-        if key:
-            save_to_config(key, value)
-
-
 def save_to_config(key: str, value: Any):
-    """Override individual configuration values.
+    """Save key and value to configuration.
 
-    :param key: Option name
-    :type key: str
-    :param value: Option value
-    :type value: Any
+    Parameters
+    ----------
+    key : str
+        Option name
+    value : Any
+        Option value
     """
     for section in config.sections():
         if config.has_option(section, key):

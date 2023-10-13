@@ -1,12 +1,12 @@
 """Processing Module."""
 import copy
+import logging
 from datetime import datetime
 from itertools import chain
 from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from perun import log
 from perun.data_model.data import (
     AggregateType,
     DataNode,
@@ -19,6 +19,8 @@ from perun.data_model.data import (
 )
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType
+
+log = logging.getLogger("perun")
 
 
 def processEnergyData(

@@ -15,11 +15,11 @@ or if you need the latests updates, you can install from the main branch of gith
 
     $ pip install https://github.com/Helmholtz-AI-Energy/perun
 
-If you are going to work with MPI, you can install it as an extra dependecy.
+If you are going to work with MPI or GPUs, you can install it as extra dependencies.
 
 .. code-block:: console
 
-    $ pip install perun[mpi]
+    $ pip install perun[mpi, nvidia, rocm]
 
 If you want to get the source code and modify it, you can clone the source code using git.
 
@@ -56,7 +56,7 @@ CPU
 
 Supported backends:
 
- - CPU energy: Intel RAPL throught `powercap <https://github.com/powercap/powercap>`_ for linux machines.
+ - CPU energy: Powercap RAPL throught `powercap <https://github.com/powercap/powercap>`_ for linux machines, supports recent Intel and AMD CPUs.
  - CPU utilization: `psutil <https://github.com/giampaolo/psutil>`_
 
 Currently, cpu energy readings from perun only support linux environments with read access to the *powercap-rapl* interface, which can only be read by ``root`` on Linux 5.10 and later. If that is the case, please contact you system admin for solutions. We are currently working on alternative methods to provide energy readings.
@@ -66,7 +66,8 @@ GPU
 
 Supported backends:
 
- - GPU power draw: `NVIDIA NVML <https://developer.nvidia.com/nvidia-management-library-nvml>`_ through nvidia-ml-py.
+ - NVIDIA GPU power draw: `NVIDIA NVML <https://developer.nvidia.com/nvidia-management-library-nvml>`_ through nvidia-ml-py.
+ - AMD GPU power draw: `ROCM SMI <https://github.com/RadeonOpenCompute/pyrsmi>`_ through pyrsmi.
 
 DRAM
 ~~~~

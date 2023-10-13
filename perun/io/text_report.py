@@ -108,7 +108,9 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
         e_pue = total_energy * config.getfloat("post-processing", "pue")
         e_kWh = e_pue / (3600 * 1e3)
         kgCO2 = e_kWh * config.getfloat("post-processing", "emissions_factor") / 1e3
-        money = e_kWh * config.getfloat("post-processing", "price_factor") / 1e2
+        money = e_kWh * config.getfloat(
+            "post-processing", "price_factor"
+        )  # Currency / kWh
         money_icon = config.get("post-processing", "price_unit")
 
         summary_str = f"The application has been run {n_runs} times. Throughout its runtime, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it.\n"

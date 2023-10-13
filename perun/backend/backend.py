@@ -1,10 +1,11 @@
 """Backend module."""
+import logging
 from abc import ABC, abstractmethod
 from typing import Dict, List, Set
 
-from perun import log
-
 from ..data_model.sensor import Sensor
+
+log = logging.getLogger("perun")
 
 
 class Backend(ABC):

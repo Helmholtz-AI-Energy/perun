@@ -1,10 +1,12 @@
 """Coordination module."""
+import logging
 import pprint as pp
 from typing import Dict, List, Set, Tuple
 
-from perun import log
 from perun.backend.backend import Backend
 from perun.comm import Comm
+
+log = logging.getLogger("perun")
 
 
 def getHostRankDict(comm: Comm, hostname: str) -> Dict[str, List[int]]:

@@ -16,7 +16,7 @@ Options
     "pue", 1.58, "Power Usage Effectiveness: A measure of a data centers efficiency, calculated as
     PUE = Total facilitty energy / IT equipment energy"
     "emissions_factor", 417.80, "Average carbon intensity of electricity (gCO2e/kWh). Source: https://ourworldindata.org/grapher/carbon-intensity-electricity"
-    "price_factor", 32.51, "Power to Currency conversion factor (Cent/kWh). Source : https://www.stromauskunft.de/strompreise/"
+    "price_factor", 0.3251, "Power to Currency conversion factor (Currency/kWh). Source : https://www.stromauskunft.de/strompreise/"
     "price_unit", €, "Currency Icon"
     "sampling_rate", 1, "Seconds between measurements"
     "app_name", None, "Name to identify the app. If **None**, name will be based on the file or function name."
