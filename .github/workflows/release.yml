@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - release
+      - release-test
+
+jobs:
+  Test:
+    uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@cx/continous-release-refactor
+  VersionAndChangelog:
+    needs: Test
+    concurrency: publish
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.semanticRelease.outputs.newtag }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - uses: actions/setup-python@v4
+    - name: Install dependencies
+      run: |
+        pip install poetry
+        poetry install --with dev
+    - name: Update version and changelog
+      id: semanticRelease
+      run: |
+        poetry run semantic-release version --no-vcs-release --skip-build
+        NEW_VERSION="$(git describe)"
+        echo $NEW_VERSION
+        echo "newtag='${NEW_VERSION}'" >> $GITHUB_OUTPUT
+      env:
+        GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+  Release-to-Pypi:
+    needs: VersionAndChangelog
+    runs-on: ubuntu-latest
+    environment: release
+    concurrency: publish
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+    - name: Get new tag
+      run: |
+        echo ${{ needs.VersionAndChangelog.outputs.newtag }}
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v4
+    - name: Install dependencies
+      run: |
+        pip install poetry
+    - name: Build perun
+      run: |
+        poetry build
+    - name: Store the distribution packages
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-package-distributions
+        path: dist/
+    - name: Publish to Pypi
+
+      if: ${{ !contains(github.ref, 'rc') }}
+      run: |
+        poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
+        poetry publish
+    - name: Publish to Test Pypi
+      if: ${{ contains(github.ref, 'rc') }}
+      run: |
+        poetry config repositories.testpypi https://test.pypi.org/legacy/
+        poetry config pypi-token.testpypi ${{ secrets.TESTPYPI_TOKEN }}
+        poetry publish --repository testpypi
+  Release-to-GitHub:
+    needs: Release-to-Pypi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # IMPORTANT: mandatory for making GitHub Releases
+      id-token: write  # IMPORTANT: mandatory for sigstore
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v3
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v1.2.3
+        with:
+          inputs: >-
+            ./dist/*.tar.gz
+            ./dist/*.whl
+      - name: Upload artifact signatures to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          gh release upload '$(git describe)' dist/** --repo '${{ github.repository }}'
