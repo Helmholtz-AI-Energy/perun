@@ -13,7 +13,7 @@ perun = "perun.api.cli:cli"
 [tool.poetry.dependencies]
 python = ">=3.8,<4.0"
 py-cpuinfo = ">=5.0.0"
-numpy = "^1.20.0"
+numpy = ">=1.20.0"
 psutil = "^5.9.0"
 h5py = "^3.5.9"
 pandas = {version = ">=1.3"}
@@ -38,6 +38,7 @@ mypy = "*"
 black = "*"
 pre-commit = "*"
 pydocstyle = "*"
+python-semantic-release = "^8.1.1"
 
 [tool.poetry.group.docs]
 optional = true
@@ -54,10 +55,16 @@ optional = true
 mpi4py = "^3.1"
 
 [tool.semantic_release]
-version_variable = [ "perun/__init__.py:__version__", "docs/conf.py:release" ]
+version_variables = [ "perun/__init__.py:__version__", "docs/conf.py:release" ]
 version_toml = ["pyproject.toml:tool.poetry.version"]
 commit_message = "{version} [skip ci]"
-build_command = "pip install poetry && poetry build"
+
+[tool.semantic_release.remote.token]
+env = "GH_TOKEN"
+
+[tool.semantic_release.branches.test]
+match = "release-test"
+prerelease = true
 
 [tool.semantic_release.branches.release]
 match = "release"

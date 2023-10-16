@@ -1,11 +1,12 @@
 name: Test
 
 on:
+  pull_request:
+    types: [synchronize]
   push:
     branches:
-      - '*'
-      - '*/*'
-      - '!release'
+      - main
+  workflow_call:
 
 jobs:
   Test:
@@ -15,7 +16,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -26,6 +27,6 @@ jobs:
           poetry install --with dev
       - name: Test with pytest and cmdline commands
         run: |
-          poetry run pytest
           poetry run perun
           poetry run perun sensors
+          poetry run pytest
