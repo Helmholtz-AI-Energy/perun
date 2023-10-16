@@ -6,9 +6,6 @@ on:
       - release
       - release-test
 
-env:
-  ACTIONS_STEP_DEBUG: true
-
 jobs:
   # Test:
   #   uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@cx/continous-release-refactor
@@ -37,14 +34,10 @@ jobs:
       run: |
         poetry run semantic-release version --no-vcs-release --skip-build
         NEW_VERSION="$(git describe)"
-        echo $NEW_VERSION
-        echo $NEW_VERSION
         echo "newtag=$NEW_VERSION"
-        echo 'newtag=$NEW_VERSION'
-        echo "newtag=${NEW_VERSION}"
-        echo 'newtag=${NEW_VERSION}'
         echo "newtag=$NEW_VERSION" >> $GITHUB_OUTPUT
         echo "sanity=gone" >> $GITHUB_OUTPUT
+        echo $GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
   Release-to-Pypi:
