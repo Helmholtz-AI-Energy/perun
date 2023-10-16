@@ -11,10 +11,12 @@ jobs:
     uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@cx/continous-release-refactor
   VersionAndChangelog:
     needs: Test
+    runs-on: ubuntu-latest
+    environment: release
     concurrency: publish
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+      id-token: write
     outputs:
       tag: ${{ steps.semanticRelease.outputs.newtag }}
 
@@ -34,6 +36,7 @@ jobs:
         NEW_VERSION="$(git describe)"
         echo $NEW_VERSION
         echo "newtag='${NEW_VERSION}'" >> $GITHUB_OUTPUT
+        echo $GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
   Release-to-Pypi:
@@ -63,12 +66,12 @@ jobs:
         path: dist/
     - name: Publish to Pypi
 
-      if: ${{ !contains(github.ref, 'rc') }}
+      if: ${{ !contains(needs.VersionAndChangelog.outputs.newtag, 'rc') }}
       run: |
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
     - name: Publish to Test Pypi
-      if: ${{ contains(github.ref, 'rc') }}
+      if: ${{ contains(needs.VersionAndChangelog.outputs.newtag, 'rc') }}
       run: |
         poetry config repositories.testpypi https://test.pypi.org/legacy/
         poetry config pypi-token.testpypi ${{ secrets.TESTPYPI_TOKEN }}
@@ -76,9 +79,11 @@ jobs:
   Release-to-GitHub:
     needs: Release-to-Pypi
     runs-on: ubuntu-latest
+    environment: release
+    concurrency: publish
     permissions:
-      contents: write  # IMPORTANT: mandatory for making GitHub Releases
-      id-token: write  # IMPORTANT: mandatory for sigstore
+      contents: write
+      id-token: write
     steps:
       - name: Download all the dists
         uses: actions/download-artifact@v3
