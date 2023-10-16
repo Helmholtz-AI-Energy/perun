@@ -11,7 +11,7 @@ jobs:
   #   uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@cx/continous-release-refactor
   VersionAndChangelog:
     outputs:
-      tag: ${{ steps.semantic-release.outputs.newtag }}
+      tag: ${{ steps.semantic-release.outputs.tag }}
       sanity: ${{ steps.semantic-release.outputs.sanity }}
     # needs: Test
     runs-on: ubuntu-latest
@@ -19,7 +19,6 @@ jobs:
     permissions:
       contents: write
       id-token: write
-
     steps:
     - uses: actions/checkout@v4
       with:
@@ -34,8 +33,8 @@ jobs:
       run: |
         poetry run semantic-release version --no-vcs-release --skip-build
         NEW_VERSION="$(git describe)"
-        echo "newtag=$NEW_VERSION"
-        echo "newtag=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "tag=$NEW_VERSION"
+        echo "tag=$NEW_VERSION" >> $GITHUB_OUTPUT
         echo "sanity=gone" >> $GITHUB_OUTPUT
         echo $GITHUB_OUTPUT
       env:
