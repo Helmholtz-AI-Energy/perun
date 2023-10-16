@@ -32,8 +32,11 @@ jobs:
       id: semantic-release
       run: |
         poetry run semantic-release version --no-vcs-release --skip-build
+        OUTPUT="tag=$(git describe)"
         NEW_VERSION="$(git describe)"
         echo "tag=$NEW_VERSION"
+        echo "$output"
+        echo "$output" >> $GITHUB_OUTPUT
         echo "tag=$NEW_VERSION" >> $GITHUB_OUTPUT
         echo "sanity=gone" >> $GITHUB_OUTPUT
         echo $GITHUB_OUTPUT
