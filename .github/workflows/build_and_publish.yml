@@ -1,42 +1,12 @@
-name: Release
+name: Publish
 
 on:
   push:
-    branches:
-      - release
-      - release-test
+    tags:
+      - 'v*'
 
 jobs:
-  Test:
-    uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@cx/continous-release-refactor
-  VersionAndChangelog:
-    needs: Test
-    concurrency: publish
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    outputs:
-      newVersion: ${{ steps.semanticRelease.outputs.newVersion }}
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    - uses: actions/setup-python@v4
-    - name: Install dependencies
-      run: |
-        pip install poetry
-        poetry install --with dev
-    - name: Update version and changelog
-      id: semanticRelease
-      run: |
-        poetry run semantic-release version --no-vcs-release --skip-build
-        NEW_VERSION="$(git describe)"
-        echo $NEW_VERSION
-        echo "newVersion=$NEW_VERSION" >> $GITHUB_OUTPUT
-      env:
-        GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
   Release-to-Pypi:
-    needs: VersionAndChangelog
     runs-on: ubuntu-latest
     environment: release
     concurrency: publish
@@ -45,8 +15,6 @@ jobs:
       id-token: write
     steps:
     - uses: actions/checkout@v4
-      with:
-        ref: ${{ needs.VersionAndChangelog.outputs.newVersion }}
     - uses: actions/setup-python@v4
     - name: Install dependencies
       run: |
@@ -60,18 +28,19 @@ jobs:
         name: python-package-distributions
         path: dist/
     - name: Publish to Pypi
-      if: ${{ github.ref_name == 'release' }}
+
+      if: ${{ !endsWith(github.ref, 'rc') }}
       run: |
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
     - name: Publish to Test Pypi
-      if: ${{ github.ref_name == 'release-test' }}
+      if: ${{ endsWith(github.ref, 'rc') }}
       run: |
         poetry config repositories.testpypi https://test.pypi.org/legacy/
         poetry config pypi-token.testpypi ${{ secrets.TESTPYPI_TOKEN }}
         poetry publish --repository testpypi
   Release-to-GitHub:
-    needs: [VersionAndChangelog, Release-to-Pypi]
+    needs: Release-to-Pypi
     runs-on: ubuntu-latest
     permissions:
       contents: write  # IMPORTANT: mandatory for making GitHub Releases
@@ -92,6 +61,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: >-
-          gh release upload
-          '${{ needs.VersionAndChangelog.outputs.newVersion }}' dist/**
-          --repo '${{ github.repository }}'
+          gh release upload '$(git describe)' dist/** --repo '${{ github.repository }}'
