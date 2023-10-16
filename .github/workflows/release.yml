@@ -98,5 +98,4 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           PERUN_VERSION: ${{ needs.VersionAndChangelog.outputs.tag }}
         run: >-
-          gh release create $PERUN_VERSION --draft --generate-notes --title $PERUN_VERSION --verify-tag
-          gh release upload $PERUN_VERSION dist/** --repo '${{ github.repository }}'
+          gh release create --draft --generate-notes --title $PERUN_VERSION --verify-tag $PERUN_VERSION ./dist/**
