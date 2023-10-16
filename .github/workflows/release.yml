@@ -50,7 +50,7 @@ jobs:
     steps:
     - name: Get new tag
       run: |
-        echo ${{ needs.VersionAndChangelog.outputs.newtag }}
+        echo ${{ needs.VersionAndChangelog.outputs.tag }}
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
     - name: Install dependencies
@@ -66,12 +66,12 @@ jobs:
         path: dist/
     - name: Publish to Pypi
 
-      if: ${{ !contains(needs.VersionAndChangelog.outputs.newtag, 'rc') }}
+      if: ${{ !contains(needs.VersionAndChangelog.outputs.tag, 'rc') }}
       run: |
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
     - name: Publish to Test Pypi
-      if: ${{ contains(needs.VersionAndChangelog.outputs.newtag, 'rc') }}
+      if: ${{ contains(needs.VersionAndChangelog.outputs.tag, 'rc') }}
       run: |
         poetry config repositories.testpypi https://test.pypi.org/legacy/
         poetry config pypi-token.testpypi ${{ secrets.TESTPYPI_TOKEN }}
