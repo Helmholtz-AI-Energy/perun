@@ -18,7 +18,6 @@ jobs:
       sanity: ${{ steps.semantic-release.outputs.sanity }}
     needs: Test
     runs-on: ubuntu-latest
-    environment: release
     concurrency: publish
     permissions:
       contents: write
@@ -39,7 +38,12 @@ jobs:
         poetry run semantic-release version --no-vcs-release --skip-build
         NEW_VERSION="$(git describe)"
         echo $NEW_VERSION
-        echo "newtag=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo $NEW_VERSION
+        echo "newtag=$NEW_VERSION"
+        echo 'newtag=$NEW_VERSION'
+        echo "newtag=${NEW_VERSION}"
+        echo 'newtag=${NEW_VERSION}'
+        echo 'newtag=$NEW_VERSION" >> $GITHUB_OUTPUT
         echo "sanity=gone" >> $GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
