@@ -8,7 +8,7 @@ on:
 
 jobs:
   Test:
-    uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@cx/continous-release-refactor
+    uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@main
   VersionAndChangelog:
     outputs:
       tag: ${{ steps.semantic-release.outputs.tag }}
