@@ -39,7 +39,7 @@ jobs:
         poetry run semantic-release version --no-vcs-release --skip-build
         NEW_VERSION="$(git describe)"
         echo $NEW_VERSION
-        echo "newtag='${NEW_VERSION}'" >> $GITHUB_OUTPUT
+        echo "newtag=$NEW_VERSION" >> $GITHUB_OUTPUT
         echo "sanity=gone" >> $GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
