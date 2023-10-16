@@ -11,7 +11,7 @@ jobs:
     uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@cx/continous-release-refactor
   VersionAndChangelog:
     outputs:
-      tag: ${{ steps.semantic-release.outputs.tag }}
+      version: ${{ steps.semantic-release.outputs.version }}
       sanity: ${{ steps.semantic-release.outputs.sanity }}
     needs: Test
     runs-on: ubuntu-latest
@@ -32,9 +32,6 @@ jobs:
       id: semantic-release
       run: |
         poetry run semantic-release version --no-vcs-release --skip-build
-        NEW_VERSION="$(git describe)"
-        echo "tag=$NEW_VERSION" >> $GITHUB_OUTPUT
-        echo "sanity=gone" >> $GITHUB_OUTPUT
         cat $GITHUB_OUTPUT
       env:
         GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
@@ -49,11 +46,11 @@ jobs:
     steps:
     - name: Get new tag
       run: |
-        echo ${{ needs.VersionAndChangelog.outputs.tag }}
+        echo ${{ needs.VersionAndChangelog.outputs.version }}
         echo ${{ needs.VersionAndChangelog.outputs.sanity }}
     - uses: actions/checkout@v4
       with:
-        ref: ${{ needs.VersionAndChangelog.outputs.tag }}
+        ref: ${{ needs.VersionAndChangelog.outputs.version }}
     - uses: actions/setup-python@v4
     - name: Install dependencies
       run: |
@@ -68,18 +65,18 @@ jobs:
         path: dist/
     - name: Publish to Pypi
 
-      if: ${{ !contains(needs.VersionAndChangelog.outputs.tag, 'rc') }}
+      if: ${{ !contains(needs.VersionAndChangelog.outputs.version, 'rc') }}
       run: |
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
     - name: Publish to Test Pypi
-      if: ${{ contains(needs.VersionAndChangelog.outputs.tag, 'rc') }}
+      if: ${{ contains(needs.VersionAndChangelog.outputs.version, 'rc') }}
       run: |
         poetry config repositories.testpypi https://test.pypi.org/legacy/
         poetry config pypi-token.testpypi ${{ secrets.TESTPYPI_TOKEN }}
         poetry publish --repository testpypi
   Release-to-GitHub:
-    needs: Release-to-Pypi
+    needs: [Release-to-Pypi, VersionAndChangelog]
     runs-on: ubuntu-latest
     environment: release
     concurrency: publish
@@ -101,7 +98,7 @@ jobs:
       - name: Upload artifact signatures to GitHub Release
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          PERUN_VERSION: ${{ needs.VersionAndChangelog.outputs.tag }}
+          PERUN_VERSION: ${{ needs.VersionAndChangelog.outputs.version }}
         run: >-
           gh release create $PERUN_VERSION --draft --generate-notes --title $PERUN_VERSION --verify-tag
           gh release upload $PERUN_VERSION dist/** --repo '${{ github.repository }}'
