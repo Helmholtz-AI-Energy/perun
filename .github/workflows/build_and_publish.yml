@@ -29,12 +29,12 @@ jobs:
         path: dist/
     - name: Publish to Pypi
 
-      if: ${{ !endsWith(github.ref, 'rc') }}
+      if: ${{ !contains(github.ref, 'rc') }}
       run: |
         poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
         poetry publish
     - name: Publish to Test Pypi
-      if: ${{ endsWith(github.ref, 'rc') }}
+      if: ${{ contains(github.ref, 'rc') }}
       run: |
         poetry config repositories.testpypi https://test.pypi.org/legacy/
         poetry config pypi-token.testpypi ${{ secrets.TESTPYPI_TOKEN }}
