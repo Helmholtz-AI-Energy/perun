@@ -1,4 +1,5 @@
 """Core perun functionality."""
+import logging
 import os
 import platform
 import pprint as pp
@@ -11,7 +12,7 @@ from multiprocessing import Event, Process, Queue
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Type
 
-from perun import __version__, log
+from perun import __version__
 from perun.backend.backend import Backend
 from perun.backend.nvml import NVMLBackend
 from perun.backend.powercap_rapl import PowercapRAPLBackend
@@ -25,6 +26,8 @@ from perun.io.io import IOFormat, exportTo, importFrom
 from perun.processing import processDataNode
 from perun.subprocess import perunSubprocess
 from perun.util import getRunId, getRunName, increaseIdCounter, singleton
+
+log = logging.getLogger("perun")
 
 
 @singleton
