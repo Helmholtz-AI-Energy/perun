@@ -335,6 +335,9 @@ class Perun:
                 log.error(
                     f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
                 )
+                s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
+                log.error(f"Rank {self.comm.Get_rank()}: {s}")
+                log.error(f"Rank {self.comm.Get_rank()}: {r}")
                 start_event.set()
                 stop_event.set()
                 log.error(
