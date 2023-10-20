@@ -335,7 +335,17 @@ class Perun:
                 log.error(
                     f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
                 )
+                start_event.set()
                 stop_event.set()
+                log.error(
+                    f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
+                )
+                if perunSP:
+                    perunSP.terminate()
+                    log.error(f"Rank {self.comm.Get_rank()}: Terminating subprocess")
+
+                self.comm.Abort(1)
+                log.error(f"Rank {self.comm.Get_rank()}:  Aborting mpi context.")
                 raise e
 
             # 4) App finished, stop subrocess and get data
