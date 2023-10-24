@@ -26,7 +26,7 @@ class NVMLBackend(Backend):
 
     def setup(self):
         """Init pynvml and gather number of devices."""
-        self.pynvml = importlib.import_module("pynmvl")
+        self.pynvml = importlib.import_module("pynvml")
         self.pynvml.nvmlInit()
         deviceCount = self.pynvml.nvmlDeviceGetCount()
         self.metadata = {

@@ -66,3 +66,8 @@ class Comm:
         """MPI barrier operation."""
         if self._enabled:
             self._comm.barrier()
+
+    def Abort(self, errorcode: int):
+        """MPI Abort operation."""
+        if self._enabled:
+            self._comm.Abort(errorcode=errorcode)
