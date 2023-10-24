@@ -147,7 +147,7 @@ def exportTo(
             log.info(f"Overwriting existing file {output_path}")
 
         reportStr = textReport(dataNode, mr_id)  # type: ignore
-        with open(output_path, fileType) as file:
+        with open(output_path, fileType, encoding="utf-8") as file:
             file.write(reportStr)
 
 
