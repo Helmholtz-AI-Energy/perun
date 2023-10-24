@@ -1,4 +1,4 @@
-certifi==2023.5.7
+certifi==2023.7.22
 charset-normalizer==3.1.0
 cmake==3.26.4
 filelock==3.12.2
@@ -23,7 +23,7 @@ nvidia-nccl-cu11==2.14.3
 nvidia-nvtx-cu11==11.7.91
 pandas==2.0.3
 perun==0.4.0
-Pillow==10.0.0
+Pillow==10.0.1
 psutil==5.9.5
 py-cpuinfo==5.0.0
 pynvml==11.5.0
@@ -37,4 +37,4 @@ torchvision==0.15.2
 triton==2.0.0
 typing_extensions==4.7.1
 tzdata==2023.3
-urllib3==2.0.3
+urllib3==2.0.7
