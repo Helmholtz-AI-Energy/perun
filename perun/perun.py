@@ -1,4 +1,5 @@
 """Core perun functionality."""
+import logging
 import os
 import platform
 import pprint as pp
@@ -11,7 +12,7 @@ from multiprocessing import Event, Process, Queue
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Type
 
-from perun import __version__, log
+from perun import __version__
 from perun.backend.backend import Backend
 from perun.backend.nvml import NVMLBackend
 from perun.backend.powercap_rapl import PowercapRAPLBackend
@@ -25,6 +26,8 @@ from perun.io.io import IOFormat, exportTo, importFrom
 from perun.processing import processDataNode
 from perun.subprocess import perunSubprocess
 from perun.util import getRunId, getRunName, increaseIdCounter, singleton
+
+log = logging.getLogger("perun")
 
 
 @singleton
@@ -335,7 +338,20 @@ class Perun:
                 log.error(
                     f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
                 )
+                s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
+                log.error(f"Rank {self.comm.Get_rank()}: {s}")
+                log.error(f"Rank {self.comm.Get_rank()}: {r}")
+                start_event.set()
                 stop_event.set()
+                log.error(
+                    f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
+                )
+                if perunSP:
+                    perunSP.terminate()
+                    log.error(f"Rank {self.comm.Get_rank()}: Terminating subprocess")
+
+                self.comm.Abort(1)
+                log.error(f"Rank {self.comm.Get_rank()}:  Aborting mpi context.")
                 raise e
 
             # 4) App finished, stop subrocess and get data
