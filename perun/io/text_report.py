@@ -8,6 +8,7 @@ from perun.io.util import value2MeanStdStr, value2ValueUnitStr
 tableMetrics = [
     MetricType.RUNTIME,
     MetricType.ENERGY,
+    MetricType.POWER,
     MetricType.CPU_POWER,
     MetricType.CPU_UTIL,
     MetricType.GPU_POWER,
@@ -101,20 +102,17 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
     else:
         region_report_str = ""
 
-    # Summary
     n_runs = len(dataNode.nodes)
     if MetricType.ENERGY in dataNode.metrics:
+        # Application Summary
         total_energy = dataNode.metrics[MetricType.ENERGY].sum  # type: ignore
-        e_pue = total_energy * config.getfloat("post-processing", "pue")
-        e_kWh = e_pue / (3600 * 1e3)
-        kgCO2 = e_kWh * config.getfloat("post-processing", "emissions_factor") / 1e3
-        money = e_kWh * config.getfloat(
-            "post-processing", "price_factor"
-        )  # Currency / kWh
+        e_kWh = total_energy / (3600 * 1e3)
+        kgCO2 = dataNode.metrics[MetricType.CO2].sum  # type: ignore
+        money = dataNode.metrics[MetricType.MONEY].sum  # type: ignore
         money_icon = config.get("post-processing", "price_unit")
 
-        summary_str = f"The application has been run {n_runs} times. Throughout its runtime, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it.\n"
+        app_summary_str = f"Application Summary\n\nThe application has been run {n_runs} times. Throughout its runtime, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it."
     else:
-        summary_str = f"The application has been run {n_runs} times."
+        app_summary_str = f"The application has been run {n_runs} times."
 
-    return report_header + mr_report_str + region_report_str + summary_str
+    return report_header + mr_report_str + region_report_str + app_summary_str

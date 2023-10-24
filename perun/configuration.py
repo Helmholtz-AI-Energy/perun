@@ -8,7 +8,8 @@ from typing import Any, Mapping
 
 _default_config: Mapping[str, Mapping[str, Any]] = {
     "post-processing": {
-        "pue": 1.58,
+        "power_overhead": 0,  # Watt
+        "pue": 1.0,  # Global Average Power Usage Effectiveness (2022 or something)
         "emissions_factor": 417.80,  # gCO2eq/kWh
         "price_factor": 0.3251,  # Currency/kWh
         "price_unit": "€",

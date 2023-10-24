@@ -2,6 +2,7 @@
 import logging
 import platform
 import time
+from configparser import ConfigParser
 from multiprocessing import Queue
 from typing import Dict, List, Set
 
@@ -21,6 +22,7 @@ def perunSubprocess(
     rank: int,
     backends: Dict[str, Backend],
     l_sensors_config: Dict[str, Set[str]],
+    perunConfig: ConfigParser,
     sp_ready_event,
     start_event,
     stop_event,
@@ -123,7 +125,7 @@ def perunSubprocess(
                 deviceType=deviceType,
             )
 
-            dn = processDataNode(dn)
+            dn = processDataNode(dn, perunConfig)
             deviceGroupNodes.append(dn)
         else:
             deviceGroupNodes.extend(sensorNodes)
@@ -136,7 +138,7 @@ def perunSubprocess(
         metadata={},
         nodes={node.id: node for node in deviceGroupNodes},
     )
-    processDataNode(hostNode)
+    processDataNode(hostNode, perunConfig)
 
     # This should send a single processed node for the current computational node
     queue.put(hostNode, block=True)

@@ -249,7 +249,7 @@ class Perun:
                 nodes=multirun_nodes,
                 processed=False,
             )
-            multirun_node = processDataNode(multirun_node)
+            multirun_node = processDataNode(multirun_node, self.config)
 
             app_data_file = data_out / f"{app_name}.{IOFormat.HDF5.suffix}"
             app_data = None
@@ -273,7 +273,7 @@ class Perun:
                     nodes={multirun_id: multirun_node},
                     processed=False,
                 )
-            app_data = processDataNode(app_data)
+            app_data = processDataNode(app_data, self.config)
 
             self.export_to(data_out, app_data, IOFormat.HDF5)
             if out_format != IOFormat.HDF5:
@@ -308,6 +308,7 @@ class Perun:
                         self.comm.Get_rank(),
                         self.backends,
                         self.l_sensors_config,
+                        self.config,
                         sp_ready_event,
                         start_event,
                         stop_event,
@@ -389,7 +390,7 @@ class Perun:
                     nodes={node.id: node for node in dataNodes if node},
                 )
                 runNode.addRegionData(globalRegions, starttime_ns)
-                runNode = processDataNode(runNode)
+                runNode = processDataNode(runNode, self.config)
 
                 return runNode
             return None

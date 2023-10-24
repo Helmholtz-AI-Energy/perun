@@ -49,6 +49,8 @@ class MetricType(str, enum.Enum):
     OTHER_ENERGY = "other_energy"
     OTHER_MEM = "other_memory"
     N_RUNS = "n_runs"
+    MONEY = "money"
+    CO2 = "co2"
 
 
 class AggregateType(str, enum.Enum):
