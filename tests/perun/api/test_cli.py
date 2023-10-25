@@ -83,8 +83,8 @@ def test_showconf_command_with_default(
     ).stdout
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
-    assert parser.get("debug", "log_lvl") == "INFO"
     assert parser.get("monitor", "sampling_rate") == "2"
+    assert parser.get("debug", "log_lvl") == "INFO"
     assert parser != defaultConfig
 
     defaultConfig.set("monitor", "sampling_rate", "1")
