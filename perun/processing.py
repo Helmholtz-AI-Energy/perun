@@ -1,6 +1,7 @@
 """Processing Module."""
 import copy
 import logging
+from configparser import ConfigParser
 from datetime import datetime
 from itertools import chain
 from typing import Any, Dict, List, Optional, Tuple
@@ -306,13 +307,17 @@ def processSensorData(sensorData: DataNode) -> DataNode:
     return sensorData
 
 
-def processDataNode(dataNode: DataNode, force_process=False) -> DataNode:
+def processDataNode(
+    dataNode: DataNode, perunConfig: ConfigParser, force_process=False
+) -> DataNode:
     """Recursively calculate metrics on the dataNode tree.
 
     Parameters
     ----------
     dataNode : DataNode
         Root data node tree.
+    perunConfig: ConfigParser
+        Perun configuration
     force_process : bool, optional
         Force recomputation of child node metrics, by default False
 
@@ -342,7 +347,9 @@ def processDataNode(dataNode: DataNode, force_process=False) -> DataNode:
             if subNode.type == NodeType.SENSOR:
                 subNode = processSensorData(subNode)
             else:
-                subNode = processDataNode(subNode, force_process=force_process)
+                subNode = processDataNode(
+                    subNode, perunConfig=perunConfig, force_process=force_process
+                )
 
         if dataNode.type == NodeType.APP:
             for subSubNode in subNode.nodes.values():
@@ -379,6 +386,52 @@ def processDataNode(dataNode: DataNode, force_process=False) -> DataNode:
             dataNode.metrics[metricType] = Metric(
                 metricType, aggregatedValue, metric_md, aggType
             )
+
+    # Apply power overhead to each computational node if there is power data available.
+    if dataNode.type == NodeType.NODE and MetricType.POWER in dataNode.metrics:
+        power_overhead = perunConfig.getfloat("post-processing", "power_overhead")
+        dataNode.metrics[MetricType.POWER].value += power_overhead  # type: ignore
+        runtime = dataNode.metrics[MetricType.RUNTIME].value
+        dataNode.metrics[MetricType.ENERGY].value += runtime * power_overhead  # type: ignore
+
+    # If there is energy data, apply PUE, and convert to currency and CO2 emmisions.
+    if dataNode.type == NodeType.RUN and MetricType.ENERGY in dataNode.metrics:
+        pue = perunConfig.getfloat("post-processing", "pue")
+        emissions_factor = perunConfig.getfloat("post-processing", "emissions_factor")
+        price_factor = perunConfig.getfloat("post-processing", "price_factor")
+        total_energy = dataNode.metrics[MetricType.ENERGY].value * pue
+        dataNode.metrics[MetricType.ENERGY].value = total_energy  # type: ignore
+        e_kWh = total_energy / (3600 * 1e3)
+
+        costMetric = Metric(
+            MetricType.MONEY,
+            e_kWh * price_factor,
+            MetricMetaData(
+                Unit.SCALAR,
+                Magnitude.ONE,
+                np.dtype("float32"),
+                np.float32(0),
+                np.finfo("float32").max,
+                np.float32(0),
+            ),
+            AggregateType.SUM,
+        )
+
+        co2Emissions = Metric(
+            MetricType.CO2,
+            e_kWh * emissions_factor,
+            MetricMetaData(
+                Unit.GRAM,
+                Magnitude.ONE,
+                np.dtype("float32"),
+                np.float32(0),
+                np.finfo("float32").max,
+                np.float32(0),
+            ),
+            AggregateType.SUM,
+        )
+        dataNode.metrics[MetricType.MONEY] = costMetric
+        dataNode.metrics[MetricType.CO2] = co2Emissions
 
     dataNode.processed = True
     return dataNode

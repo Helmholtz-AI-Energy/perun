@@ -18,6 +18,7 @@ class Unit(str, enum.Enum):
     SECOND = "s"
     PERCENT = "%"
     SCALAR = ""
+    GRAM = "g"
 
     @property
     def symbol(self) -> str:

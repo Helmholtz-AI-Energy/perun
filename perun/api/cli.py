@@ -102,23 +102,40 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         help="Directory where output files are saved. Defaults to ./perun_results",
     )
     monitor_parser.add_argument(
-        "--sampling_rate", type=float, help="Sampling rate in seconds"
+        "--sampling_rate",
+        type=float,
+        help="Sampling rate in seconds. Defaults to 1 second.",
     )
     monitor_parser.add_argument(
-        "--pue", type=float, help="Data center Power Usage Effectiveness"
+        "--power_overhead",
+        type=float,
+        help="Estimated power consumption of non-measured hardware components in Watts. Will be added to measured power consumption on the text report summary. Defaults to 0 Watts",
+    )
+    monitor_parser.add_argument(
+        "--pue", type=float, help="Data center Power Usage Effectiveness. Defaults to 1"
     )
     monitor_parser.add_argument(
         "--price_factor",
         type=float,
-        help="Electricity to Currency convertion factor in the form of Currency/kWh",
+        help="Electricity to Currency convertion factor in the form of Currency/kWh. Defaults to 0.3251 €/kWh",
     )
     monitor_parser.add_argument(
-        "--rounds", type=int, help="Number of warmup rounds to run app."
+        "--price_unit",
+        type=str,
+        help="Currency character to use on the text report summary. Defaults to €",
+    )
+    monitor_parser.add_argument(
+        "--emission_factor",
+        type=float,
+        help="Average carbon intensity of electricity (gCO2e/kWh). Defaults to 417.80 gC02e/kWh",
+    )
+    monitor_parser.add_argument(
+        "--rounds", type=int, help="Number of warmup rounds to run app. Defaults to 1"
     )
     monitor_parser.add_argument(
         "--warmup_rounds",
         type=int,
-        help="Number of warmup rounds to run the app. A warmup round is a full run of the application without gathering performance data.",
+        help="Number of warmup rounds to run the app. A warmup round is a full run of the application without gathering performance data. Defaults to 0",
     )
     monitor_parser.add_argument("script", type=str)
     monitor_parser.add_argument("script_args", nargs=argparse.REMAINDER)
@@ -157,20 +174,24 @@ def showconf(args: argparse.Namespace):
     """Print current perun configuration in INI format."""
     from perun.configuration import _default_config
 
-    if args.showconf_default:
-        config.read_dict(_default_config)
-        config.write(sys.stdout)
-    else:
-        config.write(sys.stdout)
+    perun = Perun(config)
+    if perun.comm.Get_rank() == 0:
+        if args.showconf_default:
+            config.read_dict(_default_config)
+            config.write(sys.stdout)
+        else:
+            config.write(sys.stdout)
 
 
 def sensors(args: argparse.Namespace):
     """Print sensors assigned to each rank by perun."""
     perun = Perun(config)
+    log.debug(f"Rank {perun.comm.Get_rank()}: Sensors initialized perun object")
+    sensor_config = perun.sensors_config
+    host_rank = perun.host_rank
+    log.debug(f"Rank {perun.comm.Get_rank()}: Sensors gather global configuration")
     if perun.comm.Get_rank() == 0:
-        printableConfig = printableSensorConfiguration(
-            perun.sensors_config, perun.host_rank
-        )
+        printableConfig = printableSensorConfiguration(sensor_config, host_rank)
         print(printableConfig)
 
 
