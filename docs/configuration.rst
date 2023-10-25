@@ -24,6 +24,6 @@ Options
     "run_id", None, "ID of the current run. If **None**, the current date and time will be used. If **SLURM**, perun will look for the environmental variable **SLURM_JOB_ID** and use that."
     "format", "text", "Output report format [text, pickle, csv, hdf5, json, bench]"
     "data_out", "./perun_results", "perun output location"
-    "rounds", 5, "Number of times the application is run"
-    "warmup_rounds", 1, "Number of warmup rounds to run before starting the benchmarks."
+    "rounds", 1, "Number of times the application is run"
+    "warmup_rounds", 0, "Number of warmup rounds to run before starting the benchmarks."
     "log_lvl", "WARNING", "Change logging output [DEBUG, INFO, WARNING, ERROR, CRITICAL]"
