@@ -184,10 +184,12 @@ def showconf(args: argparse.Namespace):
 def sensors(args: argparse.Namespace):
     """Print sensors assigned to each rank by perun."""
     perun = Perun(config)
+    log.debug(f"Rank {perun.comm.Get_rank()}: Sensors initialized perun object")
+    sensor_config = perun.sensors_config
+    host_rank = perun.host_rank
+    log.debug(f"Rank {perun.comm.Get_rank()}: Sensors gather global configuration")
     if perun.comm.Get_rank() == 0:
-        printableConfig = printableSensorConfiguration(
-            perun.sensors_config, perun.host_rank
-        )
+        printableConfig = printableSensorConfiguration(sensor_config, host_rank)
         print(printableConfig)
 
 
