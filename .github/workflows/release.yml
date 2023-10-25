@@ -14,6 +14,7 @@ jobs:
       tag: ${{ steps.semantic-release.outputs.tag }}
     needs: Test
     runs-on: ubuntu-latest
+    environment: release
     concurrency: publish
     permissions:
       contents: write
@@ -22,6 +23,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: 0
+        token: ${{ secrets.PERSONAL_GH_TOKEN }}
     - uses: actions/setup-python@v4
     - name: Install dependencies
       run: |
