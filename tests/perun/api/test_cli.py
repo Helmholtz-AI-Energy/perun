@@ -77,15 +77,17 @@ def test_showconf_command_with_default(
         defaultConfig.write(configFile)
 
     processorOut = subprocess.run(
-        ["perun", "--log_lvl", "INFO", "--configuration", str(confPath), "showconf"],
+        ["perun", "--log_lvl", "ERROR", "--configuration", str(confPath), "showconf"],
         capture_output=True,
         text=True,
     ).stdout
     print(processorOut)
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
+    assert defaultConfig.get("monitor", "sampling_rate") == "2"
+    assert defaultConfig.get("debug", "log_lvl") == "WARNING"
     assert parser.get("monitor", "sampling_rate") == "2"
-    assert parser.get("debug", "log_lvl") == "INFO"
+    assert parser.get("debug", "log_lvl") == "ERROR"
     assert parser != defaultConfig
 
     defaultConfig.set("monitor", "sampling_rate", "1")
@@ -93,7 +95,7 @@ def test_showconf_command_with_default(
         [
             "perun",
             "--log_lvl",
-            "INFO",
+            "ERROR",
             "--configuration",
             str(confPath),
             "showconf",
@@ -106,9 +108,11 @@ def test_showconf_command_with_default(
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
 
+    assert defaultConfig.get("monitor", "sampling_rate") == "1"
+    assert defaultConfig.get("debug", "log_lvl") == "WARNING"
     assert parser.get("debug", "log_lvl") == "WARNING"
     assert parser.get("monitor", "sampling_rate") == "1"
-    assert parser != defaultConfig
+    assert parser == defaultConfig
 
 
 def test_metadata_command(perun: Perun):
