@@ -3,6 +3,7 @@ import logging
 import os
 import platform
 import pprint as pp
+import subprocess
 import time
 
 # import sys
@@ -190,10 +191,7 @@ class Perun:
             )
         return self._l_backend_metadata
 
-    def monitor_application(
-        self,
-        app: Path,
-    ):
+    def monitor_application(self, cmd: str, cmd_args: List[str], is_bin: bool = False):
         """Execute coordination, monitoring, post-processing, and reporting steps, in that order.
 
         Parameters
@@ -206,7 +204,7 @@ class Perun:
         data_out = Path(self.config.get("output", "data_out"))
         out_format = IOFormat(self.config.get("output", "format"))
         starttime = datetime.now()
-        app_name = getRunName(app)
+        app_name = getRunName(cmd, is_bin)
         multirun_id = getRunId(starttime)
 
         log.info(f"App: {app_name}, MR_ID: {multirun_id}")
@@ -216,7 +214,9 @@ class Perun:
             self.warmup_round = True
             for i in range(self.config.getint("benchmarking", "warmup_rounds")):
                 log.info(f"Warmup run: {i}")
-                _ = self._run_application(app, str(i), record=False)
+                _ = self._run_application(
+                    cmd, cmd_args, str(i), record=False, is_bin=is_bin
+                )
 
             self.warmup_round = False
 
@@ -224,7 +224,7 @@ class Perun:
         multirun_nodes: Dict[str, DataNode] = {}
         for i in range(self.config.getint("benchmarking", "rounds")):
             runNode: Optional[DataNode] = self._run_application(
-                app, str(i), record=True
+                cmd, cmd_args, str(i), record=True, is_bin=is_bin
             )
             if self.comm.Get_rank() == 0 and runNode:
                 multirun_nodes[str(i)] = runNode
@@ -236,7 +236,7 @@ class Perun:
                 multirun_id,
                 NodeType.MULTI_RUN,
                 metadata={
-                    "app_name": getRunName(app),
+                    "app_name": app_name,
                     "perun_version": __version__,
                     "execution_dt": starttime.isoformat(),
                     "n_runs": str(len(multirun_nodes)),
@@ -281,9 +281,11 @@ class Perun:
 
     def _run_application(
         self,
-        app: Path,
+        cmd: str,
+        cmd_args: List[str],
         run_id: str,
         record: bool = True,
+        is_bin: bool = False,
     ) -> Optional[DataNode]:
         log.info(f"Rank {self.comm.Get_rank()}: _run_application")
         if record:
@@ -320,40 +322,53 @@ class Perun:
                 sp_ready_event.set()
 
             # 3) Start application
-            try:
-                sp_ready_event.wait()
-                with open(str(app), "r") as scriptFile:
-                    self.local_regions = LocalRegions()
-                    self.comm.barrier()
-                    log.info(f"Rank {self.comm.Get_rank()}: Started App")
-                    start_event.set()
-                    starttime_ns = time.time_ns()
-                    exec(
-                        scriptFile.read(),
-                        {"__name__": "__main__", "__file__": app.name},
-                    )
-                    # run_stoptime = datetime.utcnow()
-                    log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
-                    stop_event.set()
-            except Exception as e:
-                log.error(
-                    f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
-                )
-                s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
-                log.error(f"Rank {self.comm.Get_rank()}: {s}")
-                log.error(f"Rank {self.comm.Get_rank()}: {r}")
+            sp_ready_event.wait()
+            self.local_regions = LocalRegions()
+            if is_bin:
+                self.comm.barrier()
+                log.info(f"Rank {self.comm.Get_rank()}: Started App")
                 start_event.set()
+                starttime_ns = time.time_ns()
+                subprocess.run([cmd] + cmd_args)
+                log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
                 stop_event.set()
-                log.error(
-                    f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
-                )
-                if perunSP:
-                    perunSP.terminate()
-                    log.error(f"Rank {self.comm.Get_rank()}: Terminating subprocess")
 
-                self.comm.Abort(1)
-                log.error(f"Rank {self.comm.Get_rank()}:  Aborting mpi context.")
-                raise e
+            else:
+                try:
+                    scriptPath = Path(cmd)
+                    with open(scriptPath, "r") as scriptFile:
+                        self.comm.barrier()
+                        log.info(f"Rank {self.comm.Get_rank()}: Started App")
+                        start_event.set()
+                        starttime_ns = time.time_ns()
+                        exec(
+                            scriptFile.read(),
+                            {"__name__": "__main__", "__file__": scriptPath.name},
+                        )
+                        # run_stoptime = datetime.utcnow()
+                        log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
+                        stop_event.set()
+                except Exception as e:
+                    log.error(
+                        f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {cmd}"
+                    )
+                    s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
+                    log.error(f"Rank {self.comm.Get_rank()}: {s}")
+                    log.error(f"Rank {self.comm.Get_rank()}: {r}")
+                    start_event.set()
+                    stop_event.set()
+                    log.error(
+                        f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
+                    )
+                    if perunSP:
+                        perunSP.terminate()
+                        log.error(
+                            f"Rank {self.comm.Get_rank()}: Terminating subprocess"
+                        )
+
+                    self.comm.Abort(1)
+                    log.error(f"Rank {self.comm.Get_rank()}:  Aborting mpi context.")
+                    raise e
 
             # 4) App finished, stop subrocess and get data
             if queue and perunSP:
@@ -396,17 +411,21 @@ class Perun:
             return None
 
         else:
-            try:
-                with open(str(app), "r") as scriptFile:
-                    exec(
-                        scriptFile.read(),
-                        {"__name__": "__main__", "__file__": app.name},
+            if is_bin:
+                subprocess.run([cmd] + cmd_args)
+            else:
+                try:
+                    scriptPath = Path(cmd)
+                    with open(scriptPath, "r") as scriptFile:
+                        exec(
+                            scriptFile.read(),
+                            {"__name__": "__main__", "__file__": scriptPath.name},
+                        )
+                except Exception as e:
+                    log.error(
+                        f"Rank {self.comm.Get_rank()}: Found error on monitored script: {cmd}"
                     )
-            except Exception as e:
-                log.error(
-                    f"Rank {self.comm.Get_rank()}: Found error on monitored script: {str(app)}"
-                )
-                raise e
+                    raise e
             return None
 
     def import_from(self, filePath: Path, format: IOFormat) -> DataNode:

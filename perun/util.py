@@ -31,7 +31,7 @@ def singleton(class_):
     return getinstance
 
 
-def getRunName(app: Path) -> str:
+def getRunName(cmd: str, is_bin: bool = False) -> str:
     """Return application name based on configuration and application path.
 
     Parameters
@@ -50,8 +50,10 @@ def getRunName(app: Path) -> str:
         return app_name
     elif app_name and "SBATCH_JOB_NAME" in os.environ and app_name == "SLURM":
         return os.environ["SBATCH_JOB_NAME"]
-    elif isinstance(app, Path):
-        return app.stem
+    elif not is_bin:
+        return Path(cmd).stem
+    else:
+        return cmd
 
 
 def getRunId(starttime: datetime) -> str:

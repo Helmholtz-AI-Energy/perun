@@ -4,6 +4,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import List
 
 import perun
 from perun.configuration import config, read_custom_config, read_environ, save_to_config
@@ -137,8 +138,15 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         type=int,
         help="Number of warmup rounds to run the app. A warmup round is a full run of the application without gathering performance data. Defaults to 0",
     )
-    monitor_parser.add_argument("script", type=str)
-    monitor_parser.add_argument("script_args", nargs=argparse.REMAINDER)
+    monitor_parser.add_argument(
+        "-b",
+        "--binary",
+        type=bool,
+        action="store_true",
+        help="Indicate if the monitored application is a binary. Otherwise treat it as a python script.",
+    )
+    monitor_parser.add_argument("cmd", type=str)
+    monitor_parser.add_argument("cmd_args", nargs=argparse.REMAINDER)
     monitor_parser.set_defaults(func=monitor)
     return parser
 
@@ -237,11 +245,19 @@ def monitor(args: argparse.Namespace):
 
     SCRIPT is a path to the python script to monitor, run with arguments SCRIPT_ARGS.
     """
-    filePath: Path = Path(args.script)
-    log.debug(f"Script path: {filePath}")
-    argIndex = sys.argv.index(args.script)
+    cmd: str = args.script
+    log.debug(f"Cmd: {cmd}")
+    argIndex = sys.argv.index(args.cmd)
     sys.argv = sys.argv[argIndex:]
-    log.debug(f"Script args: { sys.argv }")
+    cmd_args: List[str] = sys.argv.copy()
+    log.debug(f"Cmd args: { cmd_args }")
+    if not args.binary:
+        scriptPath = Path(cmd)
+        assert scriptPath.exists()
+        assert scriptPath.is_file()
+        assert scriptPath.suffix == ".py"
+
+        sys.path.insert(0, str(scriptPath.parent.absolute()))
 
     # Setup script arguments
     for key, value in vars(args).items():
@@ -249,7 +265,4 @@ def monitor(args: argparse.Namespace):
             save_to_config(key, value)
 
     perun = Perun(config)
-
-    sys.path.insert(0, str(filePath.parent.absolute()))
-
-    perun.monitor_application(filePath)
+    perun.monitor_application(cmd, cmd_args, args.binary)
