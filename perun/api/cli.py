@@ -141,7 +141,6 @@ def _get_arg_parser() -> argparse.ArgumentParser:
     monitor_parser.add_argument(
         "-b",
         "--binary",
-        type=bool,
         action="store_true",
         help="Indicate if the monitored application is a binary. Otherwise treat it as a python script.",
     )
@@ -245,7 +244,7 @@ def monitor(args: argparse.Namespace):
 
     SCRIPT is a path to the python script to monitor, run with arguments SCRIPT_ARGS.
     """
-    cmd: str = args.script
+    cmd: str = args.cmd
     log.debug(f"Cmd: {cmd}")
     argIndex = sys.argv.index(args.cmd)
     sys.argv = sys.argv[argIndex:]

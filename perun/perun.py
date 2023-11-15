@@ -287,6 +287,59 @@ class Perun:
         record: bool = True,
         is_bin: bool = False,
     ) -> Optional[DataNode]:
+        if is_bin:
+            nodeData, starttime_ns = self._run_binary(cmd, cmd_args, run_id, record)
+        else:
+            nodeData, starttime_ns = self._run_script(cmd, cmd_args, run_id, record)
+
+        if nodeData:
+            nodeData.metadata["mpi_ranks"] = self.host_rank[self.hostname]
+
+        # 5) Collect data from everyone on the first rank
+        dataNodes: Optional[List[DataNode]] = self.comm.gather(nodeData, root=0)
+        globalRegions: Optional[List[LocalRegions]] = None
+        if self.local_regions:
+            globalRegions = self.comm.gather(self.local_regions, root=0)
+
+        if dataNodes:
+            # 6) On the first rank, create run node
+            runNode = DataNode(
+                id=run_id,
+                type=NodeType.RUN,
+                metadata={**self.l_host_metadata},
+                nodes={node.id: node for node in dataNodes if node},
+            )
+            if globalRegions and starttime_ns:
+                runNode.addRegionData(globalRegions, starttime_ns)
+            runNode = processDataNode(runNode, self.config)
+
+            return runNode
+        return None
+
+    def _run_binary(
+        self,
+        cmd: str,
+        cmd_args: List[str],
+        run_id: str,
+        record: bool = True,
+    ) -> tuple[Optional[DataNode], Optional[int]]:
+        if record:
+            self.comm.barrier()
+            log.info(f"Rank {self.comm.Get_rank()}: Started App")
+            starttime_ns = time.time_ns()
+            subprocess.run([cmd] + cmd_args, env=os.environ)
+            log.info(f"rank {self.comm.Get_rank()}: app stopped")
+            return None, starttime_ns
+        else:
+            return None, None
+
+    def _run_script(
+        self,
+        cmd: str,
+        cmd_args: List[str],
+        run_id: str,
+        record: bool = True,
+    ) -> tuple[Optional[DataNode], Optional[int]]:
         log.info(f"Rank {self.comm.Get_rank()}: _run_application")
         if record:
             # 1) Get sensor configuration
@@ -324,51 +377,40 @@ class Perun:
             # 3) Start application
             sp_ready_event.wait()
             self.local_regions = LocalRegions()
-            if is_bin:
-                self.comm.barrier()
-                log.info(f"Rank {self.comm.Get_rank()}: Started App")
-                start_event.set()
-                starttime_ns = time.time_ns()
-                subprocess.run([cmd] + cmd_args)
-                log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
-                stop_event.set()
 
-            else:
-                try:
-                    scriptPath = Path(cmd)
-                    with open(scriptPath, "r") as scriptFile:
-                        self.comm.barrier()
-                        log.info(f"Rank {self.comm.Get_rank()}: Started App")
-                        start_event.set()
-                        starttime_ns = time.time_ns()
-                        exec(
-                            scriptFile.read(),
-                            {"__name__": "__main__", "__file__": scriptPath.name},
-                        )
-                        # run_stoptime = datetime.utcnow()
-                        log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
-                        stop_event.set()
-                except Exception as e:
-                    log.error(
-                        f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {cmd}"
-                    )
-                    s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
-                    log.error(f"Rank {self.comm.Get_rank()}: {s}")
-                    log.error(f"Rank {self.comm.Get_rank()}: {r}")
+            try:
+                scriptPath = Path(cmd)
+                with open(scriptPath, "r") as scriptFile:
+                    self.comm.barrier()
+                    log.info(f"Rank {self.comm.Get_rank()}: Started App")
                     start_event.set()
-                    stop_event.set()
-                    log.error(
-                        f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
+                    starttime_ns = time.time_ns()
+                    exec(
+                        scriptFile.read(),
+                        {"__name__": "__main__", "__file__": scriptPath.name},
                     )
-                    if perunSP:
-                        perunSP.terminate()
-                        log.error(
-                            f"Rank {self.comm.Get_rank()}: Terminating subprocess"
-                        )
+                    # run_stoptime = datetime.utcnow()
+                    log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
+                    stop_event.set()
+            except Exception as e:
+                log.error(
+                    f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {cmd}"
+                )
+                s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
+                log.error(f"Rank {self.comm.Get_rank()}: {s}")
+                log.error(f"Rank {self.comm.Get_rank()}: {r}")
+                start_event.set()
+                stop_event.set()
+                log.error(
+                    f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
+                )
+                if perunSP:
+                    perunSP.terminate()
+                    log.error(f"Rank {self.comm.Get_rank()}: Terminating subprocess")
 
-                    self.comm.Abort(1)
-                    log.error(f"Rank {self.comm.Get_rank()}:  Aborting mpi context.")
-                    raise e
+                self.comm.Abort(1)
+                log.error(f"Rank {self.comm.Get_rank()}:  Aborting mpi context.")
+                raise e
 
             # 4) App finished, stop subrocess and get data
             if queue and perunSP:
@@ -386,47 +428,22 @@ class Perun:
                 nodeData = None
 
             log.info(f"Rank {self.comm.Get_rank()}: Everyone exited the subprocess")
-
-            if nodeData:
-                nodeData.metadata["mpi_ranks"] = self.host_rank[self.hostname]
-
-            # 5) Collect data from everyone on the first rank
-            dataNodes: Optional[List[DataNode]] = self.comm.gather(nodeData, root=0)
-            globalRegions: Optional[List[LocalRegions]] = self.comm.gather(
-                self.local_regions, root=0
-            )
-
-            if dataNodes and globalRegions:
-                # 6) On the first rank, create run node
-                runNode = DataNode(
-                    id=run_id,
-                    type=NodeType.RUN,
-                    metadata={**self.l_host_metadata},
-                    nodes={node.id: node for node in dataNodes if node},
-                )
-                runNode.addRegionData(globalRegions, starttime_ns)
-                runNode = processDataNode(runNode, self.config)
-
-                return runNode
-            return None
+            return nodeData, starttime_ns
 
         else:
-            if is_bin:
-                subprocess.run([cmd] + cmd_args)
-            else:
-                try:
-                    scriptPath = Path(cmd)
-                    with open(scriptPath, "r") as scriptFile:
-                        exec(
-                            scriptFile.read(),
-                            {"__name__": "__main__", "__file__": scriptPath.name},
-                        )
-                except Exception as e:
-                    log.error(
-                        f"Rank {self.comm.Get_rank()}: Found error on monitored script: {cmd}"
+            try:
+                scriptPath = Path(cmd)
+                with open(scriptPath, "r") as scriptFile:
+                    exec(
+                        scriptFile.read(),
+                        {"__name__": "__main__", "__file__": scriptPath.name},
                     )
-                    raise e
-            return None
+            except Exception as e:
+                log.error(
+                    f"Rank {self.comm.Get_rank()}: Found error on monitored script: {cmd}"
+                )
+                raise e
+            return None, None
 
     def import_from(self, filePath: Path, format: IOFormat) -> DataNode:
         """Import data node from given filepath.
