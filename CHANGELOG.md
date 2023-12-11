@@ -253,4 +253,3 @@ Github needs a better action editor ([`e2f38e5`](https://github.com/Helmholtz-AI
 ### Feature
 
 * feat: text, json and yaml reports ([`9503751`](https://github.com/Helmholtz-AI-Energy/perun/commit/95037516594189959fbfb2b2894d18cdba7b5819))
-
