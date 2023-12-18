@@ -1,29 +1,55 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
 cff-version: 1.2.0
-message: "If you use this software, please cite the paper."
+title: perun
+message: 'If you use this software, please cite the paper.'
+type: software
+authors:
+  - given-names: Juan Pedro
+    family-names: Gutiérrez Hermosillo Muriedas
+    email: juan.muriedas@kit.edu
+    affiliation: >-
+      Scientific Computing Centre, Karlsruhe Institute für
+      Technologie
+    orcid: 'https://orcid.org/0000-0001-8439-7145'
+repository-code: 'https://github.com/Helmholtz-AI-Energy/perun'
+repository: 'https://perun.readthedocs.io/en/latest/?badge=latest'
+keywords:
+  - Python
+  - Energy
+  - Benchmarking
+  - HPC
+  - MPI
+license: BSD-3-Clause
 preferred-citation:
   type: conference-paper
   authors:
-    - given-names: "Juan Pedro"
-      family-names: "Gutiérrez Hermosillo Muriedas"
-      email: "juan.muriedas@kit.edu"
-      affiliation: "Karlsruhe Institute für Technologie"
+    - given-names: Juan Pedro
+      family-names: Gutiérrez Hermosillo Muriedas
+      email: juan.muriedas@kit.edu
+      affiliation: Karlsruhe Institute für Technologie
       orcid: 'https://orcid.org/0000-0001-8439-7145'
-    - given-names: "Katharina"
-      family-names: "Flügel"
-    - given-names: "Charlotte"
-      family-names: "Debus"
-    - given-names: "Holger"
-      family-names: "Obermaier"
-    - given-names: "Achim"
-      family-names: "Streit"
-    - given-names: "Markus"
-      family-names: "Götz"
-  title: "perun: Benchmarking Energy Consumption of High-Performance Computing Applications"
+    - given-names: Katharina
+      family-names: Flügel
+    - given-names: Charlotte
+      family-names: Debus
+    - given-names: Holger
+      family-names: Obermaier
+    - given-names: Achim
+      family-names: Streit
+    - given-names: Markus
+      family-names: Götz
+  title: >-
+    perun: Benchmarking Energy Consumption of High-Performance Computing
+    Applications
   year: 2023
-  collection-title: "Euro-Par 2023: Parallel Processing"
-  collection-doi: "10.1007/978-3-031-39698-4"
-  doi: "10.1007/978-3-031-39698-4_2"
+  collection-title: 'Euro-Par 2023: Parallel Processing'
+  collection-doi: 10.1007/978-3-031-39698-4
+  doi: 10.1007/978-3-031-39698-4_2
   conference:
-    name: "29th International European Conference on Parallel and Distributed Computing"
-    date-start: 2023-08-28
-    date-end: 2017-09-01
+    name: >-
+      29th International European Conference on Parallel and Distributed
+      Computing
+    date-start: "2023-08-28"
+    date-end: "2017-09-01"
