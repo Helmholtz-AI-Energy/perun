@@ -1,5 +1,5 @@
 """Core perun functionality."""
-
+import enum
 import logging
 import os
 import platform
@@ -10,6 +10,7 @@ import time
 from configparser import ConfigParser
 from datetime import datetime
 from multiprocessing import Event, Process, Queue
+from multiprocessing.synchronize import Event as EventClass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Type
 
@@ -29,6 +30,20 @@ from perun.subprocess import perunSubprocess
 from perun.util import getRunId, getRunName, increaseIdCounter, singleton
 
 log = logging.getLogger("perun")
+
+
+class PerunStatus(enum.Enum):
+    """DataNode type enum."""
+
+    SETUP = enum.auto()
+    RUNNING = enum.auto()
+    RUNNING_WARMUP = enum.auto()
+    PROCESSING = enum.auto()
+    SCRIPT_ERROR = enum.auto()
+    SCRIPT_ERROR_WARMUP = enum.auto()
+    PERUN_ERROR = enum.auto()
+    MPI_ERROR = enum.auto()
+    SUCCESS = enum.auto()
 
 
 @singleton
@@ -54,10 +69,57 @@ class Perun:
         self._l_backend_metadata: Optional[Dict[str, Any]] = None
         self.local_regions: Optional[LocalRegions] = None
         self.warmup_round: bool = False
+        self.status = PerunStatus.SETUP
+
+        # Subprocess handlers
+        self.sp_ready_event: Optional[EventClass] = None
+        self.start_event: Optional[EventClass] = None
+        self.stop_event: Optional[EventClass] = None
+
+        self.queue: Optional[Queue] = None
+        self.perunSP: Optional[Process] = None
 
     def __del__(self):
         """Perun object destructor."""
+        log.info(f"Rank {self.comm.Get_rank()}: __del__ perun")
         self._close_backends()
+        log.info(f"Rank {self.comm.Get_rank()}: Exit status {self.status}")
+        if self.status != PerunStatus.SUCCESS:
+            if (
+                self.status == PerunStatus.RUNNING
+                or self.status == PerunStatus.RUNNING_WARMUP
+            ):
+                log.error(
+                    f"Rank {self.comm.Get_rank()}: Looks like you are using the exit function to stop your script. This is not recommended, as it interrupts the normal perun execution. No data can be salvaged if the app terminates in this manner."
+                )
+            elif (
+                self.status == PerunStatus.SCRIPT_ERROR
+                or self.status == PerunStatus.SCRIPT_ERROR_WARMUP
+            ):
+                log.error(
+                    f"Rank {self.comm.Get_rank()}: Seems like your script terminated early because of an error. Perun will try to collect any available data. Try to fix your script before running with perun to get a more complete stack trace from your script. If the error only happens when running with perun, consider submitting an issue in our github: https://github.com/Helmholtz-AI-Energy/perun"
+                )
+            elif self.status == PerunStatus.MPI_ERROR:
+                log.error(
+                    f"Rank {self.comm.Get_rank()}: This should not be reached ever. It's imposible."
+                )
+
+            if self.status == PerunStatus.SCRIPT_ERROR:
+                availableRanks = self.comm.check_ranks_availability()
+
+                log.error(
+                    f"Rank {self.comm.Get_rank()}: Available ranks {availableRanks}"
+                )
+                # dataNode = self._process_single_run(0, time.time_ns())
+
+            if (
+                self.status == PerunStatus.SCRIPT_ERROR
+                or self.status == PerunStatus.SCRIPT_ERROR_WARMUP
+                or self.status == PerunStatus.RUNNING
+                or self.status == PerunStatus.RUNNING_WARMUP
+            ):
+                log.error(f"Rank {self.comm.Get_rank()}: Aborting mpi context.")
+                self.comm.Abort(1)
 
     @property
     def comm(self) -> Comm:
@@ -280,6 +342,68 @@ class Perun:
             if out_format != IOFormat.HDF5:
                 self.export_to(data_out, app_data, out_format, multirun_id)
 
+        self.status = PerunStatus.SUCCESS
+
+    def _process_single_run(self, run_id: str, starttime_ns: int) -> Optional[DataNode]:
+        """Collect data from subprocess and pack it in a data node.
+
+        Parameters
+        ----------
+        run_id : str
+            The id to use for the data node.
+        starttime_ns : int
+            Start time of the run.
+
+        Returns
+        -------
+        Optional[DataNode]
+            If the rank spawned a subprocess, returns the data node with the data.
+        """
+        if self.status == PerunStatus.RUNNING:
+            self.start_event.set()  # type: ignore
+            self.stop_event.set()  # type: ignore
+            log.error(
+                "You should not use the exit function to exit your script!. Trying to salvage data."
+            )
+
+        if self.queue and self.perunSP:
+            log.info(f"Rank {self.comm.Get_rank()}: Getting queue contents")
+            nodeData = self.queue.get(block=True)
+            log.info(f"Rank {self.comm.Get_rank()}: Got queue contents")
+            log.info(f"Rank {self.comm.Get_rank()}: Waiting for subprocess to close")
+            self.perunSP.join()
+            self.perunSP.close()
+            log.info(f"Rank {self.comm.Get_rank()}: Subprocess closed")
+            self.queue.close()
+        else:
+            nodeData = None
+
+        log.info(f"Rank {self.comm.Get_rank()}: Exited the subprocess")
+
+        if nodeData:
+            nodeData.metadata["mpi_ranks"] = self.host_rank[self.hostname]
+
+        # 5) Collect data from everyone on the first rank
+        if self.status == PerunStatus.PROCESSING:
+            dataNodes: Optional[List[DataNode]] = self.comm.gather(nodeData, root=0)
+            globalRegions: Optional[List[LocalRegions]] = self.comm.gather(
+                self.local_regions, root=0
+            )
+
+        if dataNodes and globalRegions:
+            # 6) On the first rank, create run node
+            runNode = DataNode(
+                id=run_id,
+                type=NodeType.RUN,
+                metadata={**self.l_host_metadata},
+                nodes={node.id: node for node in dataNodes if node},
+            )
+            runNode.addRegionData(globalRegions, starttime_ns)
+            runNode = processDataNode(runNode, self.config)
+
+            return runNode
+        return None
+
     def _run_application(
         self,
         app: Path,
@@ -289,125 +413,91 @@ class Perun:
         log.info(f"Rank {self.comm.Get_rank()}: _run_application")
         if record:
             # 1) Get sensor configuration
-            sp_ready_event = Event()
-            start_event = Event()
-            stop_event = Event()
+            self.sp_ready_event = Event()
+            self.start_event = Event()
+            self.stop_event = Event()
 
-            queue: Optional[Queue] = None
-            perunSP: Optional[Process] = None
+            self.queue = None
+            self.perunSP = None
 
             # 2) If assigned devices, create subprocess
             if len(self.l_sensors_config.keys()) > 0:
                 log.debug(
                     f"Rank {self.comm.Get_rank()} - Local Backendens : {pp.pformat(self.l_sensors_config)}"
                 )
-                queue = Queue()
-                perunSP = Process(
+                self.queue = Queue()
+                self.perunSP = Process(
                     target=perunSubprocess,
                     args=[
-                        queue,
+                        self.queue,
                         self.comm.Get_rank(),
                         self.backends,
                         self.l_sensors_config,
                         self.config,
-                        sp_ready_event,
-                        start_event,
-                        stop_event,
+                        self.sp_ready_event,
+                        self.start_event,
+                        self.stop_event,
                         self.config.getfloat("monitor", "sampling_rate"),
                     ],
                 )
-                perunSP.start()
+                self.perunSP.start()
             else:
-                sp_ready_event.set()
+                self.sp_ready_event.set()  # type: ignore
 
             # 3) Start application
             try:
-                sp_ready_event.wait()
+                self.sp_ready_event.wait()  # type: ignore
                 with open(str(app), "r") as scriptFile:
                     self.local_regions = LocalRegions()
                     self.comm.barrier()
                     log.info(f"Rank {self.comm.Get_rank()}: Started App")
-                    start_event.set()
+                    self.start_event.set()  # type: ignore
                     starttime_ns = time.time_ns()
+                    self.status = PerunStatus.RUNNING
                     exec(
                         scriptFile.read(),
                         {"__name__": "__main__", "__file__": app.name},
                     )
+                    self.status = PerunStatus.PROCESSING
                     # run_stoptime = datetime.utcnow()
                     log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
-                    stop_event.set()
+                    self.stop_event.set()  # type: ignore
             except Exception as e:
+                self.status = PerunStatus.SCRIPT_ERROR
                 log.error(
                     f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
                 )
                 s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
                 log.error(f"Rank {self.comm.Get_rank()}: {s}")
                 log.error(f"Rank {self.comm.Get_rank()}: {r}")
-                start_event.set()
-                stop_event.set()
+                self.start_event.set()  # type: ignore
+                self.stop_event.set()  # type: ignore
                 log.error(
                     f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
                 )
-                if perunSP:
-                    perunSP.terminate()
-                    log.error(f"Rank {self.comm.Get_rank()}: Terminating subprocess")
-
-                self.comm.Abort(1)
-                log.error(f"Rank {self.comm.Get_rank()}:  Aborting mpi context.")
-                raise e
+                self.__del__()
 
             # 4) App finished, stop subrocess and get data
-            if queue and perunSP:
-                log.info(f"Rank {self.comm.Get_rank()}: Getting queue contents")
-                nodeData = queue.get(block=True)
-                log.info(f"Rank {self.comm.Get_rank()}: Got queue contents")
-                log.info(
-                    f"Rank {self.comm.Get_rank()}: Waiting for subprocess to close"
-                )
-                perunSP.join()
-                perunSP.close()
-                log.info(f"Rank {self.comm.Get_rank()}: Subprocess closed")
-                queue.close()
-            else:
-                nodeData = None
-
-            log.info(f"Rank {self.comm.Get_rank()}: Everyone exited the subprocess")
-
-            if nodeData:
-                nodeData.metadata["mpi_ranks"] = self.host_rank[self.hostname]
-
-            # 5) Collect data from everyone on the first rank
-            dataNodes: Optional[List[DataNode]] = self.comm.gather(nodeData, root=0)
-            globalRegions: Optional[List[LocalRegions]] = self.comm.gather(
-                self.local_regions, root=0
-            )
-
-            if dataNodes and globalRegions:
-                # 6) On the first rank, create run node
-                runNode = DataNode(
-                    id=run_id,
-                    type=NodeType.RUN,
-                    metadata={**self.l_host_metadata},
-                    nodes={node.id: node for node in dataNodes if node},
-                )
-                runNode.addRegionData(globalRegions, starttime_ns)
-                runNode = processDataNode(runNode, self.config)
-
-                return runNode
-            return None
+            return self._process_single_run(run_id, starttime_ns)
 
         else:
             try:
                 with open(str(app), "r") as scriptFile:
+                    self.status = PerunStatus.RUNNING_WARMUP
                     exec(
                         scriptFile.read(),
                         {"__name__": "__main__", "__file__": app.name},
                     )
+                    self.status = PerunStatus.PROCESSING
             except Exception as e:
+                self.status = PerunStatus.SCRIPT_ERROR_WARMUP
                 log.error(
-                    f"Rank {self.comm.Get_rank()}: Found error on monitored script: {str(app)}"
+                    f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
                 )
-                raise e
+                s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
+                log.error(f"Rank {self.comm.Get_rank()}: {s}")
+                log.error(f"Rank {self.comm.Get_rank()}: {r}")
+                self.__del__()
             return None
 
     def import_from(self, filePath: Path, format: IOFormat) -> DataNode:
