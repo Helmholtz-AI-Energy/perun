@@ -2,8 +2,9 @@
 
 import functools
 import logging
-from typing import Optional
+from typing import Callable, Optional
 
+from perun.data_model.data import DataNode
 from perun.perun import Perun
 
 log = logging.getLogger("perun")
@@ -33,3 +34,17 @@ def monitor(region_name: Optional[str] = None):
         return func_wrapper
 
     return inner_function
+
+
+def register_callback(func: Callable[[DataNode], None]):
+    """Register a function to run after perun has finished collection data.
+
+    Parameters
+    ----------
+    func : Callable[[DataNode], None]
+        Function to be called.
+    """
+    perun = Perun()  # type: ignore
+    if func.__name__ not in perun.postprocess_callbacks:
+        log.info(f"Rank {perun.comm.Get_rank()}: Registering callback {func.__name__}")
+        perun.postprocess_callbacks[func.__name__] = func

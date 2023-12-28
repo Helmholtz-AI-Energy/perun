@@ -12,7 +12,7 @@ from datetime import datetime
 from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as EventClass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Type
+from typing import Any, Callable, Dict, List, Optional, Set, Type
 
 from perun import __version__
 from perun.backend.backend import Backend
@@ -67,22 +67,24 @@ class Perun:
         self._l_host_metadata: Optional[Dict[str, Any]] = None
         self._l_backend_metadata: Optional[Dict[str, Any]] = None
         self.local_regions: Optional[LocalRegions] = None
+        self.postprocess_callbacks: Dict[str, Callable[[DataNode], None]] = {}
         self.warmup_round: bool = False
         self.status = PerunStatus.SETUP
-
-        # Subprocess handlers
-        self.sp_ready_event: Optional[EventClass] = None
-        self.start_event: Optional[EventClass] = None
-        self.stop_event: Optional[EventClass] = None
-
-        self.queue: Optional[Queue] = None
-        self.perunSP: Optional[Process] = None
+        self._reset_subprocess_handlers()
 
     def __del__(self):
         """Perun object destructor."""
         log.info(f"Rank {self.comm.Get_rank()}: __del__ perun")
         self._close_backends()
         log.info(f"Rank {self.comm.Get_rank()}: Exit status {self.status}")
+
+    def _reset_subprocess_handlers(self):
+        self.sp_ready_event: Optional[EventClass] = None
+        self.start_event: Optional[EventClass] = None
+        self.stop_event: Optional[EventClass] = None
+
+        self.queue: Optional[Queue] = None
+        self.perunSP: Optional[Process] = None
 
     @property
     def comm(self) -> Comm:
@@ -269,11 +271,13 @@ class Perun:
 
             if self.comm.Get_rank() == 0 and runNode:
                 multirun_nodes[str(i)] = runNode
+            self._reset_subprocess_handlers()
 
         # Get app node data if it exists
         if self.comm.Get_rank() == 0 and len(multirun_nodes) > 0:
             multirun_node = self._process_multirun(multirun_nodes)
             self._export_multirun(multirun_node)
+            self._run_postprocess_callbacks(multirun_node)
 
         self.status = PerunStatus.SUCCESS
 
@@ -598,3 +602,8 @@ class Perun:
             Format to export data.
         """
         exportTo(dataOut, dataNode, format, mr_id)
+
+    def _run_postprocess_callbacks(self, dataNode: DataNode):
+        for name, callback in self.postprocess_callbacks.items():
+            log.info(f"Running callback {name}")
+            callback(dataNode)
