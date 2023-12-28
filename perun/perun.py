@@ -37,12 +37,11 @@ class PerunStatus(enum.Enum):
 
     SETUP = enum.auto()
     RUNNING = enum.auto()
-    RUNNING_WARMUP = enum.auto()
     PROCESSING = enum.auto()
     SCRIPT_ERROR = enum.auto()
-    SCRIPT_ERROR_WARMUP = enum.auto()
     PERUN_ERROR = enum.auto()
     MPI_ERROR = enum.auto()
+    FILE_NOT_FOUND = enum.auto()
     SUCCESS = enum.auto()
 
 
@@ -84,42 +83,6 @@ class Perun:
         log.info(f"Rank {self.comm.Get_rank()}: __del__ perun")
         self._close_backends()
         log.info(f"Rank {self.comm.Get_rank()}: Exit status {self.status}")
-        if self.status != PerunStatus.SUCCESS:
-            if (
-                self.status == PerunStatus.RUNNING
-                or self.status == PerunStatus.RUNNING_WARMUP
-            ):
-                log.error(
-                    f"Rank {self.comm.Get_rank()}: Looks like you are using the exit function to stop your script. This is not recommended, as it interrupts the normal perun execution. No data can be salvaged if the app terminates in this manner."
-                )
-            elif (
-                self.status == PerunStatus.SCRIPT_ERROR
-                or self.status == PerunStatus.SCRIPT_ERROR_WARMUP
-            ):
-                log.error(
-                    f"Rank {self.comm.Get_rank()}: Seems like your script terminated early because of an error. Perun will try to collect any available data. Try to fix your script before running with perun to get a more complete stack trace from your script. If the error only happens when running with perun, consider submitting an issue in our github: https://github.com/Helmholtz-AI-Energy/perun"
-                )
-            elif self.status == PerunStatus.MPI_ERROR:
-                log.error(
-                    f"Rank {self.comm.Get_rank()}: This should not be reached ever. It's imposible."
-                )
-
-            if self.status == PerunStatus.SCRIPT_ERROR:
-                availableRanks = self.comm.check_ranks_availability()
-
-                log.error(
-                    f"Rank {self.comm.Get_rank()}: Available ranks {availableRanks}"
-                )
-                # dataNode = self._process_single_run(0, time.time_ns())
-
-            if (
-                self.status == PerunStatus.SCRIPT_ERROR
-                or self.status == PerunStatus.SCRIPT_ERROR_WARMUP
-                or self.status == PerunStatus.RUNNING
-                or self.status == PerunStatus.RUNNING_WARMUP
-            ):
-                log.error(f"Rank {self.comm.Get_rank()}: Aborting mpi context.")
-                self.comm.Abort(1)
 
     @property
     def comm(self) -> Comm:
@@ -266,11 +229,14 @@ class Perun:
         """
         log.debug(f"Rank {self.comm.Get_rank()} Backends: {pp.pformat(self.backends)}")
 
-        data_out = Path(self.config.get("output", "data_out"))
-        out_format = IOFormat(self.config.get("output", "format"))
         starttime = datetime.now()
         app_name = getRunName(app)
         multirun_id = getRunId(starttime)
+
+        # Store relevant info in config.
+        self.config.set("output", "app_name", app_name)
+        self.config.set("output", "run_id", multirun_id)
+        self.config.set("output", "starttime", starttime.isoformat())
 
         log.info(f"App: {app_name}, MR_ID: {multirun_id}")
 
@@ -280,6 +246,11 @@ class Perun:
             for i in range(self.config.getint("benchmarking", "warmup_rounds")):
                 log.info(f"Warmup run: {i}")
                 _ = self._run_application(app, str(i), record=False)
+                if (
+                    self.status == PerunStatus.FILE_NOT_FOUND
+                    or self.status == PerunStatus.SCRIPT_ERROR
+                ):
+                    return
 
             self.warmup_round = False
 
@@ -289,62 +260,91 @@ class Perun:
             runNode: Optional[DataNode] = self._run_application(
                 app, str(i), record=True
             )
+
+            if (
+                self.status == PerunStatus.FILE_NOT_FOUND
+                or self.status == PerunStatus.SCRIPT_ERROR
+            ):
+                return
+
             if self.comm.Get_rank() == 0 and runNode:
                 multirun_nodes[str(i)] = runNode
 
         # Get app node data if it exists
         if self.comm.Get_rank() == 0 and len(multirun_nodes) > 0:
-            # Multi_run data processing
-            multirun_node = DataNode(
-                multirun_id,
-                NodeType.MULTI_RUN,
-                metadata={
-                    "app_name": getRunName(app),
-                    "perun_version": __version__,
-                    "execution_dt": starttime.isoformat(),
-                    "n_runs": str(len(multirun_nodes)),
-                    **{
-                        f"{section_name}.{option}": value
-                        for section_name in self.config.sections()
-                        for option, value in self.config.items(section_name)
-                    },
-                },
-                nodes=multirun_nodes,
-                processed=False,
-            )
-            multirun_node = processDataNode(multirun_node, self.config)
-
-            app_data_file = data_out / f"{app_name}.{IOFormat.HDF5.suffix}"
-            app_data = None
-            if app_data_file.exists() and app_data_file.is_file():
-                app_data = self.import_from(app_data_file, IOFormat.HDF5)
-                app_data.metadata["last_execution_dt"] = starttime.isoformat()
-                previous_run_ids = list(app_data.nodes.keys())
-                multirun_id = increaseIdCounter(previous_run_ids, multirun_id)
-                multirun_node.id = multirun_id
-                app_data.nodes[multirun_node.id] = multirun_node
-                app_data.processed = False
-
-            else:
-                app_data = DataNode(
-                    app_name,
-                    NodeType.APP,
-                    metadata={
-                        "creation_dt": starttime.isoformat(),
-                        "last_execution_dt": starttime.isoformat(),
-                    },
-                    nodes={multirun_id: multirun_node},
-                    processed=False,
-                )
-            app_data = processDataNode(app_data, self.config)
-
-            self.export_to(data_out, app_data, IOFormat.HDF5)
-            if out_format != IOFormat.HDF5:
-                self.export_to(data_out, app_data, out_format, multirun_id)
+            multirun_node = self._process_multirun(multirun_nodes)
+            self._export_multirun(multirun_node)
 
         self.status = PerunStatus.SUCCESS
 
-    def _process_single_run(self, run_id: str, starttime_ns: int) -> Optional[DataNode]:
+    def _export_multirun(self, multirun_node: DataNode):
+        data_out = Path(self.config.get("output", "data_out"))
+        app_name = self.config.get("output", "app_name")
+        starttime = self.config.get("output", "starttime")
+        out_format = IOFormat(self.config.get("output", "format"))
+
+        multirun_id = multirun_node.id
+
+        app_data_file = data_out / f"{app_name}.{IOFormat.HDF5.suffix}"
+        app_data = None
+        if app_data_file.exists() and app_data_file.is_file():
+            app_data = self.import_from(app_data_file, IOFormat.HDF5)
+            app_data.metadata["last_execution_dt"] = starttime
+            previous_run_ids = list(app_data.nodes.keys())
+            multirun_id = increaseIdCounter(previous_run_ids, multirun_id)
+            multirun_node.id = multirun_id
+            app_data.nodes[multirun_node.id] = multirun_node
+            app_data.processed = False
+
+        else:
+            app_data = DataNode(
+                app_name,
+                NodeType.APP,
+                metadata={
+                    "creation_dt": starttime,
+                    "last_execution_dt": starttime,
+                },
+                nodes={multirun_id: multirun_node},
+                processed=False,
+            )
+        app_data = processDataNode(app_data, self.config)
+
+        self.export_to(data_out, app_data, IOFormat.HDF5)
+        if out_format != IOFormat.HDF5:
+            self.export_to(data_out, app_data, out_format, multirun_id)
+
+    def _process_multirun(self, multirun_nodes: Dict[str, DataNode]) -> DataNode:
+        app_name = self.config.get("output", "app_name")
+        starttime = self.config.get("output", "starttime")
+        multirun_id = self.config.get("output", "run_id")
+
+        # Multi_run data processing
+        multirun_node = DataNode(
+            multirun_id,
+            NodeType.MULTI_RUN,
+            metadata={
+                "app_name": app_name,
+                "perun_version": __version__,
+                "execution_dt": starttime,
+                "n_runs": str(len(multirun_nodes)),
+                **{
+                    f"{section_name}.{option}": value
+                    for section_name in self.config.sections()
+                    for option, value in self.config.items(section_name)
+                },
+            },
+            nodes=multirun_nodes,
+            processed=False,
+        )
+        multirun_node = processDataNode(multirun_node, self.config)
+        return multirun_node
+
+    def _process_single_run(
+        self,
+        run_id: str,
+        starttime_ns: int,
+        available_ranks: Optional[List[int]] = None,
+    ) -> Optional[DataNode]:
         """Collect data from subprocess and pack it in a data node.
 
         Parameters
@@ -359,13 +359,6 @@ class Perun:
         Optional[DataNode]
             If the rank spawned a subprocess, returns the data node with the data.
         """
-        if self.status == PerunStatus.RUNNING:
-            self.start_event.set()  # type: ignore
-            self.stop_event.set()  # type: ignore
-            log.error(
-                "You should not use the exit function to exit your script!. Trying to salvage data."
-            )
-
         if self.queue and self.perunSP:
             log.info(f"Rank {self.comm.Get_rank()}: Getting queue contents")
             nodeData = self.queue.get(block=True)
@@ -378,25 +371,37 @@ class Perun:
         else:
             nodeData = None
 
-        log.info(f"Rank {self.comm.Get_rank()}: Exited the subprocess")
+        log.info(f"Rank {self.comm.Get_rank()}: Gathering data.")
 
         if nodeData:
             nodeData.metadata["mpi_ranks"] = self.host_rank[self.hostname]
 
         # 5) Collect data from everyone on the first rank
-        if self.status == PerunStatus.PROCESSING:
-            dataNodes: Optional[List[DataNode]] = self.comm.gather(nodeData, root=0)
-            globalRegions: Optional[List[LocalRegions]] = self.comm.gather(
-                self.local_regions, root=0
+        dataNodes: Optional[List[DataNode]] = None
+        globalRegions: Optional[List[LocalRegions]] = None
+        if not available_ranks:
+            dataNodes = self.comm.gather(nodeData, root=0)
+            globalRegions = self.comm.gather(self.local_regions, root=0)
+        else:
+            dataNodes = self.comm.gather_from_ranks(
+                nodeData, ranks=available_ranks, root=available_ranks[0]
+            )
+            globalRegions = self.comm.gather_from_ranks(
+                self.local_regions, ranks=available_ranks, root=available_ranks[0]
             )
 
         if dataNodes and globalRegions:
+            dataNodesDict = {node.id: node for node in dataNodes if node}
+            if len(dataNodesDict) == 0:
+                log.error(f"Rank {self.comm.Get_rank()}: No rank reported any data.")
+                raise ValueError("Could not collect data from any rank.")
+
             # 6) On the first rank, create run node
             runNode = DataNode(
                 id=run_id,
                 type=NodeType.RUN,
                 metadata={**self.l_host_metadata},
-                nodes={node.id: node for node in dataNodes if node},
+                nodes=dataNodesDict,
             )
             runNode.addRegionData(globalRegions, starttime_ns)
             runNode = processDataNode(runNode, self.config)
@@ -454,14 +459,73 @@ class Perun:
                     self.start_event.set()  # type: ignore
                     starttime_ns = time.time_ns()
                     self.status = PerunStatus.RUNNING
+                    try:
+                        exec(
+                            scriptFile.read(),
+                            {"__name__": "__main__", "__file__": app.name},
+                        )
+                    except SystemExit:
+                        log.warning(
+                            "The application exited using exit(), quit() or sys.exit(). This is not the recommended way to exit an application, as it complicates the data collection process. Please refactor your code."
+                        )
+
+                    except Exception as e:
+                        self.status = PerunStatus.SCRIPT_ERROR
+                        log.error(
+                            f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
+                        )
+                        s, r = getattr(e, "message", str(e)), getattr(
+                            e, "message", repr(e)
+                        )
+                        log.error(f"Rank {self.comm.Get_rank()}: {s}")
+                        log.error(f"Rank {self.comm.Get_rank()}: {r}")
+                        self.stop_event.set()  # type: ignore
+                        log.error(
+                            f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
+                        )
+                        self._handle_failed_run()
+                        return None
+
+                    self.status = PerunStatus.PROCESSING
+                    # run_stoptime = datetime.utcnow()
+                    log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
+                    self.stop_event.set()  # type: ignore
+
+            except FileNotFoundError:
+                log.error(
+                    f"perun could not find the file {app}. Please check the path."
+                )
+                self.status = PerunStatus.FILE_NOT_FOUND
+                self.start_event.set()  # type: ignore
+                self.stop_event.set()  # type: ignore
+                self.perunSP.terminate()  # type: ignore
+                return None
+
+            # 4) App finished, stop subrocess and get data
+            return self._process_single_run(run_id, starttime_ns)
+
+        else:
+            try:
+                with open(str(app), "r") as scriptFile:
+                    self.status = PerunStatus.RUNNING
                     exec(
                         scriptFile.read(),
                         {"__name__": "__main__", "__file__": app.name},
                     )
                     self.status = PerunStatus.PROCESSING
-                    # run_stoptime = datetime.utcnow()
-                    log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
-                    self.stop_event.set()  # type: ignore
+            except FileNotFoundError as e:
+                log.error(
+                    f"perun could not find the file {app}. Please check the path."
+                )
+                self.status = PerunStatus.FILE_NOT_FOUND
+                s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
+                log.error(f"Rank {self.comm.Get_rank()}: {s}")
+                log.error(f"Rank {self.comm.Get_rank()}: {r}")
+            except SystemExit:
+                self.status = PerunStatus.PROCESSING
+                log.warning(
+                    "The application exited using exit(), quit() or sys.exit(). This is not the recommended way to exit an application, as it complicates the data collection process. Please refactor your code."
+                )
             except Exception as e:
                 self.status = PerunStatus.SCRIPT_ERROR
                 log.error(
@@ -470,35 +534,33 @@ class Perun:
                 s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
                 log.error(f"Rank {self.comm.Get_rank()}: {s}")
                 log.error(f"Rank {self.comm.Get_rank()}: {r}")
-                self.start_event.set()  # type: ignore
-                self.stop_event.set()  # type: ignore
-                log.error(
-                    f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
-                )
-                self.__del__()
-
-            # 4) App finished, stop subrocess and get data
-            return self._process_single_run(run_id, starttime_ns)
-
-        else:
-            try:
-                with open(str(app), "r") as scriptFile:
-                    self.status = PerunStatus.RUNNING_WARMUP
-                    exec(
-                        scriptFile.read(),
-                        {"__name__": "__main__", "__file__": app.name},
-                    )
-                    self.status = PerunStatus.PROCESSING
-            except Exception as e:
-                self.status = PerunStatus.SCRIPT_ERROR_WARMUP
-                log.error(
-                    f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
-                )
-                s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
-                log.error(f"Rank {self.comm.Get_rank()}: {s}")
-                log.error(f"Rank {self.comm.Get_rank()}: {r}")
-                self.__del__()
             return None
+
+    def _handle_failed_run(self):
+        availableRanks = self.comm.check_available_ranks()
+
+        log.error(f"Rank {self.comm.Get_rank()}: Available ranks {availableRanks}")
+        try:
+            recoverdNodes = self._process_single_run(
+                str("failed"), time.time_ns(), available_ranks=availableRanks
+            )
+        except ValueError:
+            log.error(
+                "Non of the available ranks have any monitoring data. Closing without generating a report."
+            )
+        else:
+            if recoverdNodes:
+                # Mark run as failed in the configuration
+                app_name = "failed_" + self.config.get("output", "app_name")
+                data_out = self.config.get("output", "data_out")
+                self.config.set("output", "app_name", app_name)
+                # self.config.set("output", "run_id", "failed_" + self.config.get("output", "run_id"))
+                failedRun = self._process_multirun({"0": recoverdNodes})
+                log.error(f"Storing run under {data_out}/{app_name}")
+                self._export_multirun(failedRun)
+
+            log.info(f"Rank {self.comm.Get_rank()}: Aborting mpi context.")
+            self.comm.Abort(1)
 
     def import_from(self, filePath: Path, format: IOFormat) -> DataNode:
         """Import data node from given filepath.

@@ -3,7 +3,7 @@ import time
 from mpi4py import MPI
 
 comm = MPI.COMM_WORLD
-files = ["does-not-exist.txt", "tests/scripts/exists.txt"]
+files = ["tests/scripts/exists.txt", "does-not-exist.txt"]
 
 rank = comm.Get_rank()
 

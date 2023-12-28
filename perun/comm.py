@@ -1,6 +1,7 @@
 """Comm module."""
 
 import logging
+import sys
 import time
 from typing import Any, List, Optional
 
@@ -75,9 +76,44 @@ class Comm:
         if self._enabled:
             self._comm.Abort(errorcode=errorcode)
         else:
-            exit(1)
+            sys.exit(1)
 
-    def check_ranks_availability(self) -> List[int]:
+    def gather_from_ranks(
+        self, obj: Any, ranks: List[int], root: int = 0
+    ) -> Optional[List[Any]]:
+        """Collect python objects from specific ranks at the determined root.
+
+        Parameters
+        ----------
+        obj : Any
+            Object to be collected.
+        ranks : List[int]
+            List of ranks that need to send the object.
+        root : int, optional
+            Reciever rank, by default 0
+
+        Returns
+        -------
+        Optional[List[Any]]
+            List with the gathered objects.
+        """
+        if self._enabled:
+            result = None
+            if self.Get_rank() != root:
+                self._comm.send(obj, root)
+            else:
+                result = []
+                for rank in ranks:
+                    if self.Get_rank() != rank:
+                        result.append(self._comm.recv(source=rank))
+                    else:
+                        result.append(obj)
+
+            return result
+        else:
+            return [obj]
+
+    def check_available_ranks(self) -> List[int]:
         """Return an array with all the ranks that are capable of responding to a single send/recv.
 
         Returns
