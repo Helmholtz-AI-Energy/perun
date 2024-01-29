@@ -1,4 +1,5 @@
 """Decorator module."""
+
 import functools
 import logging
 from typing import Optional

@@ -1,4 +1,5 @@
 """Processing Module."""
+
 import copy
 import logging
 from configparser import ConfigParser
@@ -191,9 +192,9 @@ def processSensorData(sensorData: DataNode) -> DataNode:
 
             elif sensorData.deviceType == DeviceType.OTHER:
                 sensorData.metrics[MetricType.OTHER_ENERGY] = energyMetric.copy()
-                sensorData.metrics[
+                sensorData.metrics[MetricType.OTHER_ENERGY].type = (
                     MetricType.OTHER_ENERGY
-                ].type = MetricType.OTHER_ENERGY
+                )
                 sensorData.metrics[MetricType.OTHER_POWER] = powerMetric.copy()
                 sensorData.metrics[MetricType.OTHER_POWER].type = MetricType.OTHER_POWER
 
@@ -249,9 +250,9 @@ def processSensorData(sensorData: DataNode) -> DataNode:
 
             elif sensorData.deviceType == DeviceType.OTHER:
                 sensorData.metrics[MetricType.OTHER_ENERGY] = energyMetric.copy()
-                sensorData.metrics[
+                sensorData.metrics[MetricType.OTHER_ENERGY].type = (
                     MetricType.OTHER_ENERGY
-                ].type = MetricType.OTHER_ENERGY
+                )
                 sensorData.metrics[MetricType.OTHER_POWER] = powerMetric.copy()
                 sensorData.metrics[MetricType.OTHER_POWER].type = MetricType.OTHER_POWER
 

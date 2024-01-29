@@ -1,4 +1,5 @@
 """Unit module."""
+
 import dataclasses
 import enum
 import logging

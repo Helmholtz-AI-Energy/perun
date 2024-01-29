@@ -1,4 +1,5 @@
 """Storage Module."""
+
 import dataclasses
 import enum
 import logging
@@ -377,12 +378,14 @@ class DataNode:
                 type.value: dataclasses.asdict(metric)
                 for type, metric in self.metrics.items()
             },
-            "regions": {
-                region_name: region.toDict()
-                for region_name, region in self.regions.items()
-            }
-            if self.regions
-            else None,
+            "regions": (
+                {
+                    region_name: region.toDict()
+                    for region_name, region in self.regions.items()
+                }
+                if self.regions
+                else None
+            ),
             "deviceType": self.deviceType,
             "processed": self.processed,
         }
