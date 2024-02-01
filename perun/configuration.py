@@ -1,4 +1,5 @@
 """Configuration module."""
+
 # gCO2eq/kWh - source: https://ourworldindata.org/grapher/carbon-intensity-electricity Global Average
 # Currency/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ 03.05.2023
 import configparser

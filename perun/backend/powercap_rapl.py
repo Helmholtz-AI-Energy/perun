@@ -1,4 +1,5 @@
 """Defines Intel RAPL related classes."""
+
 import logging
 import os
 import pprint as pp

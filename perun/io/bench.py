@@ -1,4 +1,5 @@
 """Bench io module."""
+
 import json
 import logging
 from typing import Dict, List, Tuple

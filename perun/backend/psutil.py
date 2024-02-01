@@ -1,4 +1,5 @@
 """psutil backend."""
+
 from typing import Callable, List, Set
 
 import numpy as np
