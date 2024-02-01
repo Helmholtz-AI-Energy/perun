@@ -1,4 +1,5 @@
 """Core perun functionality."""
+
 import enum
 import logging
 import os
