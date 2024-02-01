@@ -1,6 +1,8 @@
 """Comm module."""
 
 import logging
+import sys
+import time
 from typing import Any, List, Optional
 
 log = logging.getLogger("perun")
@@ -17,6 +19,7 @@ class Comm:
         try:
             from mpi4py import MPI
 
+            self._MPI = MPI
             if MPI.COMM_WORLD.Get_size() >= 1:
                 self._comm = MPI.COMM_WORLD
                 self._enabled = True
@@ -72,3 +75,97 @@ class Comm:
         """MPI Abort operation."""
         if self._enabled:
             self._comm.Abort(errorcode=errorcode)
+        else:
+            sys.exit(1)
+
+    def gather_from_ranks(
+        self, obj: Any, ranks: List[int], root: int = 0
+    ) -> Optional[List[Any]]:
+        """Collect python objects from specific ranks at the determined root.
+
+        Parameters
+        ----------
+        obj : Any
+            Object to be collected.
+        ranks : List[int]
+            List of ranks that need to send the object.
+        root : int, optional
+            Reciever rank, by default 0
+
+        Returns
+        -------
+        Optional[List[Any]]
+            List with the gathered objects.
+        """
+        if self._enabled:
+            result = None
+            if self.Get_rank() != root:
+                self._comm.send(obj, root)
+            else:
+                result = []
+                for rank in ranks:
+                    if self.Get_rank() != rank:
+                        result.append(self._comm.recv(source=rank))
+                    else:
+                        result.append(obj)
+
+            return result
+        else:
+            return [obj]
+
+    def check_available_ranks(self) -> List[int]:
+        """Return an array with all the ranks that are capable of responding to a single send/recv.
+
+        Returns
+        -------
+        List[int]
+            List with responsive MPI ranks.
+        """
+        if self._enabled:
+            rank = self._comm.Get_rank()
+            size = self._comm.Get_size()
+
+            # Create a list to store available ranks
+            available_ranks = []
+
+            # Start time for the timeout mechanism
+            start_time = time.time()
+
+            # Non-blocking receive requests list
+            requests = []
+
+            for target_rank in range(size):
+                if target_rank != rank:
+                    self._comm.isend(rank, dest=target_rank, tag=0)
+
+            # Initiate non-blocking receive requests from all other ranks
+            for target_rank in range(size):
+                if target_rank != rank:  # Skip sending to self
+                    req = self._comm.irecv(source=target_rank, tag=0)
+                    requests.append((target_rank, req))
+
+            # Check for available ranks while handling timeouts
+            while time.time() - start_time < 5:  # 5 seconds timeout for demonstration
+                for target_rank, req in requests:
+                    if target_rank not in available_ranks:
+                        if req.Test():  # Check if a request has received a message
+                            available_ranks.append(
+                                target_rank
+                            )  # Add the rank to available list
+
+                if len(available_ranks) == size - 1:  # All ranks are available
+                    break
+
+                # Sleep for a short duration before checking again
+                time.sleep(0.1)
+
+            # Cancel all remaining requests to prevent potential deadlocks
+            for target_rank, req in requests:
+                if target_rank not in available_ranks:
+                    req.Cancel()
+
+            available_ranks.append(rank)
+            sorted_available_ranks = sorted(available_ranks)
+            return sorted_available_ranks
+        else:
+            return [0]

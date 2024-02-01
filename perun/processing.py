@@ -400,7 +400,7 @@ def processDataNode(
         pue = perunConfig.getfloat("post-processing", "pue")
         emissions_factor = perunConfig.getfloat("post-processing", "emissions_factor")
         price_factor = perunConfig.getfloat("post-processing", "price_factor")
-        total_energy = dataNode.metrics[MetricType.ENERGY].value * pue
+        total_energy = dataNode.metrics[MetricType.ENERGY].value * pue  # type: ignore
         dataNode.metrics[MetricType.ENERGY].value = total_energy  # type: ignore
         e_kWh = total_energy / (3600 * 1e3)
 

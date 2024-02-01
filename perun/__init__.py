@@ -7,4 +7,4 @@ from perun.logging import init_logging
 
 log = init_logging(config.get("debug", "log_lvl"))
 
-from perun.api.decorator import monitor
+from perun.api.decorator import monitor, register_callback
