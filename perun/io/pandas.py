@@ -1,4 +1,5 @@
 """Pandas IO module."""
+
 from pathlib import Path
 from typing import Any, List, Tuple
 

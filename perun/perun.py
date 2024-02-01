@@ -1,4 +1,5 @@
 """Core perun functionality."""
+
 import logging
 import os
 import platform

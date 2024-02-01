@@ -1,4 +1,5 @@
 """Backend util."""
+
 import logging
 import platform
 from typing import Any, Dict, Set

@@ -1,4 +1,5 @@
 """Text report module."""
+
 import pandas as pd
 
 from perun import config, log

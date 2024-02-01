@@ -1,4 +1,5 @@
 """IO Json module."""
+
 import json
 
 import numpy as np

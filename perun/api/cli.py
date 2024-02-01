@@ -1,4 +1,5 @@
 """Command line API."""
+
 import argparse
 import json
 import logging

@@ -1,4 +1,5 @@
 """HDF5 IO module."""
+
 from pathlib import Path
 from typing import Dict, Union
 

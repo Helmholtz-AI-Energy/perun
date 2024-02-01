@@ -1,4 +1,5 @@
 """Perun subprocess module."""
+
 import logging
 import platform
 import time
