@@ -131,7 +131,9 @@ dmypy.json
 # Custom
 .vscode
 *.out
-poetry.lock
+*.lock
 .perun.ini
 examples/data
 examples/**/perun_results
+.pdm-python
+perun_results/
