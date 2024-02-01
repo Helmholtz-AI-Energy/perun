@@ -36,11 +36,7 @@ repos:
       - id: isort
         name: isort (python)
   - repo: https://github.com/psf/black
-<<<<<<< HEAD
     rev: 24.1.1
-=======
-    rev: 23.12.1
->>>>>>> 5b41ece ([pre-commit.ci] pre-commit autoupdate (#99))
     hooks:
       - id: black
   - repo: https://github.com/pre-commit/pre-commit-hooks
