@@ -4,8 +4,10 @@ import functools
 import logging
 from typing import Callable, Optional
 
+from perun.application import Application
+from perun.configuration import config, read_custom_config, read_environ, save_to_config
+from perun.core import Perun
 from perun.data_model.data import DataNode
-from perun.perun import Perun
 
 log = logging.getLogger("perun")
 
@@ -28,6 +30,30 @@ def monitor(region_name: Optional[str] = None):
                 func_result = func(*args, **kwargs)
                 perun.local_regions.addEvent(region_id)  # type: ignore
                 log.info(f"Rank {perun.comm.Get_rank()}: Leaving '{region_id}'")
+
+            return func_result
+
+        return func_wrapper
+
+    return inner_function
+
+
+def perun(configuration_file: str = "./.perun.ini", **conf_kwargs):
+    """Decorate function to monitor its energy usage."""
+
+    def inner_function(func):
+        @functools.wraps(func)
+        def func_wrapper(*args, **kwargs):
+            # Get custom config and kwargs
+            read_custom_config(configuration_file)
+            for key, value in conf_kwargs.items():
+                save_to_config(key, value)
+
+            read_environ()
+            perun = Perun(config)
+            app = Application(func, config, args, kwargs)
+
+            func_result = perun.monitor_application(app)
 
             return func_result
 

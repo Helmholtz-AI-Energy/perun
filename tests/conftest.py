@@ -4,7 +4,7 @@ import configparser
 import pytest
 
 from perun.configuration import _default_config
-from perun.perun import Perun
+from perun.core import Perun
 
 
 @pytest.fixture()

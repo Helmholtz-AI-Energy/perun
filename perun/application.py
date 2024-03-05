@@ -1,0 +1,129 @@
+"""Application module."""
+
+import os
+from configparser import ConfigParser
+from pathlib import Path
+from typing import Callable, Dict, Union
+
+from perun import log
+
+
+class Application:
+    """
+    Represents an application to be executed.
+
+    Parameters
+    ----------
+    app : Union[Path, Callable]
+        The application to be executed. It can be either a file path or a callable object.
+    config : ConfigParser
+        The configuration object containing application settings.
+    args : tuple, optional
+        Positional arguments to be passed to the application (default is an empty tuple).
+    kwargs : Dict, optional
+        Keyword arguments to be passed to the application (default is an empty dictionary).
+
+    Attributes
+    ----------
+    name : str
+        The name of the application.
+    args : tuple
+        The positional arguments to be passed to the application.
+    kwargs : Dict
+        The keyword arguments to be passed to the application.
+
+    Methods
+    -------
+    run()
+        Executes the application.
+    """
+
+    def __init__(
+        self,
+        app: Union[Path, Callable],
+        config: ConfigParser,
+        args: tuple = (),
+        kwargs: Dict = {},
+    ):
+        self._app = app
+        self._name = self._setName(config)
+        self._args = args
+        self._kwargs = kwargs
+        if isinstance(app, Path):
+            try:
+                with open(app, "r") as scriptFile:
+                    self._scriptFile = scriptFile.read()
+            except FileNotFoundError:
+                log.error(
+                    f"perun could not find the file {app}. Please check the path."
+                )
+                exit()
+
+    @property
+    def name(self):
+        """Return the application name."""
+        return self._name
+
+    @property
+    def args(self):
+        """Return the application positional arguments."""
+        return self._args
+
+    @property
+    def kwargs(self):
+        """Return the application keyword arguments."""
+        return self._kwargs
+
+    def _setName(self, config: ConfigParser) -> str:
+        """
+        Return the application name based on the configuration and application path.
+
+        Parameters
+        ----------
+        config : ConfigParser
+            The configuration object containing application settings.
+
+        Returns
+        -------
+        str
+            The application name.
+        """
+        app_name = config.get("output", "app_name")
+
+        if app_name and app_name != "SLURM":
+            return app_name
+        elif app_name and "SBATCH_JOB_NAME" in os.environ and app_name == "SLURM":
+            return os.environ["SBATCH_JOB_NAME"]
+        elif isinstance(self._app, Path):
+            return self._app.stem
+        elif callable(self._app):
+            return self._app.__name__
+        else:
+            raise ValueError("Application name not found")
+
+    def run(self):
+        """
+        Execute the application.
+
+        Raises
+        ------
+        ValueError
+            If the application is not found.
+        """
+        if isinstance(self._app, Path):
+            exec(
+                self._scriptFile,
+                {"__name__": "__main__", "__file__": self.name},
+            )
+        elif callable(self._app):
+            self._app(*self._args, **self._kwargs)
+        else:
+            raise ValueError("Application not found")
+
+    def __str__(self):
+        """Return the application name."""
+        return f"{self.name}"
+
+    def __repr__(self):
+        """Return the application name."""
+        return f"Application({self.name})"

@@ -3,7 +3,6 @@
 import os
 import re
 from datetime import datetime
-from pathlib import Path
 from typing import Dict, List, Set
 
 from perun import config
@@ -30,29 +29,6 @@ def singleton(class_):
         return instances[class_]
 
     return getinstance
-
-
-def getRunName(app: Path) -> str:
-    """Return application name based on configuration and application path.
-
-    Parameters
-    ----------
-    app : Path
-        Application path.
-
-    Returns
-    -------
-    str
-        Application name.
-    """
-    app_name = config.get("output", "app_name")
-
-    if app_name and app_name != "SLURM":
-        return app_name
-    elif app_name and "SBATCH_JOB_NAME" in os.environ and app_name == "SLURM":
-        return os.environ["SBATCH_JOB_NAME"]
-    elif isinstance(app, Path):
-        return app.stem
 
 
 def getRunId(starttime: datetime) -> str:
