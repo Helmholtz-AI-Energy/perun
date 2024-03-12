@@ -1,4 +1,5 @@
 """Command line API."""
+
 import argparse
 import json
 import logging
@@ -7,9 +8,10 @@ from pathlib import Path
 from typing import List
 
 import perun
+from perun.application import Application
 from perun.configuration import config, read_custom_config, read_environ, save_to_config
+from perun.core import Perun
 from perun.io.io import IOFormat
-from perun.perun import Perun
 from perun.util import printableSensorConfiguration
 
 log = logging.getLogger("perun")
@@ -257,6 +259,9 @@ def monitor(args: argparse.Namespace):
         assert scriptPath.suffix == ".py"
 
         sys.path.insert(0, str(scriptPath.parent.absolute()))
+        app = Application(scriptPath, config, args=tuple(sys.argv[1:]))
+    else:
+        app = Application(cmd, config, is_binary=True, args=tuple(sys.argv[1:]))
 
     # Setup script arguments
     for key, value in vars(args).items():
@@ -264,4 +269,5 @@ def monitor(args: argparse.Namespace):
             save_to_config(key, value)
 
     perun = Perun(config)
-    perun.monitor_application(cmd, cmd_args, args.binary)
+
+    perun.monitor_application(app)

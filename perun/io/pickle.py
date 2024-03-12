@@ -1,4 +1,5 @@
 """IO Pickle module."""
+
 import pickle
 
 from perun.data_model.data import DataNode

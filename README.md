@@ -116,7 +116,7 @@ mpirun -n 8 perun monitor path/to/your/script.py
 
 ## Docs
 
-To get more information, check out our [docs page](https://perun.readthedocs.io/en/latest/).
+To get more information, check out our [docs page](https://perun.readthedocs.io/en/latest/) or check the [examples](https://github.com/Helmholtz-AI-Energy/perun/tree/main/examples).
 
 ## Citing perun
 

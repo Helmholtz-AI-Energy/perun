@@ -1,4 +1,5 @@
 """Device module."""
+
 import enum
 from dataclasses import asdict, dataclass
 from typing import Any, Callable, Dict

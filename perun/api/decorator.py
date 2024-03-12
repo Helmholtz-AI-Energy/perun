@@ -1,9 +1,13 @@
 """Decorator module."""
+
 import functools
 import logging
-from typing import Optional
+from typing import Callable, Optional
 
-from perun.perun import Perun
+from perun.application import Application
+from perun.configuration import config, read_custom_config, read_environ, save_to_config
+from perun.core import Perun
+from perun.data_model.data import DataNode
 
 log = logging.getLogger("perun")
 
@@ -32,3 +36,42 @@ def monitor(region_name: Optional[str] = None):
         return func_wrapper
 
     return inner_function
+
+
+def perun(configuration_file: str = "./.perun.ini", **conf_kwargs):
+    """Decorate function to monitor its energy usage."""
+
+    def inner_function(func):
+        @functools.wraps(func)
+        def func_wrapper(*args, **kwargs):
+            # Get custom config and kwargs
+            read_custom_config(configuration_file)
+            for key, value in conf_kwargs.items():
+                save_to_config(key, value)
+
+            read_environ()
+            perun = Perun(config)
+            print("Out path: ", config.get("output", "data_out"))
+            app = Application(func, config, args, kwargs)
+
+            func_result = perun.monitor_application(app)
+
+            return func_result
+
+        return func_wrapper
+
+    return inner_function
+
+
+def register_callback(func: Callable[[DataNode], None]):
+    """Register a function to run after perun has finished collection data.
+
+    Parameters
+    ----------
+    func : Callable[[DataNode], None]
+        Function to be called.
+    """
+    perun = Perun()  # type: ignore
+    if func.__name__ not in perun.postprocess_callbacks:
+        log.info(f"Rank {perun.comm.Get_rank()}: Registering callback {func.__name__}")
+        perun.postprocess_callbacks[func.__name__] = func

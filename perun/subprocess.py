@@ -1,11 +1,11 @@
 """Perun subprocess module."""
-import configparser
+
 import logging
 import platform
 import time
 from configparser import ConfigParser
 from multiprocessing import Queue
-from typing import Callable, Dict, List, Set
+from typing import Callable, Dict, List, Set, Tuple
 
 import numpy as np
 
@@ -20,7 +20,7 @@ log = logging.getLogger("perun")
 
 def _prepSensors(
     backends: Dict[str, Backend], l_sensors_config: Dict[str, Set[str]]
-) -> tuple[List[int], MetricMetaData, List[List[np.number]], List[Sensor]]:
+) -> Tuple[List[int], MetricMetaData, List[List[np.number]], List[Sensor]]:
     lSensors: List[Sensor] = []
     for backend in backends.values():
         if backend.name in l_sensors_config:
@@ -68,7 +68,7 @@ def _createNode(
     t_metadata: MetricMetaData,
     rawValues: List[List[np.number]],
     lSensors: List[Sensor],
-    perunConfig: configparser.ConfigParser,
+    perunConfig: ConfigParser,
 ) -> DataNode:
     sensorNodes: Dict = {}
 

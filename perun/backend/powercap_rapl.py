@@ -1,4 +1,5 @@
 """Defines Intel RAPL related classes."""
+
 import logging
 import os
 import pprint as pp
@@ -13,7 +14,6 @@ import numpy as np
 from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType, Sensor
-from perun.util import singleton
 
 log = logging.getLogger("perun")
 
@@ -23,7 +23,6 @@ DIR_RGX = r"intel-rapl:(\d)$"
 SUBDIR_RGX = r"intel-rapl:\d:\d$"
 
 
-@singleton
 class PowercapRAPLBackend(Backend):
     """Powercap RAPL as a source of cpu and memory devices.
 

@@ -4,7 +4,7 @@ import configparser
 import pytest
 
 from perun.configuration import _default_config
-from perun.perun import Perun
+from perun.core import Perun
 
 
 @pytest.fixture()
@@ -14,6 +14,17 @@ def defaultConfig():
     return defaultConfig
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def perun(defaultConfig):
     return Perun(defaultConfig)
+
+
+@pytest.fixture(scope="function")
+def setup_cleanup():
+    # Setup
+    Perun._instances = {}
+
+    yield
+    # Cleanup
+
+    Perun._instances = {}
