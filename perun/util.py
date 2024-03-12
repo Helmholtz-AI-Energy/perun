@@ -1,5 +1,6 @@
 """Util module."""
 
+import logging
 import os
 import re
 from datetime import datetime
@@ -7,42 +8,111 @@ from typing import Dict, List, Set
 
 from perun import config
 
+log = logging.getLogger("perun")
 
-def singleton(class_):
-    """Singleton decorator.
 
-    Parameters
-    ----------
-    class_ : _type_
-        Class to decorate as singleton
-
-    Returns
-    -------
-    _type_
-        Decoreated class definition
+class Singleton(type):
     """
-    instances = {}
+    Metaclass for creating singleton classes.
 
-    def getinstance(*args, **kwargs):
-        if class_ not in instances:
-            instances[class_] = class_(*args, **kwargs)
-        return instances[class_]
+    Singleton classes are classes that can only have one instance. This metaclass
+    ensures that only one instance of a class is created and provides a way to
+    access that instance.
 
-    return getinstance
+    Attributes
+    ----------
+    _instances : dict
+        A dictionary that stores the instances of the singleton classes. The keys
+        are the singleton classes and the values are the corresponding instances.
+    __allow_reinitialization : bool
+        A flag that indicates whether the singleton class allows reinitialization.
+        If set to True, the `__call__` method will reinitialize the instance if the
+        class has already been instantiated.
+
+    Methods
+    -------
+    __call__(*args, **kwargs)
+        Overrides the default behavior of calling the class. It ensures that only one
+        instance of the class is created and returns that instance.
+
+    Examples
+    --------
+    >>> class MyClass(metaclass=Singleton):
+    ...     pass
+    ...
+    >>> my_instance = MyClass()  # Returns the instance of MyClass
+    """
+
+    _instances: Dict = {}
+    __allow_reinitialization: bool = False
+
+    def __call__(cls, *args, **kwargs):
+        """
+        Call method for the singleton class.
+
+        This method is called when the singleton class is invoked as a function.
+        It ensures that only one instance of the class is created and returned.
+
+        Parameters
+        ----------
+        cls : class object
+            The class object.
+        *args : tuple
+            Variable length argument list.
+        **kwargs : dict
+            Arbitrary keyword arguments.
+
+        Returns
+        -------
+        instance : object
+            The instance of the singleton class.
+
+        Examples
+        --------
+        >>> instance = MyClass()
+        >>> instance()
+        <MyClass object at 0x7f9a8a3d6a90>
+        """
+        if cls not in cls._instances:
+            log.debug(f"Singleton __call__ {cls.__name__}")
+            instance = super().__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        else:
+            instance = cls._instances[cls]
+            if (
+                hasattr(cls, "__allow_reinitialization")
+                and cls.__allow_reinitialization
+            ):
+                # if the class allows reinitialization, then do it
+                log.debug(f"Singleton __call__ {cls.__name__} reinit")
+                instance.__init__(*args, **kwargs)  # call the init again
+
+        log.debug(
+            f"Singleton __call__ {cls.__name__} returning instance id {id(instance)}"
+        )
+        return instance
 
 
 def getRunId(starttime: datetime) -> str:
-    """Return run id based on the configuration object or the current datetime.
+    """
+    Return run id based on the configuration object or the current datetime.
 
     Parameters
     ----------
     starttime : datetime
-        Datetime object
+        The datetime object representing the start time of the run.
 
     Returns
     -------
     str
-        Run id.
+        The run id.
+
+    Notes
+    -----
+    If the configuration object has a valid run id specified, it will be returned.
+    If the run id is set to "SLURM" and the environment variable "SLURM_JOB_ID" is present,
+    the value of "SLURM_JOB_ID" will be returned.
+    Otherwise, the ISO formatted string representation of the start time will be returned.
     """
     run_id = config.get("output", "run_id")
     if run_id and run_id != "SLURM":

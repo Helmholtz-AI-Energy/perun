@@ -1,15 +1,17 @@
 """Backend module."""
 
 import logging
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 from typing import Dict, List, Set
+
+from perun.util import Singleton
 
 from ..data_model.sensor import Sensor
 
 log = logging.getLogger("perun")
 
 
-class Backend(ABC):
+class Backend(metaclass=Singleton):
     """Abstract backend class."""
 
     id: str = "abstract_backend"

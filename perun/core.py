@@ -29,7 +29,7 @@ from perun.data_model.data import DataNode, LocalRegions, NodeType
 from perun.io.io import IOFormat, exportTo, importFrom
 from perun.processing import processDataNode
 from perun.subprocess import perunSubprocess
-from perun.util import getRunId, increaseIdCounter, singleton
+from perun.util import Singleton, getRunId, increaseIdCounter
 
 log = logging.getLogger("perun")
 
@@ -47,8 +47,7 @@ class PerunStatus(enum.Enum):
     SUCCESS = enum.auto()
 
 
-@singleton
-class Perun:
+class Perun(metaclass=Singleton):
     """Perun object."""
 
     def __init__(self, config: ConfigParser) -> None:
