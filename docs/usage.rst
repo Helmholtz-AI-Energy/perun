@@ -54,6 +54,33 @@ A combination of both also works. If you have a set of options that works for yo
 
 The monitor command will by default output two files. The first one is an HDF5 file, named after the monitored python script, which contains all the information gathered by perun over multiple runs. The data has a tree structure, where the root node contains a summary all the application runs. Subsequent nodes contain information about individual `perun monitor`
 
+
+Perun decorator
+~~~~~~~~~~~~~~~
+
+Perun cal also be run from within a script by using the perun decorator. This is particularly useful if the script needs to be run with another command line tool, or if the script is part of a larger application.
+
+.. code-block:: python
+
+
+    import perun
+
+    @perun.perun(data_out="my_results", format="json")
+    def main():
+        your_code_goes.here()
+
+    if __name__ == "__main__":
+        main()
+
+The decorator takes the same options as the monitor command, and can be set using the same environmental variables and configuration file. The decorator will also generate the same output files as the monitor command. Instead of using the perun commandline, the script can be run with the `python command`.
+
+.. caution::
+    The decorator will not work if the script is being run with the `perun monitor` command. The decorator will only work if the script is being run directly with the python interpreter.
+
+.. cauction::
+    If the decorated function is run multiple times, perun will behave as if it was run multiple times, initializing everything multiple times. To avoid this overhead, ensure the decorated function is called a single time. If information about a particular function which runs multiple times is needed, check  out the :ref:`monitoring functions` section.
+
+
 Application Name and Run ID
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
