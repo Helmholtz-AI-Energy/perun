@@ -77,7 +77,7 @@ The decorator takes the same options as the monitor command, and can be set usin
 .. caution::
     The decorator will not work if the script is being run with the `perun monitor` command. The decorator will only work if the script is being run directly with the python interpreter.
 
-.. cauction::
+.. caution::
     If the decorated function is run multiple times, perun will behave as if it was run multiple times, initializing everything multiple times. To avoid this overhead, ensure the decorated function is called a single time. If information about a particular function which runs multiple times is needed, check  out the :ref:`monitoring functions` section.
 
 
