@@ -192,6 +192,22 @@ class Perun(metaclass=Singleton):
             )
         return self._l_backend_metadata
 
+    def mark_event(self, region_id: str):
+        """
+        Mark an event for a specific region.
+
+        Parameters
+        ----------
+        region_id : str
+            The ID of the region to mark the event for.
+
+        Returns
+        -------
+        None
+        """
+        if self._monitor:
+            self._monitor.local_regions.addEvent(region_id)
+
     def monitor_application(
         self,
         app: Application,

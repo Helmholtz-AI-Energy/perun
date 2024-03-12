@@ -7,12 +7,14 @@ import time
 from configparser import ConfigParser
 from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as EventClass
+from subprocess import Popen
 from typing import Dict, List, Optional, Set, Tuple
 
 from perun.backend.backend import Backend
 from perun.comm import Comm
 from perun.data_model.data import DataNode, LocalRegions, NodeType
-from perun.monitoring.subprocess import perunSubprocess
+from perun.monitoring.subprocess import createNode, perunSubprocess, prepSensors
+from perun.processing import processDataNode
 
 from .application import Application
 
@@ -144,77 +146,10 @@ class PerunMonitor:
         """
         log.info(f"Rank {self._comm.Get_rank()}: _run_application")
         if record:
-            # 1) Get sensor configuration
-            self.sp_ready_event = Event()
-            self.start_event = Event()
-            self.stop_event = Event()
-
-            self.queue = None
-            self.perunSP = None
-
-            # 2) If assigned devices, create subprocess
-            if len(self._l_sensors_config.keys()) > 0:
-                log.debug(
-                    f"Rank {self._comm.Get_rank()} - Local Backendens : {pp.pformat(self._l_sensors_config)}"
-                )
-                self.queue = Queue()
-                self.perunSP = Process(
-                    target=perunSubprocess,
-                    args=[
-                        self.queue,
-                        self._comm.Get_rank(),
-                        self._backends,
-                        self._l_sensors_config,
-                        self._config,
-                        self.sp_ready_event,
-                        self.start_event,
-                        self.stop_event,
-                        self._config.getfloat("monitor", "sampling_rate"),
-                    ],
-                )
-                self.perunSP.start()
+            if self._app.is_binary:
+                return self._run_binary_app(run_id)
             else:
-                self.sp_ready_event.set()  # type: ignore
-
-            # 3) Start application
-            self.sp_ready_event.wait()  # type: ignore
-            self.local_regions = LocalRegions()
-            self._comm.barrier()
-
-            log.info(f"Rank {self._comm.Get_rank()}: Started App")
-            self.start_event.set()  # type: ignore
-            starttime_ns = time.time_ns()
-            self.status = MonitorStatus.RUNNING
-            try:
-                self._app.run()
-            except SystemExit:
-                log.info(
-                    "The application exited using exit(), quit() or sys.exit(). This is not the recommended way to exit an application, as it complicates the data collection process. Please refactor your code."
-                )
-
-            except Exception as e:
-                self.status = MonitorStatus.SCRIPT_ERROR
-                log.error(
-                    f"Rank {self._comm.Get_rank()}:  Found error on monitored script: {str(self._app)}"
-                )
-                s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
-                log.error(f"Rank {self._comm.Get_rank()}: {s}")
-                log.error(f"Rank {self._comm.Get_rank()}: {r}")
-                self.stop_event.set()  # type: ignore
-                log.error(
-                    f"Rank {self._comm.Get_rank()}:  Set start and stop event forcefully"
-                )
-                recoveredNodes = self._handle_failed_run()
-                return self.status, recoveredNodes
-
-            self.status = MonitorStatus.PROCESSING
-            # run_stoptime = datetime.utcnow()
-            log.info(f"Rank {self._comm.Get_rank()}: App Stopped")
-            self.stop_event.set()  # type: ignore
-
-            # 4) App finished, stop subrocess and get data
-            return self.status, self._process_single_run(run_id, starttime_ns)
-
+                return self._run_python_app(run_id)
         else:
             try:
                 self.status = MonitorStatus.RUNNING
@@ -228,12 +163,133 @@ class PerunMonitor:
             except Exception as e:
                 self.status = MonitorStatus.SCRIPT_ERROR
                 log.error(
-                    f"Rank {self._comm.Get_rank()}:  Found error on monitored script: {str(self._app)}"
+                    f"Rank {self._comm.Get_rank()}:  Found error on monitored application: {str(self._app)}"
                 )
                 s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
                 log.error(f"Rank {self._comm.Get_rank()}: {s}")
                 log.error(f"Rank {self._comm.Get_rank()}: {r}")
             return self.status, None
+
+    def _run_python_app(self, run_id: str) -> Tuple[MonitorStatus, Optional[DataNode]]:
+        # 1) Get sensor configuration
+        self.sp_ready_event = Event()
+        self.start_event = Event()
+        self.stop_event = Event()
+
+        self.queue = None
+        self.perunSP = None
+
+        # 2) If assigned devices, create subprocess
+        if len(self._l_sensors_config.keys()) > 0:
+            log.debug(
+                f"Rank {self._comm.Get_rank()} - Local Backendens : {pp.pformat(self._l_sensors_config)}"
+            )
+            self.queue = Queue()
+            self.perunSP = Process(
+                target=perunSubprocess,
+                args=[
+                    self.queue,
+                    self._comm.Get_rank(),
+                    self._backends,
+                    self._l_sensors_config,
+                    self._config,
+                    self.sp_ready_event,
+                    self.start_event,
+                    self.stop_event,
+                    self._config.getfloat("monitor", "sampling_rate"),
+                ],
+            )
+            self.perunSP.start()
+        else:
+            self.sp_ready_event.set()  # type: ignore
+
+        # 3) Start application
+        self.sp_ready_event.wait()  # type: ignore
+        self.local_regions = LocalRegions()
+        self._comm.barrier()
+
+        log.info(f"Rank {self._comm.Get_rank()}: Started App")
+        self.start_event.set()  # type: ignore
+        starttime_ns = time.time_ns()
+        self.status = MonitorStatus.RUNNING
+        try:
+            self._app.run()
+        except SystemExit:
+            log.info(
+                "The application exited using exit(), quit() or sys.exit(). This is not the recommended way to exit an application, as it complicates the data collection process. Please refactor your code."
+            )
+
+        except Exception as e:
+            self.status = MonitorStatus.SCRIPT_ERROR
+            log.error(
+                f"Rank {self._comm.Get_rank()}:  Found error on monitored script: {str(self._app)}"
+            )
+            s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
+            log.error(f"Rank {self._comm.Get_rank()}: {s}")
+            log.error(f"Rank {self._comm.Get_rank()}: {r}")
+            self.stop_event.set()  # type: ignore
+            log.error(
+                f"Rank {self._comm.Get_rank()}:  Set start and stop event forcefully"
+            )
+            recoveredNodes = self._handle_failed_run()
+            return self.status, recoveredNodes
+
+        self.status = MonitorStatus.PROCESSING
+        # run_stoptime = datetime.utcnow()
+        log.info(f"Rank {self._comm.Get_rank()}: App Stopped")
+        self.stop_event.set()  # type: ignore
+
+        # 4) App finished, stop subrocess and get data
+        return self.status, self._process_single_run(run_id, starttime_ns)
+
+    def _run_binary_app(self, run_id: str) -> Tuple[MonitorStatus, Optional[DataNode]]:
+
+        # 1) Prepare sensors
+        (
+            timesteps,
+            t_metadata,
+            rawValues,
+            lSensors,
+        ) = prepSensors(self._backends, self._l_sensors_config)
+        log.debug(f"SP: backends -- {self._backends}")
+        log.debug(f"SP: l_sensor_config -- {self._l_sensors_config}")
+        log.debug(f"Rank {self._comm.Get_rank()}: perunSP lSensors: {lSensors}")
+
+        sampling_rate = self._config.getfloat("monitor", "sampling_rate")
+
+        # 2) Start monitoring process
+        starttime_ns = time.time_ns()
+        process = Popen([self._app.name, *self._app.args])
+
+        timesteps.append(time.time_ns())
+        for idx, device in enumerate(lSensors):
+            rawValues[idx].append(device.read())
+
+        exitCode = process.poll()
+
+        while not isinstance(exitCode, int):
+            time.sleep(sampling_rate)
+            timesteps.append(time.time_ns())
+            for idx, device in enumerate(lSensors):
+                rawValues[idx].append(device.read())
+
+            exitCode = process.poll()
+
+        timesteps.append(time.time_ns())
+        for idx, device in enumerate(lSensors):
+            rawValues[idx].append(device.read())
+        log.info(f"Rank {self._comm.Get_rank()}: App Stopped with exit code {exitCode}")
+
+        # 3) Create data node
+        hostNode = createNode(timesteps, t_metadata, rawValues, lSensors, self._config)
+        processDataNode(hostNode, self._config)
+        globalRegions = [LocalRegions()]
+
+        # 4) Collect data from everyone on the first rank
+        runNode = DataNode(id=run_id, type=NodeType.RUN, nodes={hostNode.id: hostNode})
+        runNode.addRegionData(globalRegions, starttime_ns)
+
+        return MonitorStatus.SUCCESS, runNode
 
     def _handle_failed_run(self) -> Optional[DataNode]:
 
@@ -256,7 +312,7 @@ class PerunMonitor:
                 self._config.set("output", "app_name", app_name)
                 # self.config.set("output", "run_id", "failed_" + self.config.get("output", "run_id"))
                 return recoverdNodes
-            return None
+        return None
 
     def _process_single_run(
         self,

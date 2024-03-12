@@ -18,9 +18,28 @@ from perun.processing import processDataNode, processSensorData
 log = logging.getLogger("perun")
 
 
-def _prepSensors(
+def prepSensors(
     backends: Dict[str, Backend], l_sensors_config: Dict[str, Set[str]]
 ) -> Tuple[List[int], MetricMetaData, List[List[np.number]], List[Sensor]]:
+    """
+    Prepare sensors for monitoring.
+
+    Parameters
+    ----------
+    backends : Dict[str, Backend]
+        A dictionary of backends.
+    l_sensors_config : Dict[str, Set[str]]
+        A dictionary of sensor configurations.
+
+    Returns
+    -------
+    Tuple[List[int], MetricMetaData, List[List[np.number]], List[Sensor]]
+        A tuple containing the following:
+        - timesteps (List[int]): A list of timesteps.
+        - t_metadata (MetricMetaData): Metadata for the metrics.
+        - rawValues (List[List[np.number]]): A list of raw sensor values.
+        - lSensors (List[Sensor]): A list of sensors.
+    """
     lSensors: List[Sensor] = []
     for backend in backends.values():
         if backend.name in l_sensors_config:
@@ -63,13 +82,34 @@ def _monitoringLoop(
     return
 
 
-def _createNode(
+def createNode(
     timesteps: List[int],
     t_metadata: MetricMetaData,
     rawValues: List[List[np.number]],
     lSensors: List[Sensor],
     perunConfig: ConfigParser,
 ) -> DataNode:
+    """
+    Create a data node from the sensor data.
+
+    Parameters
+    ----------
+    timesteps : List[int]
+        A list of timesteps.
+    t_metadata : MetricMetaData
+        Metadata for the metrics.
+    rawValues : List[List[np.number]]
+        A list of raw sensor values.
+    lSensors : List[Sensor]
+        A list of sensors.
+    perunConfig : ConfigParser
+        The perun configuration.
+
+    Returns
+    -------
+    DataNode
+        A data node.
+    """
     sensorNodes: Dict = {}
 
     t_s = np.array(timesteps)
@@ -154,7 +194,7 @@ def perunSubprocess(
         t_metadata,
         rawValues,
         lSensors,
-    ) = _prepSensors(backends, l_sensors_config)
+    ) = prepSensors(backends, l_sensors_config)
     log.debug(f"SP: backends -- {backends}")
     log.debug(f"SP: l_sensor_config -- {l_sensors_config}")
     log.debug(f"Rank {rank}: perunSP lSensors: {lSensors}")
@@ -169,7 +209,7 @@ def perunSubprocess(
     )
 
     log.info(f"Rank {rank}: Subprocess: Stop event received.")
-    hostNode = _createNode(timesteps, t_metadata, rawValues, lSensors, perunConfig)
+    hostNode = createNode(timesteps, t_metadata, rawValues, lSensors, perunConfig)
 
     processDataNode(hostNode, perunConfig)
 
