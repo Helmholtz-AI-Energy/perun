@@ -301,7 +301,7 @@ class DataNode:
         self,
         id: str,
         type: NodeType,
-        metadata: Dict,
+        metadata: Dict = {},
         nodes: Optional[Dict[str, Any]] = None,
         metrics: Optional[Dict[MetricType, Union[Metric, Stats]]] = None,
         deviceType: Optional[DeviceType] = None,

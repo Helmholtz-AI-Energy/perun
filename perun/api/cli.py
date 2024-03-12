@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import List
 
 import perun
-from perun.application import Application
 from perun.configuration import config, read_custom_config, read_environ, save_to_config
 from perun.core import Perun
 from perun.io.io import IOFormat
+from perun.monitoring.application import Application
 from perun.util import printableSensorConfiguration
 
 log = logging.getLogger("perun")

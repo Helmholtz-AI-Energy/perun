@@ -4,10 +4,10 @@ import functools
 import logging
 from typing import Callable, Optional
 
-from perun.application import Application
 from perun.configuration import config, read_custom_config, read_environ, save_to_config
 from perun.core import Perun
 from perun.data_model.data import DataNode
+from perun.monitoring.application import Application
 
 log = logging.getLogger("perun")
 
@@ -21,7 +21,7 @@ def monitor(region_name: Optional[str] = None):
             # Get custom config and kwargs
             region_id = region_name if region_name else func.__name__
 
-            perun = Perun()  # type: ignore
+            perun = Perun(config)
             if perun.warmup_round:
                 func_result = func(*args, **kwargs)
             else:
@@ -52,7 +52,7 @@ def perun(configuration_file: str = "./.perun.ini", **conf_kwargs):
             read_environ()
             perun = Perun(config)
             print("Out path: ", config.get("output", "data_out"))
-            app = Application(func, config, args, kwargs)
+            app = Application(func, config, args=args, kwargs=kwargs)
 
             func_result = perun.monitor_application(app)
 
