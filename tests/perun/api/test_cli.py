@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from perun.api.cli import _get_arg_parser
-from perun.perun import Perun
+from perun.core import Perun
 from perun.util import printableSensorConfiguration
 
 

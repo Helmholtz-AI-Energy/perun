@@ -9,12 +9,10 @@ import numpy as np
 from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType, Sensor
-from perun.util import singleton
 
 log = logging.getLogger("perun")
 
 
-@singleton
 class NVMLBackend(Backend):
     """NVMLSource class.
 

@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Type
 
 from perun import __version__
+from perun.application import Application
 from perun.backend.backend import Backend
 from perun.backend.nvml import NVMLBackend
 from perun.backend.powercap_rapl import PowercapRAPLBackend
@@ -28,7 +29,7 @@ from perun.data_model.data import DataNode, LocalRegions, NodeType
 from perun.io.io import IOFormat, exportTo, importFrom
 from perun.processing import processDataNode
 from perun.subprocess import perunSubprocess
-from perun.util import getRunId, getRunName, increaseIdCounter, singleton
+from perun.util import Singleton, getRunId, increaseIdCounter
 
 log = logging.getLogger("perun")
 
@@ -46,8 +47,7 @@ class PerunStatus(enum.Enum):
     SUCCESS = enum.auto()
 
 
-@singleton
-class Perun:
+class Perun(metaclass=Singleton):
     """Perun object."""
 
     def __init__(self, config: ConfigParser) -> None:
@@ -79,7 +79,8 @@ class Perun:
         self._close_backends()
         log.info(f"Rank {self.comm.Get_rank()}: Exit status {self.status}")
 
-    def _reset_subprocess_handlers(self):
+    def _reset_subprocess_handlers(self) -> None:
+        """Reset subprocess handlers."""
         self.sp_ready_event: Optional[EventClass] = None
         self.start_event: Optional[EventClass] = None
         self.stop_event: Optional[EventClass] = None
@@ -221,7 +222,7 @@ class Perun:
 
     def monitor_application(
         self,
-        app: Path,
+        app: Application,
     ):
         """Execute coordination, monitoring, post-processing, and reporting steps, in that order.
 
@@ -233,7 +234,7 @@ class Perun:
         log.debug(f"Rank {self.comm.Get_rank()} Backends: {pp.pformat(self.backends)}")
 
         starttime = datetime.now()
-        app_name = getRunName(app)
+        app_name = app.name
         multirun_id = getRunId(starttime)
 
         # Store relevant info in config.
@@ -416,7 +417,7 @@ class Perun:
 
     def _run_application(
         self,
-        app: Path,
+        app: Application,
         run_id: str,
         record: bool = True,
     ) -> Optional[DataNode]:
@@ -455,77 +456,48 @@ class Perun:
                 self.sp_ready_event.set()  # type: ignore
 
             # 3) Start application
+            self.sp_ready_event.wait()  # type: ignore
+            self.local_regions = LocalRegions()
+            self.comm.barrier()
+            log.info(f"Rank {self.comm.Get_rank()}: Started App")
+            self.start_event.set()  # type: ignore
+            starttime_ns = time.time_ns()
+            self.status = PerunStatus.RUNNING
             try:
-                self.sp_ready_event.wait()  # type: ignore
-                with open(str(app), "r") as scriptFile:
-                    self.local_regions = LocalRegions()
-                    self.comm.barrier()
-                    log.info(f"Rank {self.comm.Get_rank()}: Started App")
-                    self.start_event.set()  # type: ignore
-                    starttime_ns = time.time_ns()
-                    self.status = PerunStatus.RUNNING
-                    try:
-                        exec(
-                            scriptFile.read(),
-                            {"__name__": "__main__", "__file__": app.name},
-                        )
-                    except SystemExit:
-                        log.warning(
-                            "The application exited using exit(), quit() or sys.exit(). This is not the recommended way to exit an application, as it complicates the data collection process. Please refactor your code."
-                        )
-
-                    except Exception as e:
-                        self.status = PerunStatus.SCRIPT_ERROR
-                        log.error(
-                            f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
-                        )
-                        s, r = getattr(e, "message", str(e)), getattr(
-                            e, "message", repr(e)
-                        )
-                        log.error(f"Rank {self.comm.Get_rank()}: {s}")
-                        log.error(f"Rank {self.comm.Get_rank()}: {r}")
-                        self.stop_event.set()  # type: ignore
-                        log.error(
-                            f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
-                        )
-                        self._handle_failed_run()
-                        return None
-
-                    self.status = PerunStatus.PROCESSING
-                    # run_stoptime = datetime.utcnow()
-                    log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
-                    self.stop_event.set()  # type: ignore
-
-            except FileNotFoundError:
-                log.error(
-                    f"perun could not find the file {app}. Please check the path."
+                app.run()
+            except SystemExit:
+                log.warning(
+                    "The application exited using exit(), quit() or sys.exit(). This is not the recommended way to exit an application, as it complicates the data collection process. Please refactor your code."
                 )
-                self.status = PerunStatus.FILE_NOT_FOUND
-                self.start_event.set()  # type: ignore
+
+            except Exception as e:
+                self.status = PerunStatus.SCRIPT_ERROR
+                log.error(
+                    f"Rank {self.comm.Get_rank()}:  Found error on monitored script: {str(app)}"
+                )
+                s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
+                log.error(f"Rank {self.comm.Get_rank()}: {s}")
+                log.error(f"Rank {self.comm.Get_rank()}: {r}")
                 self.stop_event.set()  # type: ignore
-                self.perunSP.terminate()  # type: ignore
+                log.error(
+                    f"Rank {self.comm.Get_rank()}:  Set start and stop event forcefully"
+                )
+                self._handle_failed_run()
                 return None
+
+            self.status = PerunStatus.PROCESSING
+            # run_stoptime = datetime.utcnow()
+            log.info(f"Rank {self.comm.Get_rank()}: App Stopped")
+            self.stop_event.set()  # type: ignore
 
             # 4) App finished, stop subrocess and get data
             return self._process_single_run(run_id, starttime_ns)
 
         else:
             try:
-                with open(str(app), "r") as scriptFile:
-                    self.status = PerunStatus.RUNNING
-                    exec(
-                        scriptFile.read(),
-                        {"__name__": "__main__", "__file__": app.name},
-                    )
-                    self.status = PerunStatus.PROCESSING
-            except FileNotFoundError as e:
-                log.error(
-                    f"perun could not find the file {app}. Please check the path."
-                )
-                self.status = PerunStatus.FILE_NOT_FOUND
-                s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
-                log.error(f"Rank {self.comm.Get_rank()}: {s}")
-                log.error(f"Rank {self.comm.Get_rank()}: {r}")
+                self.status = PerunStatus.RUNNING
+                app.run()
+                self.status = PerunStatus.PROCESSING
             except SystemExit:
                 self.status = PerunStatus.PROCESSING
                 log.warning(

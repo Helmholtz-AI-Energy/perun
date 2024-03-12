@@ -7,9 +7,10 @@ import sys
 from pathlib import Path
 
 import perun
+from perun.application import Application
 from perun.configuration import config, read_custom_config, read_environ, save_to_config
+from perun.core import Perun
 from perun.io.io import IOFormat
-from perun.perun import Perun
 from perun.util import printableSensorConfiguration
 
 log = logging.getLogger("perun")
@@ -253,4 +254,5 @@ def monitor(args: argparse.Namespace):
 
     sys.path.insert(0, str(filePath.parent.absolute()))
 
-    perun.monitor_application(filePath)
+    app = Application(filePath, config, tuple(sys.argv[1:]))
+    perun.monitor_application(app)
