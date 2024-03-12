@@ -98,6 +98,9 @@ perun has a special option `--rounds` which will run the application for multipl
 
 Additionaly, there is a `--warmup-rounds` option if you want the application to execute without monitoring before the *real* rounds.
 
+
+.. _monitoring functions:
+
 Monitoring Functions
 ~~~~~~~~~~~~~~~~~~~~
 
