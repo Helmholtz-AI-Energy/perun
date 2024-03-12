@@ -71,10 +71,10 @@ class PSUTILBackend(Backend):
                     MetricMetaData(
                         Unit.BYTE,
                         Magnitude.ONE,
-                        np.dtype("uint32"),
-                        np.uint32(0),
-                        np.uint32(np.iinfo("uint32").max),
-                        np.uint32(np.iinfo("uint32").max),
+                        np.dtype("uint64"),
+                        np.uint64(0),
+                        np.uint64(np.iinfo("uint64").max),
+                        np.uint64(np.iinfo("uint64").max),
                     ),
                     self._getCallback(deviceName),
                 )
@@ -111,22 +111,22 @@ class PSUTILBackend(Backend):
         elif device == "DISK_READ_BYTES":
 
             def func() -> np.number:
-                return np.uint32(psutil.disk_io_counters(nowrap=True).read_bytes)  # type: ignore
+                return np.uint64(psutil.disk_io_counters(nowrap=True).read_bytes)  # type: ignore
 
         elif device == "DISK_WRITE_BYTES":
 
             def func() -> np.number:
-                return np.uint32(psutil.disk_io_counters(nowrap=True).write_bytes)  # type: ignore
+                return np.uint64(psutil.disk_io_counters(nowrap=True).write_bytes)  # type: ignore
 
         elif device == "NET_WRITE_BYTES":
 
             def func() -> np.number:
-                return np.uint32(psutil.net_io_counters(nowrap=True).bytes_sent)
+                return np.uint64(psutil.net_io_counters(nowrap=True).bytes_sent)
 
         elif device == "NET_READ_BYTES":
 
             def func() -> np.number:
-                return np.uint32(psutil.net_io_counters(nowrap=True).bytes_recv)
+                return np.uint64(psutil.net_io_counters(nowrap=True).bytes_recv)
 
         else:
             raise ValueError("Invalid device name")
