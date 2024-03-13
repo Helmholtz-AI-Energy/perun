@@ -3,6 +3,10 @@ import configparser
 
 import pytest
 
+from perun.backend.nvml import NVMLBackend
+from perun.backend.powercap_rapl import PowercapRAPLBackend
+from perun.backend.psutil import PSUTILBackend
+from perun.backend.rocmsmi import ROCMBackend
 from perun.configuration import _default_config
 from perun.core import Perun
 
@@ -23,8 +27,16 @@ def perun(defaultConfig):
 def setup_cleanup():
     # Setup
     Perun._instances = {}
+    NVMLBackend._instances = {}
+    PowercapRAPLBackend._instances = {}
+    PSUTILBackend._instances = {}
+    ROCMBackend._instances = {}
 
     yield
     # Cleanup
 
     Perun._instances = {}
+    NVMLBackend._instances = {}
+    PowercapRAPLBackend._instances = {}
+    PSUTILBackend._instances = {}
+    ROCMBackend._instances = {}

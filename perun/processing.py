@@ -295,6 +295,10 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                 metricType = MetricType.GPU_MEM
                 result = bytes_v.mean()
                 aggType = AggregateType.SUM
+            elif sensorData.deviceType == DeviceType.RAM:
+                metricType = MetricType.MEM_UTIL
+                result = bytes_v.mean()
+                aggType = AggregateType.SUM
             else:
                 metricType = MetricType.OTHER_MEM
                 result = bytes_v.mean()

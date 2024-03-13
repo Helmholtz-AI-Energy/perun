@@ -149,6 +149,28 @@ def test_monitor_command(tmp_path: Path):
     assert textFile.suffix == ".txt"
 
 
+def test_monitor_binary_command(tmp_path: Path):
+    # Test Monitor
+    resultsPath = tmp_path / "results"
+
+    subprocess.run(
+        f"perun monitor --data_out {resultsPath} --binary sleep 10".split(" "),
+        timeout=20,
+    )
+
+    # Expected files, hdf5 file and a text file with a date
+    # Are the files in the correct folder
+    resultFiles = list(resultsPath.iterdir())
+    assert len(resultFiles) == 2
+    assert resultsPath / "sleep.hdf5" in resultFiles
+    assert (resultsPath / "sleep.hdf5").is_file()
+
+    resultFiles.remove(resultsPath / "sleep.hdf5")
+    textFile = resultFiles.pop()
+    assert textFile.is_file()
+    assert textFile.suffix == ".txt"
+
+
 @pytest.mark.parametrize(
     "format,suffix", [("json", "json"), ("csv", "csv"), ("pickle", "pkl")]
 )

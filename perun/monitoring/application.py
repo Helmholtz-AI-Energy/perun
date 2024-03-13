@@ -1,6 +1,8 @@
 """Application module."""
 
+import gc
 import os
+import subprocess
 from configparser import ConfigParser
 from pathlib import Path
 from typing import Callable, Dict, Union
@@ -40,8 +42,9 @@ class Application:
 
     def __init__(
         self,
-        app: Union[Path, Callable],
+        app: Union[Path, Callable, str],
         config: ConfigParser,
+        is_binary: bool = False,
         args: tuple = (),
         kwargs: Dict = {},
     ):
@@ -49,6 +52,7 @@ class Application:
         self._name = self._setName(config)
         self._args = args
         self._kwargs = kwargs
+        self._is_binary = is_binary
         if isinstance(app, Path):
             try:
                 with open(app, "r") as scriptFile:
@@ -74,6 +78,11 @@ class Application:
         """Return the application keyword arguments."""
         return self._kwargs
 
+    @property
+    def is_binary(self):
+        """Return the application keyword arguments."""
+        return self._is_binary
+
     def _setName(self, config: ConfigParser) -> str:
         """
         Return the application name based on the configuration and application path.
@@ -98,8 +107,14 @@ class Application:
             return self._app.stem
         elif callable(self._app):
             return self._app.__name__
+        elif isinstance(self._app, str):
+            return self._app
         else:
             raise ValueError("Application name not found")
+
+    def _cleanup(self):
+        for i in range(3):
+            gc.collect(i)
 
     def run(self):
         """
@@ -110,13 +125,17 @@ class Application:
         ValueError
             If the application is not found.
         """
-        if isinstance(self._app, Path):
+        if self._is_binary and isinstance(self._app, str):
+            subprocess.run([self._app, *self._args], env=os.environ)
+        elif isinstance(self._app, Path):
             exec(
                 self._scriptFile,
                 {"__name__": "__main__", "__file__": self.name},
             )
+            self._cleanup()
         elif callable(self._app):
             self._app(*self._args, **self._kwargs)
+            self._cleanup()
         else:
             raise ValueError("Application not found")
 
