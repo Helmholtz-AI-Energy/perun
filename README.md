@@ -26,6 +26,7 @@ Check out the [docs](https://perun.readthedocs.io/en/latest/) or a working [exam
  - Monitor individual functions using decorators
  - Tracks energy usage of the application over multiple executions
  - Easy to benchmark applications and functions
+ - Experimental!: Can monitor any non-distributed command line application
 
 ## Installation
 
@@ -79,6 +80,14 @@ The application has been run 7 times. Throught its runtime, it has used 3.128 kW
 ```
 
 Perun will keep track of the energy of your application over multiple runs.
+
+#### Binary support (experimental)
+
+perun is capable of monitoring simple applications written in other languages, as long as they don't make use of MPI or are distributed over multiple computational nodes.
+
+```console
+$ perun monitor --binary path/to/your/executable [args]
+```
 
 ### Function Monitoring
 

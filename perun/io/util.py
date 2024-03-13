@@ -25,7 +25,11 @@ def getTFactorMag(
     Tuple[float, Magnitude]
         Scaling factor and Magnitude Enum
     """
-    if metric_md.unit == Unit.WATT or metric_md.unit == Unit.JOULE:
+    if (
+        metric_md.unit == Unit.WATT
+        or metric_md.unit == Unit.JOULE
+        or metric_md.unit == Unit.BYTE
+    ):
         transformFactor = 1
         for mag in reversed(Magnitude):
             if value > mag.value:
@@ -39,19 +43,6 @@ def getTFactorMag(
         return 1.0, metric_md.mag
     elif metric_md.unit == Unit.SECOND:
         return 1.0, Magnitude.ONE
-    elif metric_md.unit == Unit.BYTE:
-        transformFactor = 1
-        newMag = Magnitude.ONE
-        for magFactor, m in zip(
-            [1024**3, 1024**2, 1024**1],
-            [Magnitude.GIGA, Magnitude.MEGA, Magnitude.KILO],
-        ):
-            if value > magFactor:
-                transformFactor = magFactor
-                newMag = m
-                break
-
-        return transformFactor, newMag
     else:
         return 1.0, metric_md.mag
 

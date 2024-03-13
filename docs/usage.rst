@@ -55,6 +55,12 @@ A combination of both also works. If you have a set of options that works for yo
 The monitor command will by default output two files. The first one is an HDF5 file, named after the monitored python script, which contains all the information gathered by perun over multiple runs. The data has a tree structure, where the root node contains a summary all the application runs. Subsequent nodes contain information about individual `perun monitor`
 
 
+Perun is also capable of monitoring command line applications or executables without MPI. The command is the same, but the application name is the executable name.
+
+.. code-block:: console
+
+    $ perun monitor --binary your_executable [args]
+
 Perun decorator
 ~~~~~~~~~~~~~~~
 
