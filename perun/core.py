@@ -232,8 +232,10 @@ class Perun(metaclass=Singleton):
 
         log.info(f"App: {app_name}, MR_ID: {multirun_id}")
 
+        backends = self.backends
+        l_sensors_config = self.l_sensors_config
         self._monitor = PerunMonitor(
-            app, self.comm, self.l_sensors_config, self.backends, self.config
+            app, self.comm, backends, l_sensors_config, self.config
         )
 
         if self.config.getint("benchmarking", "warmup_rounds"):

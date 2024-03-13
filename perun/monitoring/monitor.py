@@ -84,15 +84,15 @@ class PerunMonitor:
         self,
         app: Application,
         comm: Comm,
-        l_sensors_config: Dict[str, Set[str]],
         backends: Dict[str, Backend],
+        l_sensors_config: Dict[str, Set[str]],
         config: ConfigParser,
     ) -> None:
 
         self._app = app
         self._comm = comm
-        self._l_sensors_config = l_sensors_config
         self._backends = backends
+        self._l_sensors_config = l_sensors_config
         self._config = config
         self.status = MonitorStatus.SETUP
         self._reset_subprocess_handlers()

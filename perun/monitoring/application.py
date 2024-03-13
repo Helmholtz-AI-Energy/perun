@@ -1,6 +1,7 @@
 """Application module."""
 
 import os
+import gc
 import subprocess
 from configparser import ConfigParser
 from pathlib import Path
@@ -110,6 +111,10 @@ class Application:
             return self._app
         else:
             raise ValueError("Application name not found")
+    
+    def _cleanup(self):
+        for i in range(3):
+            gc.collect(i)
 
     def run(self):
         """
@@ -127,8 +132,10 @@ class Application:
                 self._scriptFile,
                 {"__name__": "__main__", "__file__": self.name},
             )
+            self._cleanup()
         elif callable(self._app):
             self._app(*self._args, **self._kwargs)
+            self._cleanup()
         else:
             raise ValueError("Application not found")
 

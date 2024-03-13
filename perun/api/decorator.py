@@ -51,7 +51,6 @@ def perun(configuration_file: str = "./.perun.ini", **conf_kwargs):
 
             read_environ()
             perun = Perun(config)
-            print("Out path: ", config.get("output", "data_out"))
             app = Application(func, config, args=args, kwargs=kwargs)
 
             func_result = perun.monitor_application(app)

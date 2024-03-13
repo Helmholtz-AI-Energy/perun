@@ -39,12 +39,12 @@ class PSUTILBackend(Backend):
                         **self.metadata,
                     },
                     MetricMetaData(
-                        Unit.PERCENT,
+                        Unit.BYTE,
                         Magnitude.ONE,
-                        np.dtype("float32"),
-                        np.float32(0),
-                        np.float32(1.0),
-                        np.float32(-1),
+                        np.dtype("uint64"),
+                        np.uint64(0),
+                        np.uint64(np.iinfo("uint64").max),
+                        np.uint64(np.iinfo("uint64").max),
                     ),
                     self._getCallback(deviceName),
                 )
@@ -101,7 +101,7 @@ class PSUTILBackend(Backend):
         if device == "RAM_USAGE":
 
             def func() -> np.number:
-                return np.float32(psutil.virtual_memory().percent / 100)
+                return np.uint64(psutil.virtual_memory().active)
 
         elif device == "CPU_USAGE":
 
