@@ -98,15 +98,14 @@ class NVMLBackend(Backend):
                     **self.metadata,
                 }
                 try:
-                    max_power = np.uint32(
+                    max_power: np.number = np.uint32(
                         self.pynvml.nvmlDeviceGetPowerManagementDefaultLimit(handle)
                     )
                     log.debug(f"Device {deviceId} Max Power : {max_power}")
                 except self.pynvml.NVMLError as e:
                     log.info(f"Could not get max power for device {deviceId}")
                     log.info(e)
-                    max_power = np.iinfo("uint32").max
-
+                    max_power = np.uint32(np.iinfo("uint32").max)
 
                 data_type = MetricMetaData(
                     Unit.WATT,
@@ -126,14 +125,14 @@ class NVMLBackend(Backend):
                     )
                 )
                 try:
-                    max_memory = np.uint64(
+                    max_memory: np.number = np.uint64(
                         self.pynvml.nvmlDeviceGetMemoryInfo(handle).total
                     )
                     log.debug(f"Device {deviceId} Max Memory : {max_memory}")
                 except self.pynvml.NVMLError as e:
                     log.info(f"Could not get max memory for device {deviceId}")
                     log.info(e)
-                    max_memory = np.iinfo("uint64").max
+                    max_memory = np.uint64(np.iinfo("uint64").max)
 
                 data_type = MetricMetaData(
                     Unit.BYTE,
