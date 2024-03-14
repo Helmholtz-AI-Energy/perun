@@ -101,7 +101,7 @@ class PSUTILBackend(Backend):
         if device == "RAM_USAGE":
 
             def func() -> np.number:
-                return np.uint64(psutil.virtual_memory().active)
+                return np.uint64(psutil.virtual_memory().used)
 
         elif device == "CPU_USAGE":
 
