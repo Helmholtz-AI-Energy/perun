@@ -3,6 +3,13 @@
 
 
 
+## v0.6.0 (2024-03-18)
+
+
+### Feature
+
+* feat: Postprocess Callback (#100) ([`aecaaa5`](https://github.com/Helmholtz-AI-Energy/perun/commit/aecaaa5cc1d2ce29ae7acb231d6e135b5482d365))
+
 ## v0.5.0 (2023-10-25)
 
 
@@ -253,3 +260,4 @@ Github needs a better action editor ([`e2f38e5`](https://github.com/Helmholtz-AI
 ### Feature
 
 * feat: text, json and yaml reports ([`9503751`](https://github.com/Helmholtz-AI-Energy/perun/commit/95037516594189959fbfb2b2894d18cdba7b5819))
+
