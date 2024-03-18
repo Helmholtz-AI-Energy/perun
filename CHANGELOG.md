@@ -1,14 +1,17 @@
 # CHANGELOG
 
-
-
-
 ## v0.6.0 (2024-03-18)
 
 
 ### Feature
 
 * feat: Postprocess Callback (#100) ([`aecaaa5`](https://github.com/Helmholtz-AI-Energy/perun/commit/aecaaa5cc1d2ce29ae7acb231d6e135b5482d365))
+* feat: Monitor Decorator is back! by @JuanPedroGHM in https://github.com/Helmholtz-AI-Energy/perun/pull/106
+* feat: Binary support (without MPI) by @JuanPedroGHM in https://github.com/Helmholtz-AI-Energy/perun/pull/107
+
+### Fix
+
+* fix: Improved psutil memory readings by @JuanPedroGHM in https://github.com/Helmholtz-AI-Energy/perun/pull/109
 
 ## v0.5.0 (2023-10-25)
 
@@ -16,30 +19,6 @@
 ### Feature
 
 * feat: ROCM Backend (#82)
-
-* feat: rocm backend
-
-* fix: amd gpu correct handle
-
-* [pre-commit.ci] pre-commit autoupdate (#81)
-
-updates:
-- [github.com/commitizen-tools/commitizen: 3.6.0 → 3.10.0](https://github.com/commitizen-tools/commitizen/compare/3.6.0...3.10.0)
-- [github.com/psf/black: 23.7.0 → 23.9.1](https://github.com/psf/black/compare/23.7.0...23.9.1)
-- [github.com/pre-commit/pre-commit-hooks: v4.4.0 → v4.5.0](https://github.com/pre-commit/pre-commit-hooks/compare/v4.4.0...v4.5.0)
-
-Co-authored-by: pre-commit-ci[bot] &lt;66853113+pre-commit-ci[bot]@users.noreply.github.com&gt;
-Co-authored-by: JuanPedroGHM &lt;juanpedroghm@gmail.com&gt;
-
----------
-
-Co-authored-by: pre-commit-ci[bot] &lt;66853113+pre-commit-ci[bot]@users.noreply.github.com&gt; ([`229f1e2`](https://github.com/Helmholtz-AI-Energy/perun/commit/229f1e2e6c019a2d4e6100610102b4be4b4b9a16))
-
-
-### Fix
-
-* fix: another typo ([`f6537cc`](https://github.com/Helmholtz-AI-Energy/perun/commit/f6537ccbfd293dac5972e96cf2e2f85a14819cc2))
-
 
 ### Refactor
 
@@ -260,4 +239,3 @@ Github needs a better action editor ([`e2f38e5`](https://github.com/Helmholtz-AI
 ### Feature
 
 * feat: text, json and yaml reports ([`9503751`](https://github.com/Helmholtz-AI-Energy/perun/commit/95037516594189959fbfb2b2894d18cdba7b5819))
-
