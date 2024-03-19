@@ -175,8 +175,6 @@ def cli():
         if value:
             save_to_config(key, value)
 
-    save_to_config("log_lvl", args.log_lvl)
-
     # set logging
     log.setLevel(config.get("debug", "log_lvl"))
 

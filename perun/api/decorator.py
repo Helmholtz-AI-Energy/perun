@@ -44,14 +44,18 @@ def perun(configuration_file: str = "./.perun.ini", **conf_kwargs):
     def inner_function(func):
         @functools.wraps(func)
         def func_wrapper(*args, **kwargs):
-            # Get custom config and kwargs
+            # 1) Read custom config
             read_custom_config(configuration_file)
+
+            # 2) Read environment variables
+            read_environ()
+
+            # 3) Parse remaining arguments
             for key, value in conf_kwargs.items():
                 save_to_config(key, value)
 
-            read_environ()
-            perun = Perun(config)
             app = Application(func, config, args=args, kwargs=kwargs)
+            perun = Perun(config)
 
             func_result = perun.monitor_application(app)
 
