@@ -163,13 +163,19 @@ def cli():
         parser.print_help()
         return
 
+    # 1) Read custom configuration
     if args.configuration:
         read_custom_config(args.configuration)
 
+    # 2) Read environment variables
     read_environ()
 
-    if args.log_lvl:
-        save_to_config("log_lvl", args.log_lvl)
+    # 3) Parse remaining arguments
+    for key, value in vars(args).items():
+        if value:
+            save_to_config(key, value)
+
+    save_to_config("log_lvl", args.log_lvl)
 
     # set logging
     log.setLevel(config.get("debug", "log_lvl"))
@@ -262,11 +268,6 @@ def monitor(args: argparse.Namespace):
         app = Application(scriptPath, config, args=tuple(sys.argv[1:]))
     else:
         app = Application(cmd, config, is_binary=True, args=tuple(sys.argv[1:]))
-
-    # Setup script arguments
-    for key, value in vars(args).items():
-        if value:
-            save_to_config(key, value)
 
     perun = Perun(config)
 

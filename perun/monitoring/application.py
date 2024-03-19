@@ -101,7 +101,12 @@ class Application:
 
         if app_name and app_name != "SLURM":
             return app_name
-        elif app_name and "SBATCH_JOB_NAME" in os.environ and app_name == "SLURM":
+        elif (
+            app_name
+            and app_name != "SLURM"
+            and "SBATCH_JOB_NAME" in os.environ
+            and app_name == "SLURM"
+        ):
             return os.environ["SBATCH_JOB_NAME"]
         elif isinstance(self._app, Path):
             return self._app.stem
