@@ -187,13 +187,11 @@ def showconf(args: argparse.Namespace):
     """Print current perun configuration in INI format."""
     from perun.configuration import _default_config
 
-    perun = Perun(config)
-    if perun.comm.Get_rank() == 0:
-        if args.showconf_default:
-            config.read_dict(_default_config)
-            config.write(sys.stdout)
-        else:
-            config.write(sys.stdout)
+    if args.showconf_default:
+        config.read_dict(_default_config)
+        config.write(sys.stdout)
+    else:
+        config.write(sys.stdout)
 
 
 def sensors(args: argparse.Namespace):

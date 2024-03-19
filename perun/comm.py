@@ -14,19 +14,32 @@ class Comm:
     def __init__(self):
         """Initialize MPI Communicator if availablel."""
         self._enabled = False
+        self._initialized = False
         self._rank = 0
         self._size = 1
         try:
+            import mpi4py
+
+            mpi4py.rc.initialize = False
+            mpi4py.rc.finalize = True
+
             from mpi4py import MPI
 
             self._MPI = MPI
-            if MPI.COMM_WORLD.Get_size() >= 1:
-                self._comm = MPI.COMM_WORLD
-                self._enabled = True
+            self._enabled = True
 
         except ImportError as e:
             log.info("Missing mpi4py, multi-node monitoring disabled")
             log.info(e)
+
+    def _mpi_init(self):
+        if not self._MPI.Is_initialized():
+            self._MPI.Init()
+        self._comm = self._MPI.COMM_WORLD
+        self._rank = self._comm.Get_rank()
+        self._size = self._comm.Get_size()
+        self._initialized = True
+        log.info(f"MPI initialized: rank={self._rank}, size={self._size}")
 
     def Get_rank(self) -> int:
         """Get local MPI rank.
@@ -36,7 +49,12 @@ class Comm:
         int
             MPI Rank
         """
-        return self._comm.Get_rank() if self._enabled else self._rank
+        if self._enabled:
+            if not self._initialized:
+                self._mpi_init()
+            return self._comm.Get_rank()
+        else:
+            return self._rank
 
     def Get_size(self) -> int:
         """MPI World size.
@@ -46,22 +64,73 @@ class Comm:
         int
             World Size
         """
-        return self._comm.Get_size() if self._enabled else self._size
+        if self._enabled:
+            if not self._initialized:
+                self._mpi_init()
+            return self._comm.Get_size()
+        else:
+            return self._size
 
     def gather(self, obj: Any, root: int = 0) -> Optional[List[Any]]:
-        """MPI Gather operation."""
-        return self._comm.gather(obj, root=root) if self._enabled else [obj]
+        """MPI gather operation.
+
+        Parameters
+        ----------
+        obj : Any
+            Object to be gathered.
+        root : int, optional
+            Reciever rank, by default 0
+
+        Returns
+        -------
+        Optional[List[Any]]
+            List with the gathered objects.
+        """
+        if self._enabled:
+            if not self._initialized:
+                self._mpi_init()
+            return self._comm.gather(obj, root=root)
+        else:
+            return [obj]
 
     def allgather(self, obj: Any) -> List[Any]:
-        """MPI allgather operation."""
+        """MPI allgather operation.
+
+        Parameters
+        ----------
+        obj : Any
+            Object to be gathered.
+
+        Returns
+        -------
+        List[Any]
+            List with the gathered objects.
+        """
         if self._enabled:
+            if not self._initialized:
+                self._mpi_init()
             return self._comm.allgather(obj)
         else:
             return [obj]
 
     def bcast(self, obj: Any, root: int = 0) -> Any:
-        """MPI broadcast operation."""
+        """MPI broadcast operation.
+
+        Parameters
+        ----------
+        obj : Any
+            Object to be broadcasted.
+        root : int, optional
+            Sender rank, by default 0
+
+        Returns
+        -------
+        Any
+            Broadcasted object.
+        """
         if self._enabled:
+            if not self._initialized:
+                self._mpi_init()
             return self._comm.bcast(obj, root)
         else:
             return obj
@@ -69,11 +138,15 @@ class Comm:
     def barrier(self):
         """MPI barrier operation."""
         if self._enabled:
+            if not self._initialized:
+                self._mpi_init()
             self._comm.barrier()
 
     def Abort(self, errorcode: int):
         """MPI Abort operation."""
         if self._enabled:
+            if not self._initialized:
+                self._mpi_init()
             self._comm.Abort(errorcode=errorcode)
         else:
             sys.exit(1)
@@ -98,6 +171,8 @@ class Comm:
             List with the gathered objects.
         """
         if self._enabled:
+            if not self._initialized:
+                self._mpi_init()
             result = None
             if self.Get_rank() != root:
                 self._comm.send(obj, root)
@@ -122,6 +197,8 @@ class Comm:
             List with responsive MPI ranks.
         """
         if self._enabled:
+            if not self._initialized:
+                self._mpi_init()
             rank = self._comm.Get_rank()
             size = self._comm.Get_size()
 
