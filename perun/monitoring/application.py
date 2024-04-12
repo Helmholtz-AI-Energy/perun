@@ -1,13 +1,15 @@
 """Application module."""
 
 import gc
+import logging
+import logging.handlers
 import os
 import subprocess
 from configparser import ConfigParser
 from pathlib import Path
 from typing import Callable, Dict, Union
 
-from perun import log
+log = logging.getLogger("perun")
 
 
 class Application:

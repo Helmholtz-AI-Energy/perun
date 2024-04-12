@@ -224,6 +224,20 @@ class LocalRegions:
 
         self._regions[region_name].append(time.time_ns())
 
+    def isEmpty(self) -> bool:
+        """Check if there are any regions marked.
+
+        Returns
+        -------
+        bool
+            True if there are no regions marked.
+        """
+        return len(self._regions.keys()) == 0
+
+    def __str__(self) -> str:
+        """Return string representation of LocalRegions object."""
+        return str(self._regions)
+
 
 @dataclasses.dataclass
 class Region:
@@ -233,7 +247,6 @@ class Region:
     """
 
     id: str = ""
-    world_size: int = 0
     raw_data: Dict[int, np.ndarray] = dataclasses.field(default_factory=dict)
     runs_per_rank: Optional[Stats] = None
     runtime: Optional[Stats] = None
@@ -250,9 +263,8 @@ class Region:
         Dict[str, Dict[int, np.ndarray]]
             Dictionary with region data.
         """
-        result = {
+        result: Dict[str, Any] = {
             "id": self.id,
-            "world_size": self.world_size,
             "raw_data": self.raw_data,
         }
 
@@ -282,7 +294,6 @@ class Region:
         """
         regionObj = Region()
         regionObj.id = regionDictionary["id"]
-        regionObj.world_size = regionDictionary["world_size"]
         regionObj.raw_data = regionDictionary["raw_data"]
         regionObj.processed = regionDictionary["processed"]
         if regionObj.processed:
@@ -353,20 +364,20 @@ class DataNode:
             'Official' start time of the run.
         """
         self.regions = {}
-        world_size = len(localRegions)
+        log.debug(f"Local regions: {localRegions}")
         for rank, l_region in enumerate(localRegions):
-            for region_name, data in l_region._regions.items():
-                if region_name not in self.regions:
-                    r = Region()
-                    r.id = region_name
-                    r.world_size = world_size
-                    self.regions[region_name] = r
+            if not l_region.isEmpty():
+                for region_name, data in l_region._regions.items():
+                    if region_name not in self.regions:
+                        r = Region()
+                        r.id = region_name
+                        self.regions[region_name] = r
 
-                t_s = np.array(data)
-                t_s -= start_time
-                t_s = t_s.astype("float32")
-                t_s *= 1e-9
-                self.regions[region_name].raw_data[rank] = t_s
+                    t_s = np.array(data)
+                    t_s -= start_time
+                    t_s = t_s.astype("float32")
+                    t_s *= 1e-9
+                    self.regions[region_name].raw_data[rank] = t_s
 
     def toDict(self, include_raw_data: bool = True) -> Dict:
         """Transform object to dictionary."""
