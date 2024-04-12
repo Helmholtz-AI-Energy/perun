@@ -237,7 +237,6 @@ def _addRegion(h5Group: h5py.Group, region: Region):
     _addMetric(region_group, region.runtime)  # type: ignore
     region_group.attrs["id"] = region.id
     region_group.attrs["processed"] = region.processed
-    region_group.attrs["world_size"] = region.world_size
     raw_data_group = region_group.create_group("raw_data")
     for rank, data in region.raw_data.items():
         raw_data_group.create_dataset(str(rank), data=data)
@@ -254,7 +253,6 @@ def _readRegion(group: h5py.Group) -> Region:
     regionObj = Region()
     regionObj.id = group.attrs["id"]  # type: ignore
     regionObj.processed = group.attrs["processed"]  # type: ignore
-    regionObj.world_size = group.attrs["world_size"]  # type: ignore
 
     regionObj.cpu_util = _readMetric(group["CPU_UTIL"])  # type: ignore
     regionObj.gpu_util = _readMetric(group["GPU_UTIL"])  # type: ignore
