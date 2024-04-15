@@ -452,12 +452,12 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
     dataNode : DataNode
         Data node with sensor data.
     """
-    world_size = regions[0].world_size
+    log.debug(f"Processing regions with sensor data: {len(regions)}")
     power = [
-        [
-            [0.0 for _ in range(region.raw_data[rank].shape[0] // 2)]
-            for rank in range(world_size)
-        ]
+        {
+            rank: [0.0 for _ in range(region.raw_data[rank].shape[0] // 2)]
+            for rank in region.raw_data.keys()
+        }
         for region in regions
     ]
     cpu_util = copy.deepcopy(power)
@@ -510,7 +510,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                                 events[i * 2 + 1],
                                             )
                                             cpu_util[region_idx][rank][i] += np.mean(
-                                                values
+                                                values, dtype="float32"
                                             )
                                         elif (
                                             measuring_unit == Unit.BYTE
@@ -531,11 +531,11 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                             gpu_count[region_idx][rank][i] += 1
 
     for region_idx, region in enumerate(regions):
-        r_power = np.array(list(chain(*power[region_idx])))
-        r_cpu_util = np.array(list(chain(*cpu_util[region_idx])))
+        r_power = np.array(list(chain(*power[region_idx].values())))
+        r_cpu_util = np.array(list(chain(*cpu_util[region_idx].values())))
 
-        r_gpu_util = np.array(list(chain(*gpu_util[region_idx])))
-        r_gpu_count = np.array(list(chain(*gpu_count[region_idx])))
+        r_gpu_util = np.array(list(chain(*gpu_util[region_idx].values())))
+        r_gpu_count = np.array(list(chain(*gpu_count[region_idx].values())))
 
         if has_gpu:
             r_gpu_util /= r_gpu_count
@@ -601,14 +601,11 @@ def addRunAndRuntimeInfoToRegion(region: Region):
     runs_per_rank = []
     runtime = []
 
-    for rank in range(region.world_size):
-        if rank in region.raw_data:
-            events = region.raw_data[rank]
-            runs_per_rank.append(events.shape[0] / 2)
-            for i in range(1, events.shape[0], 2):
-                runtime.append(events[i] - events[i - 1])
-        else:
-            runs_per_rank.append(0)
+    for rank in region.raw_data.keys():
+        events = region.raw_data[rank]
+        runs_per_rank.append(events.shape[0] / 2)
+        for i in range(1, events.shape[0], 2):
+            runtime.append(events[i] - events[i - 1])
 
     runs_array = np.array(runs_per_rank)
     runtime_array = np.array(runtime)
@@ -670,5 +667,5 @@ def getInterpolatedValues(
         ROI values
     """
     new_t = np.concatenate([[start], t[np.all([t >= start, t <= end], axis=0)], [end]])
-    new_x = np.interp(new_t, t, x)
+    new_x = np.interp(new_t, t, x)  # type: ignore
     return new_t, new_x
