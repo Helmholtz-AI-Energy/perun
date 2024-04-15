@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "perun"
-version = "0.6.1"
+version = "0.6.2"
 description = ""
 authors = ["Gutiérrez Hermosillo Muriedas, Juan Pedro <juanpedroghm@gmail.com>"]
 license = "BSD-3-Clause"

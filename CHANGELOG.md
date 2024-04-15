@@ -1,6 +1,13 @@
 # CHANGELOG
 
 
+## v0.6.2 (2024-04-15)
+
+
+### Fix
+
+* fix: support for non-spmd region monitoring (dask support) ([`ce68162`](https://github.com/Helmholtz-AI-Energy/perun/commit/ce681622e437fb6521d6318ff55268fffddab891))
+
 ## v0.6.1 (2024-03-19)
 
 
@@ -477,3 +484,4 @@
 ### Fix
 
 * fix: semantic-release action ([`90caf3d`](https://github.com/Helmholtz-AI-Energy/perun/commit/90caf3d6817e42c21ad1f9d30a32038fe96c0362))
+
