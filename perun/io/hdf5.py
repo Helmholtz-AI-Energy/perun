@@ -207,6 +207,14 @@ def _addRawData(h5Group: h5py.Group, rawData: RawData):
     values_ds = rawDataGroup.create_dataset("values", data=rawData.values)
     _addMetricMetadata(values_ds, rawData.v_md)
 
+    if rawData.alt_values is not None:
+        print(rawData.alt_values)
+        print(rawData.alt_v_md)
+        alt_values_ds = rawDataGroup.create_dataset(
+            "alt_values", data=rawData.alt_values
+        )
+        _addMetricMetadata(alt_values_ds, rawData.alt_v_md)  # type: ignore
+
 
 def _readRawData(group: h5py.Group) -> RawData:
     """Read raw data from into hdf5."""
@@ -214,11 +222,16 @@ def _readRawData(group: h5py.Group) -> RawData:
     values = group["values"][:]  # type: ignore
     t_md = _readMetricMetadata(group["timesteps"])  # type: ignore
     v_md = _readMetricMetadata(group["values"])  # type: ignore
+
+    alt_values = group["alt_values"][:] if "alt_values" in group else None  # type: ignore
+    alt_v_md = _readMetricMetadata(group["alt_values"]) if alt_values is not None else None  # type: ignore
     return RawData(
         timesteps=timesteps,  # type: ignore
         values=values,  # type: ignore
+        alt_values=alt_values,
         t_md=t_md,
         v_md=v_md,
+        alt_v_md=alt_v_md,
     )
 
 
