@@ -18,6 +18,14 @@ tableMetrics = [
     MetricType.DRAM_MEM,
 ]
 
+regionMetrics = {
+    MetricType.RUNTIME: "Avg Runtime",
+    MetricType.POWER: "Avg Power",
+    MetricType.CPU_UTIL: "Avg CPU Util",
+    MetricType.DRAM_MEM: "Avg RAM Mem Util",
+    MetricType.GPU_MEM: "Avg GPU Mem Util",
+}
+
 
 def textReport(dataNode: DataNode, mr_id: str) -> str:
     """Create text report from selected MULTI_RUN node.
@@ -61,17 +69,19 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
         if run_node.regions:
             for region_name, region in run_node.regions.items():
                 if region.processed:
-                    region_rows.append(
+                    row = {
+                        "Round #": run_node.id,
+                        "Function": region_name,
+                        "Avg Calls / Rank": region.runs_per_rank.mean,
+                    }
+                    row.update(
                         {
-                            "Round #": run_node.id,
-                            "Function": region_name,
-                            "Avg Calls / Rank": region.runs_per_rank.mean,
-                            "Avg Runtime": value2MeanStdStr(region.runtime),
-                            "Avg Power": value2MeanStdStr(region.power),
-                            "Avg CPU Util": value2MeanStdStr(region.cpu_util),
-                            "Avg GPU Mem Util": value2MeanStdStr(region.gpu_util),
+                            regionMetrics[metric_type]: value2MeanStdStr(stats)
+                            for metric_type, stats in region.metrics.items()
+                            if metric_type in regionMetrics
                         }
                     )
+                    region_rows.append(row)
         for host_name, host_node in run_node.nodes.items():
             entry = {
                 "Round #": run_number,
@@ -91,14 +101,24 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
 
         host_device_rows.append(entry)
 
-    mr_table = pd.DataFrame.from_records(host_device_rows).sort_values(by="Host")
-    mr_report_str = f"RUN ID: {mr_id}\n\n" + mr_table.to_markdown(index=False) + "\n\n"
+    mr_table = pd.DataFrame.from_records(host_device_rows).sort_values(
+        by=["Host", "Round #"]
+    )
+    mr_report_str = (
+        f"RUN ID: {mr_id}\n\n"
+        + mr_table.to_markdown(index=False, stralign="right")
+        + "\n\n"
+    )
 
     # Regions
     if len(region_rows) > 0:
-        region_table = pd.DataFrame.from_records(region_rows).sort_values("Function")
+        region_table = pd.DataFrame.from_records(region_rows).sort_values(
+            by=["Function", "Round #"]
+        )
         region_report_str = (
-            "Monitored Functions\n\n" + region_table.to_markdown(index=False) + "\n\n"
+            "Monitored Functions\n\n"
+            + region_table.to_markdown(index=False, stralign="right")
+            + "\n\n"
         )
     else:
         region_report_str = ""

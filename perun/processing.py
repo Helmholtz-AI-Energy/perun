@@ -464,6 +464,8 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
     dram_mem = copy.deepcopy(power)
     gpu_mem = copy.deepcopy(power)
 
+    has_gpu = False
+
     for hostNode in dataNode.nodes.values():
         # Get relevant ranks
         ranks = hostNode.metadata["mpi_ranks"]
@@ -526,6 +528,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                             measuring_unit == Unit.BYTE
                                             and deviceNode.deviceType == DeviceType.GPU
                                         ):
+                                            has_gpu = True
                                             _, values = getInterpolatedValues(
                                                 raw_data.timesteps.astype("float32"),
                                                 raw_data.values,
@@ -574,22 +577,6 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
             r_dram_mem.max(),
             r_dram_mem.min(),
         )
-        region.metrics[MetricType.GPU_MEM] = Stats(
-            MetricType.GPU_MEM,
-            MetricMetaData(
-                Unit.BYTE,
-                Magnitude.ONE,
-                np.dtype("uint64"),
-                np.uint64(0),
-                np.iinfo("uint64").max,  # type: ignore
-                np.uint64(0),
-            ),
-            r_gpu_mem.sum(),
-            r_gpu_mem.mean(),
-            r_gpu_mem.std(),
-            r_gpu_mem.max(),
-            r_gpu_mem.min(),
-        )
         region.metrics[MetricType.POWER] = Stats(
             MetricType.POWER,
             MetricMetaData(
@@ -606,6 +593,23 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
             r_power.max(),
             r_power.min(),
         )
+        if has_gpu:
+            region.metrics[MetricType.GPU_MEM] = Stats(
+                MetricType.GPU_MEM,
+                MetricMetaData(
+                    Unit.BYTE,
+                    Magnitude.ONE,
+                    np.dtype("uint64"),
+                    np.uint64(0),
+                    np.iinfo("uint64").max,  # type: ignore
+                    np.uint64(0),
+                ),
+                r_gpu_mem.sum(),
+                r_gpu_mem.mean(),
+                r_gpu_mem.std(),
+                r_gpu_mem.max(),
+                r_gpu_mem.min(),
+            )
 
 
 def addRunAndRuntimeInfoToRegion(region: Region):
