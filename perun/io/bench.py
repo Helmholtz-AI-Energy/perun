@@ -13,9 +13,6 @@ from perun.io.util import getTFactorMag
 log = logging.getLogger("perun")
 
 
-lessIsBetterMetrics = [MetricType.RUNTIME, MetricType.ENERGY]
-
-
 def exportBench(dataNode: DataNode, mr_id: str) -> str:
     """Export data node to json format based on the github continuous benchmark action.
 
@@ -36,15 +33,21 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
     metricDict = []
     mrNode = dataNode.nodes[mr_id]
 
+    scriptMetrics = [
+        MetricType(value)
+        for value in mrNode.metadata["benchmarking.metrics"].split(",")
+    ]
+
     bench_units: Dict[str, Magnitude] = {
         "JOULE": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.joule"]),
         "SECOND": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.second"]),
-        "WATT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.power"]),
+        "WATT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.watt"]),
         "PERCENT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.percent"]),
+        "BYTE": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.byte"]),
     }
 
     for metricType, metric in mrNode.metrics.items():
-        if metricType in lessIsBetterMetrics:
+        if metricType in scriptMetrics:
             metric_md: MetricMetaData = metric.metric_md
             if metric_md.unit.name in bench_units:
                 mag = bench_units[metric_md.unit.name]
@@ -77,49 +80,37 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
             "When generating benchmarks for regions, it is preferable to if each function only runs a single time."
         )
 
+    regionMetrics = [
+        MetricType(value)
+        for value in mrNode.metadata["benchmarking.region_metrics"].split(",")
+    ]
+
     for runNode in mrNode.nodes.values():
         if runNode.regions:
             for region_name, region in runNode.regions.items():
                 if region_name not in region_data:
                     region_data[region_name] = {
-                        MetricType.RUNTIME.name: (
-                            [region.runtime.mean],
-                            region.runtime.metric_md,
-                        ),
-                        MetricType.POWER.name: (
-                            [region.power.mean],
-                            region.power.metric_md,
-                        ),
-                        MetricType.CPU_UTIL.name: (
-                            [region.cpu_util.mean],
-                            region.cpu_util.metric_md,
-                        ),
-                        MetricType.GPU_UTIL.name: (
-                            [region.gpu_util.mean],
-                            region.gpu_util.metric_md,
-                        ),
+                        metricType.name: (
+                            [stats.mean],
+                            stats.metric_md,
+                        )
+                        for metricType, stats in region.metrics.items()
+                        if metricType in regionMetrics
                     }
                 else:
-                    region_data[region_name][MetricType.RUNTIME.name][0].append(
-                        region.runtime.mean
-                    )
-                    region_data[region_name][MetricType.POWER.name][0].append(
-                        region.power.mean
-                    )
-                    region_data[region_name][MetricType.CPU_UTIL.name][0].append(
-                        region.cpu_util.mean
-                    )
-                    region_data[region_name][MetricType.GPU_UTIL.name][0].append(
-                        region.gpu_util.mean
-                    )
+                    for metricType, stats in region.metrics.items():
+                        if metricType in regionMetrics:
+                            region_data[region_name][metricType.name][0].append(
+                                stats.mean
+                            )
 
     for region_name, region in region_data.items():
         for metric_name, data in region.items():
             values = data[0]
             metadata = data[1]
             if len(values) > 1:
-                mean = np.mean(values)
-                std = np.std(values)
+                mean = np.mean(values)  # type: ignore
+                std = np.std(values)  # type: ignore
                 if metadata.unit.name in bench_units:
                     mag = bench_units[metadata.unit.name]
                     old_mag = metadata.mag

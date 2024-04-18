@@ -15,7 +15,7 @@ tableMetrics = [
     MetricType.GPU_POWER,
     MetricType.GPU_MEM,
     MetricType.DRAM_POWER,
-    MetricType.MEM_UTIL,
+    MetricType.DRAM_MEM,
 ]
 
 
