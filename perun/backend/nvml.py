@@ -71,13 +71,23 @@ class NVMLBackend(Backend):
 
         def getCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
-                return np.uint32(self.pynvml.nvmlDeviceGetPowerUsage(handle))
+                try:
+                    return np.uint32(self.pynvml.nvmlDeviceGetPowerUsage(handle))
+                except self.pynvml.NVMLError as e:
+                    log.warning(f"Could not get power usage for device {deviceId}")
+                    log.exception(e)
+                    return np.uint32(0)
 
             return func
 
         def getUsedMemCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
-                return np.uint64(self.pynvml.nvmlDeviceGetMemoryInfo(handle).used)
+                try:
+                    return np.uint64(self.pynvml.nvmlDeviceGetMemoryInfo(handle).used)
+                except self.pynvml.NVMLError as e:
+                    log.warning(f"Could not get memory usage for device {deviceId}")
+                    log.exception(e)
+                    return np.uint32(0)
 
             return func
 

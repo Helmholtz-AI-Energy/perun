@@ -49,7 +49,7 @@ def processEnergyData(
        Tuple with total energy in joules and avg power in watts.
     """
     runtime = raw_data.timesteps[-1]
-    t_s = raw_data.timesteps.astype("float32")
+    t_s: np.ndarray = raw_data.timesteps.astype("float32")
     t_s *= raw_data.t_md.mag.value / Magnitude.ONE.value
 
     e_J = raw_data.values
@@ -57,9 +57,16 @@ def processEnergyData(
     dtype = raw_data.v_md.dtype.name
 
     if start and end:
-        runtime = end - start
+        sampling_ratio = np.diff(t_s).mean() * 0.1
+        runtime = end - start + 2 * sampling_ratio
         index = np.all([t_s >= start, t_s <= end], axis=0)
-        e_J = e_J[index]
+        tmp = e_J[index]
+        if len(tmp) == 0:
+            index = np.all(
+                [t_s >= (start - sampling_ratio), t_s <= (end + sampling_ratio)], axis=0
+            )
+            tmp = e_J[index]
+            return 0, 0
 
     d_energy = e_J[1:] - e_J[:-1]
 
