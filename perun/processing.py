@@ -85,8 +85,6 @@ def processEnergyData(
 
     # Transform the energy series to a power series
     if not start and not end:
-        print(t_s)
-        print(d_energy)
         power_W = d_energy / np.diff(t_s)
         power_W *= magFactor
         raw_data.alt_values = power_W
@@ -101,8 +99,6 @@ def processEnergyData(
 
     energy_J = total_energy * magFactor
     avg_power_W = energy_J / runtime
-    print(avg_power_W, np.mean(power_W))
-    print(np.abs(avg_power_W - np.mean(power_W)))
     return energy_J, avg_power_W
 
 
