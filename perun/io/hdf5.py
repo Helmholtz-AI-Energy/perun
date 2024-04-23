@@ -208,8 +208,6 @@ def _addRawData(h5Group: h5py.Group, rawData: RawData):
     _addMetricMetadata(values_ds, rawData.v_md)
 
     if rawData.alt_values is not None:
-        print(rawData.alt_values)
-        print(rawData.alt_v_md)
         alt_values_ds = rawDataGroup.create_dataset(
             "alt_values", data=rawData.alt_values
         )
