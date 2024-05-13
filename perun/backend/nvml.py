@@ -91,6 +91,19 @@ class NVMLBackend(Backend):
 
             return func
 
+        def getClockCallback(handle, clock_type) -> Callable[[], np.number]:
+            def func() -> np.number:
+                try:
+                    return np.uint32(
+                        self.pynvml.nvmlDeviceGetClockInfo(handle, clock_type)
+                    )
+                except self.pynvml.NVMLError as e:
+                    log.warning(f"Could not get clock for device {deviceId}")
+                    log.exception(e)
+                    return np.uint32(0)
+
+            return func
+
         devices = []
 
         for deviceId in deviceList:
@@ -161,6 +174,43 @@ class NVMLBackend(Backend):
                         getUsedMemCallback(handle),
                     )
                 )
+
+                for clock_name, id in {
+                    "SM": self.pynvml.CLOCK_SM,
+                    "MEM": self.pynvml.CLOCK_MEM,
+                    "GRAPHICS": self.pynvml.CLOCK_GRAPHICS,
+                }.items():
+                    try:
+                        max_clock = np.uint32(
+                            self.pynvml.nvmlDeviceGetMaxClockInfo(handle, id, 0)
+                        )
+                        log.debug(
+                            f"Device {deviceId} Max Clock {clock_name} : {max_clock}"
+                        )
+                    except self.pynvml.NVMLError as e:
+                        log.info(
+                            f"Could not get max clock {clock_name} for device {deviceId}"
+                        )
+                        log.info(e)
+                        max_clock = np.uint32(np.iinfo("uint32").max)
+
+                    data_type = MetricMetaData(
+                        Unit.HZ,
+                        Magnitude.MEGA,
+                        np.dtype("uint32"),
+                        np.uint32(0),
+                        max_clock,
+                        np.uint32(0),
+                    )
+                    devices.append(
+                        Sensor(
+                            name + "_CLOCK" + clock_name,
+                            device_type,
+                            device_metadata,
+                            data_type,
+                            getClockCallback(handle, id),
+                        )
+                    )
 
             except self.pynvml.NVMLError as e:
                 log.warning(f"Could not find device {deviceId}")

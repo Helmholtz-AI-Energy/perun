@@ -49,6 +49,8 @@ class MetricType(str, enum.Enum):
     DRAM_ENERGY = "dram_energy"
     OTHER_ENERGY = "other_energy"
     OTHER_MEM = "other_memory"
+    CPU_CLOCK = "cpu_clock"
+    GPU_CLOCK = "gpu_clock"
     N_RUNS = "n_runs"
     MONEY = "money"
     CO2 = "co2"
@@ -208,7 +210,7 @@ class RawData:
             timesteps=np.array(rawDataDict["timesteps"], dtype=t_md.dtype),
             values=np.array(rawDataDict["values"], dtype=t_md.dtype),
             alt_values=(
-                np.array(rawDataDict["alt_values"], dtype=alt_v_md.dtype)
+                np.array(rawDataDict["alt_values"], dtype=alt_v_md.dtype)  # type: ignore
                 if "alt_values" in rawDataDict
                 else None
             ),

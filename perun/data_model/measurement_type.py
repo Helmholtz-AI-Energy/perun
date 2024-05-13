@@ -20,6 +20,7 @@ class Unit(str, enum.Enum):
     PERCENT = "%"
     SCALAR = ""
     GRAM = "g"
+    HZ = "Hz"
 
     @property
     def symbol(self) -> str:
