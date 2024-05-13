@@ -176,13 +176,13 @@ class NVMLBackend(Backend):
                 )
 
                 for clock_name, id in {
-                    "SM": self.pynvml.CLOCK_SM,
-                    "MEM": self.pynvml.CLOCK_MEM,
-                    "GRAPHICS": self.pynvml.CLOCK_GRAPHICS,
+                    "SM": self.pynvml.NVML_CLOCK_SM,
+                    "MEM": self.pynvml.NVML_CLOCK_MEM,
+                    "GRAPHICS": self.pynvml.NVML_CLOCK_GRAPHICS,
                 }.items():
                     try:
                         max_clock = np.uint32(
-                            self.pynvml.nvmlDeviceGetMaxClockInfo(handle, id, 0)
+                            self.pynvml.nvmlDeviceGetMaxClockInfo(handle, id)
                         )
                         log.debug(
                             f"Device {deviceId} Max Clock {clock_name} : {max_clock}"
@@ -193,6 +193,21 @@ class NVMLBackend(Backend):
                         )
                         log.info(e)
                         max_clock = np.uint32(np.iinfo("uint32").max)
+
+                    try:
+                        current_clock = np.uint32(
+                            self.pynvml.nvmlDeviceGetClockInfo(handle, id)
+                        )
+                        log.debug(
+                            f"Device {deviceId} Current Clock {clock_name} : {current_clock}"
+                        )
+                    except self.pynvml.NVMLError as e:
+                        log.info(
+                            f"Could not get current clock {clock_name} for device {deviceId}"
+                        )
+                        log.info(e)
+                        current_clock = np.uint32(0)
+                        continue
 
                     data_type = MetricMetaData(
                         Unit.HZ,
