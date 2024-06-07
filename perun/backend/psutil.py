@@ -78,6 +78,22 @@ class PSUTILBackend(Backend):
                     ),
                     self._getCallback(deviceName),
                 )
+            elif "CPU_FREQ" in deviceName:
+                id = int(deviceName.split("_")[-1])
+                self.devices[deviceName] = Sensor(
+                    deviceName,
+                    DeviceType.CPU,
+                    {**self.metadata},
+                    MetricMetaData(
+                        Unit.HZ,
+                        Magnitude.MEGA,
+                        np.dtype("float32"),
+                        np.float32(psutil.cpu_freq(percpu=True)[id].min),  # type: ignore
+                        np.float32(psutil.cpu_freq(percpu=True)[id].max),  # type: ignore
+                        np.float32(0),
+                    ),
+                    self._getCallback(deviceName),
+                )
 
     def close(self):
         """Close backend."""
@@ -94,6 +110,10 @@ class PSUTILBackend(Backend):
         if psutil.disk_io_counters(nowrap=True) is not None:
             sensors.add("DISK_READ_BYTES")
             sensors.add("DISK_WRITE_BYTES")
+
+        if psutil.cpu_freq(percpu=True) is not None:
+            for i in range(psutil.cpu_count()):
+                sensors.add(f"CPU_FREQ_{i}")
         return sensors
 
     def _getCallback(self, device: str) -> Callable[[], np.number]:
@@ -127,6 +147,12 @@ class PSUTILBackend(Backend):
 
             def func() -> np.number:
                 return np.uint64(psutil.net_io_counters(nowrap=True).bytes_recv)
+
+        elif device.startswith("CPU_FREQ_"):
+            cpuId = int(device.split("_")[-1])
+
+            def func() -> np.number:
+                return np.float32(psutil.cpu_freq(percpu=True)[cpuId].current)  # type: ignore
 
         else:
             raise ValueError("Invalid device name")
