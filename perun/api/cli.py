@@ -264,7 +264,7 @@ def monitor(args: argparse.Namespace):
     argIndex = sys.argv.index(args.cmd)
     sys.argv = sys.argv[argIndex:]
     cmd_args: List[str] = sys.argv.copy()
-    log.debug(f"Cmd args: { cmd_args }")
+    log.debug(f"Cmd args: {cmd_args}")
     if not args.binary:
         scriptPath = Path(cmd)
         assert scriptPath.exists()
