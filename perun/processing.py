@@ -262,7 +262,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
             elif sensorData.deviceType == DeviceType.GPU:
                 metricType = MetricType.GPU_UTIL
             else:
-                metricType = MetricType.MEM_UTIL
+                metricType = MetricType.OTHER_UTIL
 
             sensorData.metrics[metricType] = Metric(
                 metricType,
@@ -296,7 +296,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                 result = bytes_v.mean()
                 aggType = AggregateType.SUM
             elif sensorData.deviceType == DeviceType.RAM:
-                metricType = MetricType.MEM_UTIL
+                metricType = MetricType.DRAM_MEM
                 result = bytes_v.mean()
                 aggType = AggregateType.SUM
             else:
@@ -461,9 +461,8 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
         for region in regions
     ]
     cpu_util = copy.deepcopy(power)
-
-    gpu_util = copy.deepcopy(power)
-    gpu_count = copy.deepcopy(power)
+    dram_mem = copy.deepcopy(power)
+    gpu_mem = copy.deepcopy(power)
 
     has_gpu = False
 
@@ -514,6 +513,19 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                             )
                                         elif (
                                             measuring_unit == Unit.BYTE
+                                            and deviceNode.deviceType == DeviceType.RAM
+                                        ):
+                                            _, values = getInterpolatedValues(
+                                                raw_data.timesteps.astype("float32"),
+                                                raw_data.values,
+                                                events[i * 2],
+                                                events[i * 2 + 1],
+                                            )
+                                            dram_mem[region_idx][rank][i] += (
+                                                np.mean(values)
+                                            ).astype("float32")
+                                        elif (
+                                            measuring_unit == Unit.BYTE
                                             and deviceNode.deviceType == DeviceType.GPU
                                         ):
                                             has_gpu = True
@@ -523,24 +535,17 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                                 events[i * 2],
                                                 events[i * 2 + 1],
                                             )
-                                            gpu_util[region_idx][rank][i] += (
+                                            gpu_mem[region_idx][rank][i] += (
                                                 np.mean(values)
-                                                * 100
-                                                / raw_data.v_md.max
                                             ).astype("float32")
-                                            gpu_count[region_idx][rank][i] += 1
 
     for region_idx, region in enumerate(regions):
         r_power = np.array(list(chain(*power[region_idx].values())))
         r_cpu_util = np.array(list(chain(*cpu_util[region_idx].values())))
+        r_gpu_mem = np.array(list(chain(*gpu_mem[region_idx].values())))
+        r_dram_mem = np.array(list(chain(*dram_mem[region_idx].values())))
 
-        r_gpu_util = np.array(list(chain(*gpu_util[region_idx].values())))
-        r_gpu_count = np.array(list(chain(*gpu_count[region_idx].values())))
-
-        if has_gpu:
-            r_gpu_util /= r_gpu_count
-
-        region.cpu_util = Stats(
+        region.metrics[MetricType.CPU_UTIL] = Stats(
             MetricType.CPU_UTIL,
             MetricMetaData(
                 Unit.PERCENT,
@@ -556,23 +561,23 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
             r_cpu_util.max(),
             r_cpu_util.min(),
         )
-        region.gpu_util = Stats(
-            MetricType.GPU_UTIL,
+        region.metrics[MetricType.DRAM_MEM] = Stats(
+            MetricType.DRAM_MEM,
             MetricMetaData(
-                Unit.PERCENT,
+                Unit.BYTE,
                 Magnitude.ONE,
-                np.dtype("float32"),
-                np.float32(0),
-                np.float32(100),
-                np.float32(-1),
+                np.dtype("uint64"),
+                np.uint64(0),
+                np.iinfo("uint64").max,  # type: ignore
+                np.uint64(0),
             ),
-            r_gpu_util.sum(),
-            r_gpu_util.mean(),
-            r_gpu_util.std(),
-            r_gpu_util.max(),
-            r_gpu_util.min(),
+            r_dram_mem.sum(),
+            r_dram_mem.mean(),
+            r_dram_mem.std(),
+            r_dram_mem.max(),
+            r_dram_mem.min(),
         )
-        region.power = Stats(
+        region.metrics[MetricType.POWER] = Stats(
             MetricType.POWER,
             MetricMetaData(
                 Unit.WATT,
@@ -588,6 +593,23 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
             r_power.max(),
             r_power.min(),
         )
+        if has_gpu:
+            region.metrics[MetricType.GPU_MEM] = Stats(
+                MetricType.GPU_MEM,
+                MetricMetaData(
+                    Unit.BYTE,
+                    Magnitude.ONE,
+                    np.dtype("uint64"),
+                    np.uint64(0),
+                    np.iinfo("uint64").max,  # type: ignore
+                    np.uint64(0),
+                ),
+                r_gpu_mem.sum(),
+                r_gpu_mem.mean(),
+                r_gpu_mem.std(),
+                r_gpu_mem.max(),
+                r_gpu_mem.min(),
+            )
 
 
 def addRunAndRuntimeInfoToRegion(region: Region):
@@ -627,7 +649,7 @@ def addRunAndRuntimeInfoToRegion(region: Region):
         runs_array.min(),
     )
 
-    region.runtime = Stats(
+    region.metrics[MetricType.RUNTIME] = Stats(
         MetricType.RUNTIME,
         MetricMetaData(
             Unit.SECOND,
