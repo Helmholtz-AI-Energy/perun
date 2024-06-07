@@ -230,13 +230,13 @@ def _addRegions(h5Group: h5py.Group, regions: Dict[str, Region]):
 
 def _addRegion(h5Group: h5py.Group, region: Region):
     region_group = h5Group.create_group(region.id)
-    _addMetric(region_group, region.cpu_util)  # type: ignore
-    _addMetric(region_group, region.gpu_util)  # type: ignore
-    _addMetric(region_group, region.power)  # type: ignore
-    _addMetric(region_group, region.runs_per_rank)  # type: ignore
-    _addMetric(region_group, region.runtime)  # type: ignore
     region_group.attrs["id"] = region.id
     region_group.attrs["processed"] = region.processed
+
+    region_metrics = region_group.create_group("metrics")
+    _addMetric(region_group, region.runs_per_rank)  # type: ignore
+    for metricType, stat in region.metrics.items():
+        _addMetric(region_metrics, stat)
     raw_data_group = region_group.create_group("raw_data")
     for rank, data in region.raw_data.items():
         raw_data_group.create_dataset(str(rank), data=data)
@@ -254,10 +254,9 @@ def _readRegion(group: h5py.Group) -> Region:
     regionObj.id = group.attrs["id"]  # type: ignore
     regionObj.processed = group.attrs["processed"]  # type: ignore
 
-    regionObj.cpu_util = _readMetric(group["CPU_UTIL"])  # type: ignore
-    regionObj.gpu_util = _readMetric(group["GPU_UTIL"])  # type: ignore
-    regionObj.power = _readMetric(group["POWER"])  # type: ignore
-    regionObj.runtime = _readMetric(group["RUNTIME"])  # type: ignore
+    for metric_group in group["metrics"].values():  # type: ignore
+        stat: Stats = _readMetric(metric_group)  # type: ignore
+        regionObj.metrics[stat.type] = stat
     regionObj.runs_per_rank = _readMetric(group["N_RUNS"])  # type: ignore
 
     raw_data_group = group["raw_data"]
