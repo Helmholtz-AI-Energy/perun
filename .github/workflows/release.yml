@@ -51,7 +51,7 @@ jobs:
     - uses: actions/checkout@v4
       with:
         ref: ${{ needs.VersionAndChangelog.outputs.tag }}
-    - uses: actions/setup-python@v4
+    - uses: actions/setup-python@v5
     - name: Install dependencies
       run: |
         pip install poetry
@@ -59,7 +59,7 @@ jobs:
       run: |
         poetry build
     - name: Store the distribution packages
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions
         path: dist/
@@ -88,12 +88,12 @@ jobs:
         with:
           ref: ${{ needs.VersionAndChangelog.outputs.tag }}
       - name: Download all the dists
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: python-package-distributions
           path: dist/
       - name: Sign the dists with Sigstore
-        uses: sigstore/gh-action-sigstore-python@v1.2.3
+        uses: sigstore/gh-action-sigstore-python@v2
         with:
           inputs: >-
             ./dist/*.tar.gz
