@@ -67,13 +67,23 @@ class ROCMBackend(Backend):
 
         def getPowerCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
-                return np.float32(self.rocml.smi_get_device_average_power(handle))
+                try:
+                    return np.float32(self.rocml.smi_get_device_average_power(handle))
+                except self.rocml.RocmSMIError as e:
+                    log.warning(f"Could not get power usage for device {deviceId}")
+                    log.exception(e)
+                    return np.float32(0)
 
             return func
 
         def getMemCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
-                return np.float32(self.rocml.smi_get_device_memory_used(handle))
+                try:
+                    return np.float32(self.rocml.smi_get_device_memory_used(handle))
+                except self.rocml.RocmSMIError as e:
+                    log.warning(f"Could not get memory usage for device {deviceId}")
+                    log.exception(e)
+                    return np.float32(0)
 
             return func
 
