@@ -1,12 +1,31 @@
 # CHANGELOG
 
 
+## v0.7.0 (2024-06-07)
+
+
+### Build
+
+* build(deps): bump jinja2 from 3.1.3 to 3.1.4 in /examples/torch_mnist (#125) ([`41ef257`](https://github.com/Helmholtz-AI-Energy/perun/commit/41ef2577380b505734af7ed364081ed2235e6394))
+
+
+### Chore
+
+* chore: post-release ([`6ba0f70`](https://github.com/Helmholtz-AI-Energy/perun/commit/6ba0f70dd6de0345aaab94768ef1a87888d9c6c9))
+
+
+### Feature
+
+* feat: Power plot in hdf5 for energy measurements, and clock info for CPU and GPU (#123) ([`ded5643`](https://github.com/Helmholtz-AI-Energy/perun/commit/ded5643f58ddb99226db1a1e3caacb9e8ef12f99))
+
+
 ## v0.6.2 (2024-04-15)
 
 
 ### Fix
 
 * fix: support for non-spmd region monitoring (dask support) ([`ce68162`](https://github.com/Helmholtz-AI-Energy/perun/commit/ce681622e437fb6521d6318ff55268fffddab891))
+
 
 ## v0.6.1 (2024-03-19)
 
@@ -484,3 +503,4 @@
 ### Fix
 
 * fix: semantic-release action ([`90caf3d`](https://github.com/Helmholtz-AI-Energy/perun/commit/90caf3d6817e42c21ad1f9d30a32038fe96c0362))
+
