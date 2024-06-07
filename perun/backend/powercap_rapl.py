@@ -45,10 +45,15 @@ class PowercapRAPLBackend(Backend):
 
         raplPath = Path(RAPL_PATH)
 
-        def getCallback(file: IOBase) -> Callable[[], np.number]:
+        def getCallback(file: IOBase, file_path: str) -> Callable[[], np.number]:
             def func() -> np.number:
-                file.seek(0)
-                return np.uint64(file.readline().strip())
+                try:
+                    file.seek(0)
+                    return np.uint64(file.readline().strip())
+                except Exception as e:
+                    log.warning(f"Error reading file: {file_path}")
+                    log.exception(e)
+                    return np.uint64(0)
 
             return func
 
@@ -104,7 +109,7 @@ class PowercapRAPLBackend(Backend):
                             devType,
                             self.metadata,
                             dataType,
-                            getCallback(energy_file),
+                            getCallback(energy_file, energy_path),
                         )
 
                         self.devices[device.id] = device
@@ -153,7 +158,7 @@ class PowercapRAPLBackend(Backend):
                                         devType,
                                         self.metadata,
                                         dataType,
-                                        getCallback(energy_file),
+                                        getCallback(energy_file, energy_path),
                                     )
                                     log.debug(device)
                                     self.devices[device.id] = device

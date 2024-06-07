@@ -71,13 +71,36 @@ class NVMLBackend(Backend):
 
         def getCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
-                return np.uint32(self.pynvml.nvmlDeviceGetPowerUsage(handle))
+                try:
+                    return np.uint32(self.pynvml.nvmlDeviceGetPowerUsage(handle))
+                except self.pynvml.NVMLError as e:
+                    log.warning(f"Could not get power usage for device {deviceId}")
+                    log.exception(e)
+                    return np.uint32(0)
 
             return func
 
         def getUsedMemCallback(handle) -> Callable[[], np.number]:
             def func() -> np.number:
-                return np.uint64(self.pynvml.nvmlDeviceGetMemoryInfo(handle).used)
+                try:
+                    return np.uint64(self.pynvml.nvmlDeviceGetMemoryInfo(handle).used)
+                except self.pynvml.NVMLError as e:
+                    log.warning(f"Could not get memory usage for device {deviceId}")
+                    log.exception(e)
+                    return np.uint32(0)
+
+            return func
+
+        def getClockCallback(handle, clock_type) -> Callable[[], np.number]:
+            def func() -> np.number:
+                try:
+                    return np.uint32(
+                        self.pynvml.nvmlDeviceGetClockInfo(handle, clock_type)
+                    )
+                except self.pynvml.NVMLError as e:
+                    log.warning(f"Could not get clock for device {deviceId}")
+                    log.exception(e)
+                    return np.uint32(0)
 
             return func
 
@@ -151,6 +174,58 @@ class NVMLBackend(Backend):
                         getUsedMemCallback(handle),
                     )
                 )
+
+                for clock_name, id in {
+                    "SM": self.pynvml.NVML_CLOCK_SM,
+                    "MEM": self.pynvml.NVML_CLOCK_MEM,
+                    "GRAPHICS": self.pynvml.NVML_CLOCK_GRAPHICS,
+                }.items():
+                    try:
+                        max_clock = np.uint32(
+                            self.pynvml.nvmlDeviceGetMaxClockInfo(handle, id)
+                        )
+                        log.debug(
+                            f"Device {deviceId} Max Clock {clock_name} : {max_clock}"
+                        )
+                    except self.pynvml.NVMLError as e:
+                        log.info(
+                            f"Could not get max clock {clock_name} for device {deviceId}"
+                        )
+                        log.info(e)
+                        max_clock = np.uint32(np.iinfo("uint32").max)
+
+                    try:
+                        current_clock = np.uint32(
+                            self.pynvml.nvmlDeviceGetClockInfo(handle, id)
+                        )
+                        log.debug(
+                            f"Device {deviceId} Current Clock {clock_name} : {current_clock}"
+                        )
+                    except self.pynvml.NVMLError as e:
+                        log.info(
+                            f"Could not get current clock {clock_name} for device {deviceId}"
+                        )
+                        log.info(e)
+                        current_clock = np.uint32(0)
+                        continue
+
+                    data_type = MetricMetaData(
+                        Unit.HZ,
+                        Magnitude.MEGA,
+                        np.dtype("uint32"),
+                        np.uint32(0),
+                        max_clock,
+                        np.uint32(0),
+                    )
+                    devices.append(
+                        Sensor(
+                            name + "_CLOCK" + clock_name,
+                            device_type,
+                            device_metadata,
+                            data_type,
+                            getClockCallback(handle, id),
+                        )
+                    )
 
             except self.pynvml.NVMLError as e:
                 log.warning(f"Could not find device {deviceId}")

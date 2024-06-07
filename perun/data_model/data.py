@@ -50,6 +50,8 @@ class MetricType(str, enum.Enum):
     DRAM_ENERGY = "dram_energy"
     OTHER_ENERGY = "other_energy"
     OTHER_MEM = "other_memory"
+    CPU_CLOCK = "cpu_clock"
+    GPU_CLOCK = "gpu_clock"
     N_RUNS = "n_runs"
     MONEY = "money"
     CO2 = "co2"
@@ -204,6 +206,8 @@ class RawData:
     values: np.ndarray
     t_md: MetricMetaData
     v_md: MetricMetaData
+    alt_values: Optional[np.ndarray] = None
+    alt_v_md: Optional[MetricMetaData] = None
 
     @classmethod
     def fromDict(cls, rawDataDict: Dict):
@@ -221,11 +225,22 @@ class RawData:
         """
         t_md = MetricMetaData.fromDict(rawDataDict["t_md"])
         v_md = MetricMetaData.fromDict(rawDataDict["v_md"])
+        alt_v_md = (
+            MetricMetaData.fromDict(rawDataDict["alt_v_md"])
+            if "alt_v_md" in rawDataDict
+            else None
+        )
         return cls(
-            np.array(rawDataDict["timesteps"], dtype=t_md.dtype),
-            np.array(rawDataDict["values"], dtype=t_md.dtype),
-            t_md,
-            v_md,
+            timesteps=np.array(rawDataDict["timesteps"], dtype=t_md.dtype),
+            values=np.array(rawDataDict["values"], dtype=t_md.dtype),
+            alt_values=(
+                np.array(rawDataDict["alt_values"], dtype=alt_v_md.dtype)  # type: ignore
+                if "alt_values" in rawDataDict
+                else None
+            ),
+            t_md=t_md,
+            v_md=v_md,
+            alt_v_md=alt_v_md,
         )
 
 
