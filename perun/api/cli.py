@@ -141,6 +141,17 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         help="Number of warmup rounds to run the app. A warmup round is a full run of the application without gathering performance data. Defaults to 0",
     )
     monitor_parser.add_argument(
+        "--bench_metrics",
+        dest="metrics",
+        type=str,
+        help="List of metrics to add to the benchmark results. Only relevant when using the 'bench' format. Defaults to 'runtime,energy'",
+    )
+    monitor_parser.add_argument(
+        "--region_metrics",
+        type=str,
+        help="List of metrics to add to the benchmark results that are associated with individual regions. Only relevant when using the 'bench' format. Defaults to 'runtime,energy'",
+    )
+    monitor_parser.add_argument(
         "-b",
         "--binary",
         action="store_true",
@@ -253,7 +264,7 @@ def monitor(args: argparse.Namespace):
     argIndex = sys.argv.index(args.cmd)
     sys.argv = sys.argv[argIndex:]
     cmd_args: List[str] = sys.argv.copy()
-    log.debug(f"Cmd args: { cmd_args }")
+    log.debug(f"Cmd args: {cmd_args}")
     if not args.binary:
         scriptPath = Path(cmd)
         assert scriptPath.exists()
