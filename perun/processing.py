@@ -32,7 +32,7 @@ def processEnergyData(
 ) -> Tuple[Any, Any]:
     """Calculate energy and power from an accumulated energy vector. (SEE RAPL).
 
-    Using the start and end parameters the results can be limited to certain areas of the application run.
+    Using the start and end parameters does the calculation within the selected time range.
 
     Parameters
     ----------
@@ -49,7 +49,7 @@ def processEnergyData(
        Tuple with total energy in joules and avg power in watts.
     """
     runtime = raw_data.timesteps[-1]
-    t_s = raw_data.timesteps.astype("float32")
+    t_s: np.ndarray = raw_data.timesteps.astype("float32")
     t_s *= raw_data.t_md.mag.value / Magnitude.ONE.value
 
     e_J = raw_data.values
@@ -57,9 +57,16 @@ def processEnergyData(
     dtype = raw_data.v_md.dtype.name
 
     if start and end:
-        runtime = end - start
+        sampling_ratio = np.diff(t_s).mean() * 0.1
+        runtime = end - start + 2 * sampling_ratio
         index = np.all([t_s >= start, t_s <= end], axis=0)
-        e_J = e_J[index]
+        tmp = e_J[index]
+        if len(tmp) == 0:
+            index = np.all(
+                [t_s >= (start - sampling_ratio), t_s <= (end + sampling_ratio)], axis=0
+            )
+            tmp = e_J[index]
+            return 0, 0
 
     d_energy = e_J[1:] - e_J[:-1]
 
@@ -72,13 +79,27 @@ def processEnergyData(
         d_energy[idx] = d_energy[idx] + maxValue
 
     d_energy = d_energy.astype("float32")
-
-    total_energy = d_energy.sum()
+    total_energy = d_energy.cumsum()[-1]
 
     magFactor = raw_data.v_md.mag.value / Magnitude.ONE.value
+
+    # Transform the energy series to a power series
+    if not start and not end:
+        power_W = d_energy / np.diff(t_s)
+        power_W *= magFactor
+        raw_data.alt_values = power_W
+        raw_data.alt_v_md = MetricMetaData(
+            Unit.WATT,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.float32(0),
+            np.finfo("float32").max,
+            np.float32(-1),
+        )
+
     energy_J = total_energy * magFactor
-    power_W = energy_J / runtime
-    return energy_J, power_W
+    avg_power_W = energy_J / runtime
+    return energy_J, avg_power_W
 
 
 def processPowerData(
@@ -262,7 +283,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
             elif sensorData.deviceType == DeviceType.GPU:
                 metricType = MetricType.GPU_UTIL
             else:
-                metricType = MetricType.MEM_UTIL
+                metricType = MetricType.OTHER_UTIL
 
             sensorData.metrics[metricType] = Metric(
                 metricType,
@@ -296,7 +317,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                 result = bytes_v.mean()
                 aggType = AggregateType.SUM
             elif sensorData.deviceType == DeviceType.RAM:
-                metricType = MetricType.MEM_UTIL
+                metricType = MetricType.DRAM_MEM
                 result = bytes_v.mean()
                 aggType = AggregateType.SUM
             else:
@@ -461,9 +482,8 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
         for region in regions
     ]
     cpu_util = copy.deepcopy(power)
-
-    gpu_util = copy.deepcopy(power)
-    gpu_count = copy.deepcopy(power)
+    dram_mem = copy.deepcopy(power)
+    gpu_mem = copy.deepcopy(power)
 
     has_gpu = False
 
@@ -514,6 +534,19 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                             )
                                         elif (
                                             measuring_unit == Unit.BYTE
+                                            and deviceNode.deviceType == DeviceType.RAM
+                                        ):
+                                            _, values = getInterpolatedValues(
+                                                raw_data.timesteps.astype("float32"),
+                                                raw_data.values,
+                                                events[i * 2],
+                                                events[i * 2 + 1],
+                                            )
+                                            dram_mem[region_idx][rank][i] += (
+                                                np.mean(values)
+                                            ).astype("float32")
+                                        elif (
+                                            measuring_unit == Unit.BYTE
                                             and deviceNode.deviceType == DeviceType.GPU
                                         ):
                                             has_gpu = True
@@ -523,24 +556,17 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                                 events[i * 2],
                                                 events[i * 2 + 1],
                                             )
-                                            gpu_util[region_idx][rank][i] += (
+                                            gpu_mem[region_idx][rank][i] += (
                                                 np.mean(values)
-                                                * 100
-                                                / raw_data.v_md.max
                                             ).astype("float32")
-                                            gpu_count[region_idx][rank][i] += 1
 
     for region_idx, region in enumerate(regions):
         r_power = np.array(list(chain(*power[region_idx].values())))
         r_cpu_util = np.array(list(chain(*cpu_util[region_idx].values())))
+        r_gpu_mem = np.array(list(chain(*gpu_mem[region_idx].values())))
+        r_dram_mem = np.array(list(chain(*dram_mem[region_idx].values())))
 
-        r_gpu_util = np.array(list(chain(*gpu_util[region_idx].values())))
-        r_gpu_count = np.array(list(chain(*gpu_count[region_idx].values())))
-
-        if has_gpu:
-            r_gpu_util /= r_gpu_count
-
-        region.cpu_util = Stats(
+        region.metrics[MetricType.CPU_UTIL] = Stats(
             MetricType.CPU_UTIL,
             MetricMetaData(
                 Unit.PERCENT,
@@ -556,23 +582,23 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
             r_cpu_util.max(),
             r_cpu_util.min(),
         )
-        region.gpu_util = Stats(
-            MetricType.GPU_UTIL,
+        region.metrics[MetricType.DRAM_MEM] = Stats(
+            MetricType.DRAM_MEM,
             MetricMetaData(
-                Unit.PERCENT,
+                Unit.BYTE,
                 Magnitude.ONE,
-                np.dtype("float32"),
-                np.float32(0),
-                np.float32(100),
-                np.float32(-1),
+                np.dtype("uint64"),
+                np.uint64(0),
+                np.iinfo("uint64").max,  # type: ignore
+                np.uint64(0),
             ),
-            r_gpu_util.sum(),
-            r_gpu_util.mean(),
-            r_gpu_util.std(),
-            r_gpu_util.max(),
-            r_gpu_util.min(),
+            r_dram_mem.sum(),
+            r_dram_mem.mean(),
+            r_dram_mem.std(),
+            r_dram_mem.max(),
+            r_dram_mem.min(),
         )
-        region.power = Stats(
+        region.metrics[MetricType.POWER] = Stats(
             MetricType.POWER,
             MetricMetaData(
                 Unit.WATT,
@@ -588,6 +614,23 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
             r_power.max(),
             r_power.min(),
         )
+        if has_gpu:
+            region.metrics[MetricType.GPU_MEM] = Stats(
+                MetricType.GPU_MEM,
+                MetricMetaData(
+                    Unit.BYTE,
+                    Magnitude.ONE,
+                    np.dtype("uint64"),
+                    np.uint64(0),
+                    np.iinfo("uint64").max,  # type: ignore
+                    np.uint64(0),
+                ),
+                r_gpu_mem.sum(),
+                r_gpu_mem.mean(),
+                r_gpu_mem.std(),
+                r_gpu_mem.max(),
+                r_gpu_mem.min(),
+            )
 
 
 def addRunAndRuntimeInfoToRegion(region: Region):
@@ -627,7 +670,7 @@ def addRunAndRuntimeInfoToRegion(region: Region):
         runs_array.min(),
     )
 
-    region.runtime = Stats(
+    region.metrics[MetricType.RUNTIME] = Stats(
         MetricType.RUNTIME,
         MetricMetaData(
             Unit.SECOND,

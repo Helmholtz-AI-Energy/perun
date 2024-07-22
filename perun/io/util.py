@@ -82,4 +82,4 @@ def value2MeanStdStr(stats: Stats) -> str:
         String represenation
     """
     tfactor, new_mag = getTFactorMag(stats.mean, stats.metric_md)
-    return f"{stats.mean/tfactor:.3f}±{stats.std/tfactor:.3f} {new_mag.symbol}{stats.metric_md.unit.value}"
+    return f"{stats.mean/tfactor:.2f} ± {stats.std/tfactor:.2f} {new_mag.symbol}{stats.metric_md.unit.value}"

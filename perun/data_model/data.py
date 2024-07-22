@@ -37,7 +37,8 @@ class MetricType(str, enum.Enum):
     OTHER_POWER = "other_power"
     CPU_UTIL = "cpu_util"
     GPU_UTIL = "gpu_util"
-    MEM_UTIL = "mem_util"
+    OTHER_UTIL = "other_util"
+    DRAM_MEM = "dram_mem"
     GPU_MEM = "gpu_mem"
     NET_READ = "net_read"
     NET_WRITE = "net_write"
@@ -49,9 +50,34 @@ class MetricType(str, enum.Enum):
     DRAM_ENERGY = "dram_energy"
     OTHER_ENERGY = "other_energy"
     OTHER_MEM = "other_memory"
+    CPU_CLOCK = "cpu_clock"
+    GPU_CLOCK = "gpu_clock"
     N_RUNS = "n_runs"
     MONEY = "money"
     CO2 = "co2"
+
+    def __str__(self):
+        """Return string representation of MetricType."""
+        return self.value
+
+    def __repr__(self):
+        """Return string representation of MetricType."""
+        return self.value
+
+    def fromString(self, value: str):
+        """Create MetricType from string.
+
+        Parameters
+        ----------
+        value : str
+            MetricType value.
+
+        Returns
+        -------
+        MetricType
+            MetricType object.
+        """
+        return MetricType(value)
 
 
 class AggregateType(str, enum.Enum):
@@ -180,6 +206,8 @@ class RawData:
     values: np.ndarray
     t_md: MetricMetaData
     v_md: MetricMetaData
+    alt_values: Optional[np.ndarray] = None
+    alt_v_md: Optional[MetricMetaData] = None
 
     @classmethod
     def fromDict(cls, rawDataDict: Dict):
@@ -197,11 +225,22 @@ class RawData:
         """
         t_md = MetricMetaData.fromDict(rawDataDict["t_md"])
         v_md = MetricMetaData.fromDict(rawDataDict["v_md"])
+        alt_v_md = (
+            MetricMetaData.fromDict(rawDataDict["alt_v_md"])
+            if "alt_v_md" in rawDataDict
+            else None
+        )
         return cls(
-            np.array(rawDataDict["timesteps"], dtype=t_md.dtype),
-            np.array(rawDataDict["values"], dtype=t_md.dtype),
-            t_md,
-            v_md,
+            timesteps=np.array(rawDataDict["timesteps"], dtype=t_md.dtype),
+            values=np.array(rawDataDict["values"], dtype=t_md.dtype),
+            alt_values=(
+                np.array(rawDataDict["alt_values"], dtype=alt_v_md.dtype)  # type: ignore
+                if "alt_values" in rawDataDict
+                else None
+            ),
+            t_md=t_md,
+            v_md=v_md,
+            alt_v_md=alt_v_md,
         )
 
 
@@ -249,10 +288,7 @@ class Region:
     id: str = ""
     raw_data: Dict[int, np.ndarray] = dataclasses.field(default_factory=dict)
     runs_per_rank: Optional[Stats] = None
-    runtime: Optional[Stats] = None
-    power: Optional[Stats] = None
-    cpu_util: Optional[Stats] = None
-    gpu_util: Optional[Stats] = None
+    metrics: Dict[MetricType, Stats] = dataclasses.field(default_factory=dict)
     processed: bool = False
 
     def toDict(self) -> Dict[str, Any]:
@@ -271,10 +307,7 @@ class Region:
         result["runs_per_rank"] = (
             asdict(self.runs_per_rank) if self.runs_per_rank else None
         )
-        result["runtime"] = asdict(self.runtime) if self.runtime else None
-        result["power"] = asdict(self.power) if self.power else None
-        result["cpu_util"] = asdict(self.cpu_util) if self.cpu_util else None
-        result["gpu_util"] = asdict(self.gpu_util) if self.gpu_util else None
+        result["metrics"] = [asdict(metric) for metric in self.metrics.values()]
 
         return result
 
@@ -297,11 +330,10 @@ class Region:
         regionObj.raw_data = regionDictionary["raw_data"]
         regionObj.processed = regionDictionary["processed"]
         if regionObj.processed:
-            regionObj.runs_per_rank = Stats.fromDict(regionDictionary["runs_per_rank"])
-            regionObj.runtime = Stats.fromDict(regionDictionary["runtime"])
-            regionObj.power = Stats.fromDict(regionDictionary["power"])
-            regionObj.cpu_util = Stats.fromDict(regionDictionary["cpu_util"])
-            regionObj.gpu_util = Stats.fromDict(regionDictionary["gpu_util"])
+            regionObj.metrics = {
+                MetricType(metric["type"]): Stats.fromDict(metric)
+                for metric in regionDictionary["metrics"]
+            }
         return regionObj
 
 
