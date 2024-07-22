@@ -65,16 +65,18 @@ def _monitoringLoop(
     lSensors: List[Sensor],
     timesteps: List[int],
     rawValues: List[List[np.number]],
-    stopCondition: Callable[[], bool],
+    stopCondition: Callable[[float], bool],
 ):
     timesteps.append(time.time_ns())
     for idx, device in enumerate(lSensors):
         rawValues[idx].append(device.read())
 
-    while not stopCondition():
+    delta = (time.time_ns() - timesteps[-1]) * 1e-9
+    while not stopCondition(delta):
         timesteps.append(time.time_ns())
         for idx, device in enumerate(lSensors):
             rawValues[idx].append(device.read())
+        delta = (time.time_ns() - timesteps[-1]) * 1e-9
 
     timesteps.append(time.time_ns())
     for idx, device in enumerate(lSensors):
@@ -205,7 +207,10 @@ def perunSubprocess(
     # Waiting for main process to send the signal
     start_event.wait()
     _monitoringLoop(
-        lSensors, timesteps, rawValues, lambda: stop_event.wait(sampling_rate)
+        lSensors,
+        timesteps,
+        rawValues,
+        lambda delta: stop_event.wait(sampling_rate - delta),
     )
 
     log.info(f"Rank {rank}: Subprocess: Stop event received.")
