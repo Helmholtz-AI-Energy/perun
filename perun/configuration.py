@@ -15,9 +15,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "price_factor": 0.3251,  # Currency/kWh
         "price_unit": "€",
     },
-    "monitor": {
-        "sampling_period": 1,
-    },
+    "monitor": {"sampling_period": 1, "backends": "", "sensors": ""},
     "output": {
         "app_name": None,
         "run_id": None,
@@ -38,7 +36,6 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "byte": "G",
     },
     "debug": {"log_lvl": "WARNING"},
-    # "horeka": {"enabled": False, "url": "", "token": "", "org": ""},
 }
 
 config: configparser.ConfigParser = configparser.ConfigParser(allow_no_value=True)

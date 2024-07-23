@@ -6,7 +6,7 @@ import pprint as pp
 import re
 from io import IOBase
 from pathlib import Path
-from typing import Callable, List, Set
+from typing import Callable, Dict, List, Set, Tuple
 
 import cpuinfo
 import numpy as np
@@ -41,6 +41,7 @@ class PowercapRAPLBackend(Backend):
             if value is not None and value != "":
                 self.metadata[key] = str(value)
 
+        self.devices: Dict[str, Sensor] = {}
         log.debug(f"CPU info metadata: {pp.pformat(self.metadata)}")
 
         raplPath = Path(RAPL_PATH)
@@ -184,7 +185,7 @@ class PowercapRAPLBackend(Backend):
             file.close()
         return
 
-    def visibleSensors(self) -> Set[str]:
+    def availableSensors(self) -> Dict[str, Tuple[str]]:
         """Return string id set of visible devices.
 
         Returns
@@ -192,7 +193,10 @@ class PowercapRAPLBackend(Backend):
         Set[str]
             Set with visible device ids.
         """
-        return {id for id in self.devices.keys()}
+        return {
+            sensor_id: (self.id, sensor.type, sensor.dataType.unit)
+            for sensor_id, sensor in self.devices.items()
+        }
 
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
         """Gather device objects based on a set of device ids.
