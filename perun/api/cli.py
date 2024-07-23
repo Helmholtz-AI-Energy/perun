@@ -105,9 +105,9 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         help="Directory where output files are saved. Defaults to ./perun_results",
     )
     monitor_parser.add_argument(
-        "--sampling_rate",
+        "--sampling_period",
         type=float,
-        help="Sampling rate in seconds. Defaults to 1 second.",
+        help="Sampling period in seconds. Defaults to 1 second.",
     )
     monitor_parser.add_argument(
         "--power_overhead",

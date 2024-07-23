@@ -52,7 +52,7 @@ def test_showconf_command_with_conf_file(
 ):
     # 3) Are files read correctly?
     confPath = tmp_path / ".perun.ini"
-    defaultConfig.set("monitor", "sampling_rate", "2")
+    defaultConfig.set("monitor", "sampling_period", "2")
     with open(confPath, "w+") as configFile:
         defaultConfig.write(configFile)
 
@@ -63,7 +63,7 @@ def test_showconf_command_with_conf_file(
     ).stdout
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
-    assert parser.get("monitor", "sampling_rate") == "2"
+    assert parser.get("monitor", "sampling_period") == "2"
     assert parser == defaultConfig
 
 
@@ -72,7 +72,7 @@ def test_showconf_command_with_default(
 ):
     # 4) Does default ignore everything?
     confPath = tmp_path / ".perun.ini"
-    defaultConfig.set("monitor", "sampling_rate", "2")
+    defaultConfig.set("monitor", "sampling_period", "2")
     with open(confPath, "w+") as configFile:
         defaultConfig.write(configFile)
 
@@ -84,13 +84,13 @@ def test_showconf_command_with_default(
     print(processorOut)
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
-    assert defaultConfig.get("monitor", "sampling_rate") == "2"
+    assert defaultConfig.get("monitor", "sampling_period") == "2"
     assert defaultConfig.get("debug", "log_lvl") == "WARNING"
-    assert parser.get("monitor", "sampling_rate") == "2"
+    assert parser.get("monitor", "sampling_period") == "2"
     assert parser.get("debug", "log_lvl") == "ERROR"
     assert parser != defaultConfig
 
-    defaultConfig.set("monitor", "sampling_rate", "1")
+    defaultConfig.set("monitor", "sampling_period", "1")
     processorOut = subprocess.run(
         [
             "perun",
@@ -108,10 +108,10 @@ def test_showconf_command_with_default(
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
 
-    assert defaultConfig.get("monitor", "sampling_rate") == "1"
+    assert defaultConfig.get("monitor", "sampling_period") == "1"
     assert defaultConfig.get("debug", "log_lvl") == "WARNING"
     assert parser.get("debug", "log_lvl") == "WARNING"
-    assert parser.get("monitor", "sampling_rate") == "1"
+    assert parser.get("monitor", "sampling_period") == "1"
     assert parser == defaultConfig
 
 

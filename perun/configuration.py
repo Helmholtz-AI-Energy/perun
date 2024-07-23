@@ -16,7 +16,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "price_unit": "€",
     },
     "monitor": {
-        "sampling_rate": 1,
+        "sampling_period": 1,
     },
     "output": {
         "app_name": None,
