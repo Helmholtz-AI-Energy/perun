@@ -41,7 +41,7 @@ To modify the peruns behaviour, the subcommand accepts options many configuratio
 
 .. code-block:: console
 
-    $ perun monitor --format json --sampling_rate 5 your_app.py
+    $ perun monitor --format json --sampling_period 5 your_app.py
 
 The options can also be set as environmental variables.
 
@@ -204,7 +204,7 @@ To get a quick overview of the current configuration that perun is using, use th
     price_unit = €
 
     [monitor]
-    sampling_rate = 1
+    sampling_period = 1
 
     [output]
     app_name

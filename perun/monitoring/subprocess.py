@@ -168,7 +168,7 @@ def perunSubprocess(
     sp_ready_event,
     start_event,
     stop_event,
-    sampling_rate: float,
+    sampling_period: float,
 ):
     """Parallel function that samples energy values from hardware libraries.
 
@@ -188,8 +188,8 @@ def perunSubprocess(
         Indicates app start, multiprocessing module
     stop_event : _type_
         Indicates app stop, multiprocessing module
-    sampling_rate : float
-        Sampling rate in seconds
+    sampling_period : float
+        Sampling period in seconds
     """
     (
         timesteps,
@@ -210,7 +210,7 @@ def perunSubprocess(
         lSensors,
         timesteps,
         rawValues,
-        lambda delta: stop_event.wait(sampling_rate - delta),
+        lambda delta: stop_event.wait(sampling_period - delta),
     )
 
     log.info(f"Rank {rank}: Subprocess: Stop event received.")

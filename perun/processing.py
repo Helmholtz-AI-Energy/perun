@@ -30,84 +30,7 @@ def processEnergyData(
     start: Optional[np.number] = None,
     end: Optional[np.number] = None,
 ) -> Tuple[Any, Any]:
-    """Calculate energy and power from an accumulated energy vector. (SEE RAPL).
-
-    Using the start and end parameters does the calculation within the selected time range.
-
-    Parameters
-    ----------
-    raw_data : RawData
-        Raw Data from sensor
-    start : Optional[np.number], optional
-        Start time of region, by default None
-    end : Optional[np.number], optional
-        End time of region, by default None
-
-    Returns
-    -------
-    _type_
-       Tuple with total energy in joules and avg power in watts.
-    """
-    runtime = raw_data.timesteps[-1]
-    t_s: np.ndarray = raw_data.timesteps.astype("float32")
-    t_s *= raw_data.t_md.mag.value / Magnitude.ONE.value
-
-    e_J = raw_data.values
-    maxValue = raw_data.v_md.max
-    dtype = raw_data.v_md.dtype.name
-
-    if start and end:
-        sampling_ratio = np.diff(t_s).mean() * 0.1
-        runtime = end - start + 2 * sampling_ratio
-        index = np.all([t_s >= start, t_s <= end], axis=0)
-        tmp = e_J[index]
-        if len(tmp) == 0:
-            index = np.all(
-                [t_s >= (start - sampling_ratio), t_s <= (end + sampling_ratio)], axis=0
-            )
-            tmp = e_J[index]
-            return 0, 0
-
-    d_energy = e_J[1:] - e_J[:-1]
-
-    if "uint" in dtype:
-        idx = d_energy >= maxValue
-        max_dtype = np.iinfo(dtype).max
-        d_energy[idx] = maxValue + d_energy[idx] - max_dtype
-    else:
-        idx = d_energy <= 0
-        d_energy[idx] = d_energy[idx] + maxValue
-
-    d_energy = d_energy.astype("float32")
-    total_energy = d_energy.cumsum()[-1]
-
-    magFactor = raw_data.v_md.mag.value / Magnitude.ONE.value
-
-    # Transform the energy series to a power series
-    if not start and not end:
-        power_W = d_energy / np.diff(t_s)
-        power_W *= magFactor
-        raw_data.alt_values = power_W
-        raw_data.alt_v_md = MetricMetaData(
-            Unit.WATT,
-            Magnitude.ONE,
-            np.dtype("float32"),
-            np.float32(0),
-            np.finfo("float32").max,
-            np.float32(-1),
-        )
-
-    energy_J = total_energy * magFactor
-    avg_power_W = energy_J / runtime
-    return energy_J, avg_power_W
-
-
-def processPowerData(
-    raw_data: RawData,
-    start: Optional[np.number] = None,
-    end: Optional[np.number] = None,
-) -> Tuple[Any, Any]:
-    """Calculate energy and power from power time series.
+    """Calculate total energy and average power from an energy or power time series.
 
     Using the start and end parameters the results can be limited to certain areas of the application run.
 
@@ -127,9 +50,48 @@ def processPowerData(
     """
     t_s = raw_data.timesteps.astype("float32")
     t_s *= raw_data.t_md.mag.value / Magnitude.ONE.value
-
     magFactor = raw_data.v_md.mag.value / Magnitude.ONE.value
-    power_W = raw_data.values.astype("float32") * magFactor
+
+    if raw_data.v_md.unit == Unit.JOULE:
+
+        # If getting energy, transform to power
+        e_J = raw_data.values
+        maxValue = raw_data.v_md.max
+        dtype = raw_data.v_md.dtype.name
+
+        d_energy = np.diff(e_J)
+
+        if "uint" in dtype:
+            idx = d_energy >= maxValue
+            max_dtype = np.iinfo(dtype).max
+            d_energy[idx] = maxValue + d_energy[idx] - max_dtype
+        else:
+            idx = d_energy <= 0
+            d_energy[idx] = d_energy[idx] + maxValue
+
+        d_energy = d_energy.astype("float32")
+
+        # Transform the energy series to a power series
+        power_W = d_energy / np.diff(t_s)
+        power_W = np.insert(power_W, power_W, 0)
+        power_W *= magFactor
+
+        raw_data.alt_values = e_J
+        raw_data.alt_v_md = raw_data.v_md
+
+        raw_data.values = power_W
+        raw_data.v_md = MetricMetaData(
+            Unit.WATT,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.float32(0),
+            np.finfo("float32").max,
+            np.float32(-1),
+        )
+
+    elif raw_data.v_md.unit == Unit.WATT:
+
+        power_W = raw_data.values.astype("float32") * magFactor
 
     if start and end:
         t_s, power_W = getInterpolatedValues(t_s, power_W, start, end)
@@ -160,67 +122,9 @@ def processSensorData(sensorData: DataNode) -> DataNode:
             MetricType.RUNTIME, runtime, rawData.t_md, AggregateType.MAX
         )
 
-        if rawData.v_md.unit == Unit.JOULE:
+        if rawData.v_md.unit == Unit.JOULE or rawData.v_md.unit == Unit.WATT:
             energy_J, power_W = processEnergyData(rawData)
 
-            energyMetric = Metric(
-                MetricType.ENERGY,
-                energy_J,
-                MetricMetaData(
-                    Unit.JOULE,
-                    Magnitude.ONE,
-                    np.dtype("float32"),
-                    np.float32(0),
-                    np.finfo("float32").max,
-                    np.float32(-1),
-                ),
-                AggregateType.SUM,
-            )
-            powerMetric = Metric(
-                MetricType.POWER,
-                power_W,
-                MetricMetaData(
-                    Unit.WATT,
-                    Magnitude.ONE,
-                    np.dtype("float32"),
-                    np.float32(0),
-                    np.finfo("float32").max,
-                    np.float32(-1),
-                ),
-                AggregateType.SUM,
-            )
-
-            sensorData.metrics[MetricType.ENERGY] = energyMetric
-            sensorData.metrics[MetricType.POWER] = powerMetric
-
-            if sensorData.deviceType == DeviceType.CPU:
-                sensorData.metrics[MetricType.CPU_ENERGY] = energyMetric.copy()
-                sensorData.metrics[MetricType.CPU_ENERGY].type = MetricType.CPU_ENERGY
-                sensorData.metrics[MetricType.CPU_POWER] = powerMetric.copy()
-                sensorData.metrics[MetricType.CPU_POWER].type = MetricType.CPU_POWER
-
-            elif sensorData.deviceType == DeviceType.GPU:
-                sensorData.metrics[MetricType.GPU_ENERGY] = energyMetric.copy()
-                sensorData.metrics[MetricType.GPU_ENERGY].type = MetricType.GPU_ENERGY
-                sensorData.metrics[MetricType.GPU_POWER] = powerMetric.copy()
-                sensorData.metrics[MetricType.GPU_POWER].type = MetricType.GPU_POWER
-
-            elif sensorData.deviceType == DeviceType.RAM:
-                sensorData.metrics[MetricType.DRAM_ENERGY] = energyMetric.copy()
-                sensorData.metrics[MetricType.DRAM_ENERGY].type = MetricType.DRAM_ENERGY
-                sensorData.metrics[MetricType.DRAM_POWER] = powerMetric.copy()
-                sensorData.metrics[MetricType.DRAM_POWER].type = MetricType.DRAM_POWER
-
-            elif sensorData.deviceType == DeviceType.OTHER:
-                sensorData.metrics[MetricType.OTHER_ENERGY] = energyMetric.copy()
-                sensorData.metrics[MetricType.OTHER_ENERGY].type = (
-                    MetricType.OTHER_ENERGY
-                )
-                sensorData.metrics[MetricType.OTHER_POWER] = powerMetric.copy()
-                sensorData.metrics[MetricType.OTHER_POWER].type = MetricType.OTHER_POWER
-
-        elif rawData.v_md.unit == Unit.WATT:
-            energy_J, power_W = processPowerData(rawData)
             energyMetric = Metric(
                 MetricType.ENERGY,
                 energy_J,
@@ -505,15 +409,11 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                 if rank in region.raw_data:
                                     events = region.raw_data[rank]
                                     for i in range(events.shape[0] // 2):
-                                        if measuring_unit == Unit.JOULE:
+                                        if (
+                                            measuring_unit == Unit.JOULE
+                                            or measuring_unit == Unit.WATT
+                                        ):
                                             _, power_W = processEnergyData(
-                                                raw_data,
-                                                events[i * 2],
-                                                events[i * 2 + 1],
-                                            )
-                                            power[region_idx][rank][i] += power_W
-                                        elif measuring_unit == Unit.WATT:
-                                            _, power_W = processPowerData(
                                                 raw_data,
                                                 events[i * 2],
                                                 events[i * 2 + 1],

@@ -2,7 +2,7 @@
 
 import importlib
 import logging
-from typing import Callable, List, Set
+from typing import Callable, Dict, List, Set, Tuple
 
 import numpy as np
 
@@ -37,7 +37,7 @@ class ROCMBackend(Backend):
         """Backend cleanup."""
         self.rocml.smi_shutdown()
 
-    def visibleSensors(self) -> Set[str]:
+    def availableSensors(self) -> Dict[str, Tuple[str]]:
         """Return string ids of visible devices.
 
         Returns
@@ -45,9 +45,25 @@ class ROCMBackend(Backend):
         Set[str]
             Set with sensor ids.
         """
-        devices = set()
+        devices = {}
         for i in range(self.rocml.smi_get_device_count()):
-            devices.add(str(i))
+            device_id = self.rocml.smi_get_device_id(i)
+            try:
+                if np.float32(self.rocml.smi_get_device_average_power(device_id)) > 0:
+                    devices[f"ROCM:{i}_POWER"] = (self.id, DeviceType.GPU, Unit.WATT)
+            except:
+                log.warning(
+                    f"Could not get power usage for device rocm:{i} {device_id}"
+                )
+
+            try:
+                if np.uint64(self.rocml.smi_get_device_memory_total(device_id)) > 0:
+                    devices[f"ROCM:{i}_MEM"] = (self.id, DeviceType.GPU, Unit.BYTE)
+            except:
+                log.warning(
+                    f"Could not get memory usage for device rocm:{i} {device_id}"
+                )
+
         return devices
 
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
@@ -65,75 +81,94 @@ class ROCMBackend(Backend):
         """
         self.rocml.smi_initialize()
 
-        def getPowerCallback(handle) -> Callable[[], np.number]:
-            def func() -> np.number:
-                try:
-                    return np.float32(self.rocml.smi_get_device_average_power(handle))
-                except self.rocml.RocmSMIError as e:
-                    log.warning(f"Could not get power usage for device {deviceId}")
-                    log.exception(e)
-                    return np.float32(0)
-
-            return func
-
-        def getMemCallback(handle) -> Callable[[], np.number]:
-            def func() -> np.number:
-                try:
-                    return np.float32(self.rocml.smi_get_device_memory_used(handle))
-                except self.rocml.RocmSMIError as e:
-                    log.warning(f"Could not get memory usage for device {deviceId}")
-                    log.exception(e)
-                    return np.float32(0)
-
-            return func
-
         devices = []
 
         for deviceStr in deviceList:
-            deviceId = int(deviceStr)
-            log.debug(f"Setting up device {deviceId}")
+            id, measurement_type = deviceStr.split("_")
 
-            name = f"{self.rocml.smi_get_device_name(deviceId)}_{deviceId}"
-            device_type = DeviceType.GPU
-            device_metadata = {
-                "uuid": deviceId,
-                "name": self.rocml.smi_get_device_name(deviceId),
-                **self.metadata,
-            }
-
-            data_type = MetricMetaData(
-                Unit.WATT,
-                Magnitude.ONE,
-                np.dtype("float32"),
-                np.float32(0),
-                np.finfo("float32").max,
-                np.float32(0),
-            )
-            devices.append(
-                Sensor(
-                    name + "_POWER",
-                    device_type,
-                    device_metadata,
-                    data_type,
-                    getPowerCallback(deviceId),
-                )
-            )
-            max_memory = np.uint64(self.rocml.smi_get_device_memory_total(deviceId))
-            data_type = MetricMetaData(
-                Unit.BYTE,
-                Magnitude.ONE,
-                np.dtype("uint64"),
-                np.uint64(0),
-                max_memory,
-                np.uint64(0),
-            )
-            devices.append(
-                Sensor(
-                    name + "_MEM",
-                    device_type,
-                    device_metadata,
-                    data_type,
-                    getMemCallback(deviceId),
-                )
-            )
+            device_idx = id[5:]
+            if measurement_type == "POWER":
+                devices.append(self._getPowerSensor(int(device_idx)))
+            elif measurement_type == "MEM":
+                devices.append(self._getMemSensor(int(device_idx)))
         return devices
+
+    def _getPowerSensor(self, device_idx: int) -> Sensor:
+
+        device_id = self.rocml.smi_get_device_id(device_idx)
+        log.debug(f"Setting up device {device_id}")
+
+        name = f"{self.rocml.smi_get_device_name(device_id)}_{device_id}"
+        device_type = DeviceType.GPU
+        device_metadata = {
+            "uuid": str(self.rocml.smi_get_device_unique_id(device_id)),
+            "name": self.rocml.smi_get_device_name(device_id),
+            **self.metadata,
+        }
+
+        data_type = MetricMetaData(
+            Unit.WATT,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.float32(0),
+            np.finfo("float32").max,
+            np.float32(0),
+        )
+        return Sensor(
+            name + "_POWER",
+            device_type,
+            device_metadata,
+            data_type,
+            self._getPowerCallback(device_id),
+        )
+
+    def _getPowerCallback(self, handle: int) -> Callable[[], np.number]:
+        def func() -> np.number:
+            try:
+                return np.float32(self.rocml.smi_get_device_average_power(handle))
+            except self.rocml.RocmSMIError as e:
+                log.warning(f"Could not get power usage for device {handle}")
+                log.exception(e)
+                return np.float32(0)
+
+        return func
+
+    def _getMemSensor(self, device_idx: int) -> Sensor:
+        device_id = self.rocml.smi_get_device_id(device_idx)
+        log.debug(f"Setting up device {device_id}")
+
+        name = f"{self.rocml.smi_get_device_name(device_id)}_{device_id}"
+        device_type = DeviceType.GPU
+        device_metadata = {
+            "uuid": str(self.rocml.smi_get_device_unique_id(device_id)),
+            "name": self.rocml.smi_get_device_name(device_id),
+            **self.metadata,
+        }
+
+        max_memory = np.uint64(self.rocml.smi_get_device_memory_total(device_id))
+        data_type = MetricMetaData(
+            Unit.BYTE,
+            Magnitude.ONE,
+            np.dtype("uint64"),
+            np.uint64(0),
+            max_memory,
+            np.uint64(0),
+        )
+        return Sensor(
+            name + "_MEM",
+            device_type,
+            device_metadata,
+            data_type,
+            self._getMemCallback(device_id),
+        )
+
+    def _getMemCallback(self, handle) -> Callable[[], np.number]:
+        def func() -> np.number:
+            try:
+                return np.float32(self.rocml.smi_get_device_memory_used(handle))
+            except self.rocml.RocmSMIError as e:
+                log.warning(f"Could not get memory usage for device {handle}")
+                log.exception(e)
+                return np.float32(0)
+
+        return func
