@@ -73,7 +73,7 @@ def processEnergyData(
 
         # Transform the energy series to a power series
         power_W = d_energy / np.diff(t_s)
-        power_W = np.insert(power_W, power_W[0], 0)
+        power_W = np.insert(power_W, 0, power_W[0])
         power_W *= magFactor
 
         raw_data.alt_values = e_J

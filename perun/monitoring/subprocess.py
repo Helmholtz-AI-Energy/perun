@@ -45,7 +45,7 @@ def prepSensors(
         sensor_ids = {
             sensor_id
             for sensor_id, sensor_md in l_assigned_sensors.items()
-            if sensor_md[0] == backend.name
+            if sensor_md[0] == backend.id
         }
         if len(sensor_ids) > 0:
             lSensors += backend.getSensors(sensor_ids)
