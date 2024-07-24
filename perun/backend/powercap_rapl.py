@@ -36,13 +36,13 @@ class PowercapRAPLBackend(Backend):
     def setup(self):
         """Check Intel RAPL access."""
         cpuInfo = cpuinfo.get_cpu_info()
-        self.metadata = {}
+        self._metadata = {}
         for key, value in cpuInfo.items():
             if value is not None and value != "":
-                self.metadata[key] = str(value)
+                self._metadata[key] = str(value)
 
         self.devices: Dict[str, Sensor] = {}
-        log.debug(f"CPU info metadata: {pp.pformat(self.metadata)}")
+        log.debug(f"CPU info metadata: {pp.pformat(self._metadata)}")
 
         raplPath = Path(RAPL_PATH)
 
@@ -108,7 +108,7 @@ class PowercapRAPLBackend(Backend):
                         device = Sensor(
                             f"{devType.value}_{socket}_{device_name}",
                             devType,
-                            self.metadata,
+                            self._metadata,
                             dataType,
                             getCallback(energy_file, energy_path),
                         )
@@ -157,7 +157,7 @@ class PowercapRAPLBackend(Backend):
                                     device = Sensor(
                                         f"{devType.value}_{socket}_{device_name}",
                                         devType,
-                                        self.metadata,
+                                        self._metadata,
                                         dataType,
                                         getCallback(energy_file, energy_path),
                                     )
@@ -185,7 +185,7 @@ class PowercapRAPLBackend(Backend):
             file.close()
         return
 
-    def availableSensors(self) -> Dict[str, Tuple[str]]:
+    def availableSensors(self) -> Dict[str, Tuple]:
         """Return string id set of visible devices.
 
         Returns

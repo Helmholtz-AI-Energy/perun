@@ -27,7 +27,7 @@ class ROCMBackend(Backend):
         """Init rocm object."""
         self.rocml = importlib.import_module("pyrsmi").rocml
         self.rocml.smi_initialize()
-        self.metadata = {
+        self._metadata = {
             "rocm_smi_version": self.rocml.smi_get_version(),
             "rocm_kernel_version": self.rocml.smi_get_kernel_version(),
             "source": "ROCM SMI",
@@ -37,7 +37,7 @@ class ROCMBackend(Backend):
         """Backend cleanup."""
         self.rocml.smi_shutdown()
 
-    def availableSensors(self) -> Dict[str, Tuple[str]]:
+    def availableSensors(self) -> Dict[str, Tuple]:
         """Return string ids of visible devices.
 
         Returns
@@ -51,18 +51,16 @@ class ROCMBackend(Backend):
             try:
                 if np.float32(self.rocml.smi_get_device_average_power(device_id)) > 0:
                     devices[f"ROCM:{i}_POWER"] = (self.id, DeviceType.GPU, Unit.WATT)
-            except:
-                log.warning(
-                    f"Could not get power usage for device rocm:{i} {device_id}"
-                )
+            except self.rocml.RocmSMIError as e:
+                log.info(e)
+                log.info(f"Could not get power usage for device rocm:{i} {device_id}")
 
             try:
                 if np.uint64(self.rocml.smi_get_device_memory_total(device_id)) > 0:
                     devices[f"ROCM:{i}_MEM"] = (self.id, DeviceType.GPU, Unit.BYTE)
-            except:
-                log.warning(
-                    f"Could not get memory usage for device rocm:{i} {device_id}"
-                )
+            except self.rocml.RocmSMIError as e:
+                log.info(e)
+                log.info(f"Could not get memory usage for device rocm:{i} {device_id}")
 
         return devices
 
@@ -103,7 +101,7 @@ class ROCMBackend(Backend):
         device_metadata = {
             "uuid": str(self.rocml.smi_get_device_unique_id(device_id)),
             "name": self.rocml.smi_get_device_name(device_id),
-            **self.metadata,
+            **self._metadata,
         }
 
         data_type = MetricMetaData(
@@ -142,7 +140,7 @@ class ROCMBackend(Backend):
         device_metadata = {
             "uuid": str(self.rocml.smi_get_device_unique_id(device_id)),
             "name": self.rocml.smi_get_device_name(device_id),
-            **self.metadata,
+            **self._metadata,
         }
 
         max_memory = np.uint64(self.rocml.smi_get_device_memory_total(device_id))

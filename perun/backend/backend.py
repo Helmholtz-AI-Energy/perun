@@ -23,11 +23,17 @@ class Backend(metaclass=Singleton):
         super().__init__()
         self.devices: Dict = {}
         self.setup()
+        self._metadata: Dict = {}
         log.info(f"Initialized {self.name} backend")
 
+    @property
+    def metadata(self) -> Dict:
+        """Return backend metadata."""
+        return self._metadata
+
     @abstractmethod
-    def availableSensors(self) -> Dict[str, Tuple[str]]:
-        """Returns a dictionary with all available sensors. Each entry contains the backend id and type of sensor.
+    def availableSensors(self) -> Dict[str, Tuple]:
+        """Return a dictionary with all available sensors. Each entry contains the backend id and type of sensor.
 
         Returns
         -------

@@ -5,7 +5,7 @@ import platform
 import time
 from configparser import ConfigParser
 from multiprocessing import Queue
-from typing import Callable, Dict, List, Set, Tuple
+from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 
@@ -19,7 +19,7 @@ log = logging.getLogger("perun")
 
 
 def prepSensors(
-    backends: Dict[str, Backend], l_sensors_config: Dict[str, Set[str]]
+    backends: Dict[str, Backend], l_assigned_sensors: Dict[str, Tuple]
 ) -> Tuple[List[int], MetricMetaData, List[List[np.number]], List[Sensor]]:
     """
     Prepare sensors for monitoring.
@@ -28,7 +28,7 @@ def prepSensors(
     ----------
     backends : Dict[str, Backend]
         A dictionary of backends.
-    l_sensors_config : Dict[str, Set[str]]
+    l_assigned_sensors : Dict[str, Tuple]
         A dictionary of sensor configurations.
 
     Returns
@@ -42,8 +42,13 @@ def prepSensors(
     """
     lSensors: List[Sensor] = []
     for backend in backends.values():
-        if backend.name in l_sensors_config:
-            lSensors += backend.getSensors(l_sensors_config[backend.name])
+        sensor_ids = {
+            sensor_id
+            for sensor_id, sensor_md in l_assigned_sensors.items()
+            if sensor_md[0] == backend.name
+        }
+        if len(sensor_ids) > 0:
+            lSensors += backend.getSensors(sensor_ids)
 
     timesteps: List[int] = []
     t_metadata = MetricMetaData(
@@ -163,7 +168,7 @@ def perunSubprocess(
     queue: Queue,
     rank: int,
     backends: Dict[str, Backend],
-    l_sensors_config: Dict[str, Set[str]],
+    l_assigned_sensors: Dict[str, Tuple],
     perunConfig: ConfigParser,
     sp_ready_event,
     start_event,
@@ -180,7 +185,7 @@ def perunSubprocess(
         Local MPI Rank
     backends : List[Backend]
         Available backend list
-    l_sensors_config : Dict[str, Set[str]]
+    l_assigned_sensors : Dict[str, Tuple]
         Local MPI rank sensor configuration
     sp_ready_event : _type_
         Indicates monitoring supbrocess is ready, multiprocessing module
@@ -196,9 +201,9 @@ def perunSubprocess(
         t_metadata,
         rawValues,
         lSensors,
-    ) = prepSensors(backends, l_sensors_config)
+    ) = prepSensors(backends, l_assigned_sensors)
     log.debug(f"SP: backends -- {backends}")
-    log.debug(f"SP: l_sensor_config -- {l_sensors_config}")
+    log.debug(f"SP: l_sensor_config -- {l_assigned_sensors}")
     log.debug(f"Rank {rank}: perunSP lSensors: {lSensors}")
 
     # Monitoring process ready

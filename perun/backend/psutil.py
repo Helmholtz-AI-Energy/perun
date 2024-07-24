@@ -24,15 +24,20 @@ class PSUTILBackend(Backend):
         """Configure psutil backend."""
         psutil.disk_io_counters.cache_clear()
         psutil.net_io_counters.cache_clear()
-        self.metadata = {"source": f"psutil {psutil.__version__}"}
+        self._metadata = {"source": f"psutil {psutil.__version__}"}
 
     def close(self):
         """Close backend."""
         pass
 
-    def availableSensors(self) -> Dict[str, Tuple[str]]:
-        """Return list of visible devices."""
+    def availableSensors(self) -> Dict[str, Tuple]:
+        """Return list of visible devices.
 
+        Returns
+        -------
+        Dict[str, Tuple]
+            Dictionary with device ids and measurement unit.
+        """
         sensors = {}
 
         if psutil.virtual_memory().used is not None:
@@ -108,68 +113,76 @@ class PSUTILBackend(Backend):
         for deviceName in deviceList:
             if deviceName == "RAM_USAGE":
                 mem = psutil.virtual_memory()
-                devices[deviceName] = Sensor(
-                    deviceName,
-                    DeviceType.RAM,
-                    {
-                        "total": str(mem.total),
-                        "available": str(mem.available),
-                        **self.metadata,
-                    },
-                    MetricMetaData(
-                        Unit.BYTE,
-                        Magnitude.ONE,
-                        np.dtype("uint64"),
-                        np.uint64(0),
-                        np.uint64(np.iinfo("uint64").max),
-                        np.uint64(np.iinfo("uint64").max),
-                    ),
-                    self._getCallback(deviceName),
+                devices.append(
+                    Sensor(
+                        deviceName,
+                        DeviceType.RAM,
+                        {
+                            "total": str(mem.total),
+                            "available": str(mem.available),
+                            **self._metadata,
+                        },
+                        MetricMetaData(
+                            Unit.BYTE,
+                            Magnitude.ONE,
+                            np.dtype("uint64"),
+                            np.uint64(0),
+                            np.uint64(np.iinfo("uint64").max),
+                            np.uint64(np.iinfo("uint64").max),
+                        ),
+                        self._getCallback(deviceName),
+                    )
                 )
             elif deviceName == "CPU_USAGE":
-                devices[deviceName] = Sensor(
-                    deviceName,
-                    DeviceType.CPU,
-                    {**self.metadata},
-                    MetricMetaData(
-                        Unit.PERCENT,
-                        Magnitude.ONE,
-                        np.dtype("float32"),
-                        np.float32(0),
-                        np.float32(100.0),
-                        np.float32(-1),
-                    ),
-                    self._getCallback(deviceName),
+                devices.append(
+                    Sensor(
+                        deviceName,
+                        DeviceType.CPU,
+                        {**self._metadata},
+                        MetricMetaData(
+                            Unit.PERCENT,
+                            Magnitude.ONE,
+                            np.dtype("float32"),
+                            np.float32(0),
+                            np.float32(100.0),
+                            np.float32(-1),
+                        ),
+                        self._getCallback(deviceName),
+                    )
                 )
             elif "BYTES" in deviceName:
-                devices[deviceName] = Sensor(
-                    deviceName,
-                    DeviceType.DISK if "DISK" in deviceName else DeviceType.NET,
-                    {**self.metadata},
-                    MetricMetaData(
-                        Unit.BYTE,
-                        Magnitude.ONE,
-                        np.dtype("uint64"),
-                        np.uint64(0),
-                        np.uint64(np.iinfo("uint64").max),
-                        np.uint64(np.iinfo("uint64").max),
-                    ),
-                    self._getCallback(deviceName),
+                devices.append(
+                    Sensor(
+                        deviceName,
+                        DeviceType.DISK if "DISK" in deviceName else DeviceType.NET,
+                        {**self._metadata},
+                        MetricMetaData(
+                            Unit.BYTE,
+                            Magnitude.ONE,
+                            np.dtype("uint64"),
+                            np.uint64(0),
+                            np.uint64(np.iinfo("uint64").max),
+                            np.uint64(np.iinfo("uint64").max),
+                        ),
+                        self._getCallback(deviceName),
+                    )
                 )
             elif "CPU_FREQ" in deviceName:
                 id = int(deviceName.split("_")[-1])
-                devices[deviceName] = Sensor(
-                    deviceName,
-                    DeviceType.CPU,
-                    {**self.metadata},
-                    MetricMetaData(
-                        Unit.HZ,
-                        Magnitude.MEGA,
-                        np.dtype("float32"),
-                        np.float32(psutil.cpu_freq(percpu=True)[id].min),  # type: ignore
-                        np.float32(psutil.cpu_freq(percpu=True)[id].max),  # type: ignore
-                        np.float32(0),
-                    ),
-                    self._getCallback(deviceName),
+                devices.append(
+                    Sensor(
+                        deviceName,
+                        DeviceType.CPU,
+                        {**self._metadata},
+                        MetricMetaData(
+                            Unit.HZ,
+                            Magnitude.MEGA,
+                            np.dtype("float32"),
+                            np.float32(psutil.cpu_freq(percpu=True)[id].min),  # type: ignore
+                            np.float32(psutil.cpu_freq(percpu=True)[id].max),  # type: ignore
+                            np.float32(0),
+                        ),
+                        self._getCallback(deviceName),
+                    )
                 )
         return devices

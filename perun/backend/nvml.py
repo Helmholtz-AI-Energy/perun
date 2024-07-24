@@ -28,7 +28,7 @@ class NVMLBackend(Backend):
         self.pynvml = importlib.import_module("pynvml")
         self.pynvml.nvmlInit()
         deviceCount = self.pynvml.nvmlDeviceGetCount()
-        self.metadata = {
+        self._metadata = {
             "cuda_version": str(self.pynvml.nvmlSystemGetCudaDriverVersion()),
             "driver_version": str(self.pynvml.nvmlSystemGetDriverVersion()),
             "source": "Nvidia Managment Library",
@@ -46,7 +46,7 @@ class NVMLBackend(Backend):
         """Backend shutdown code."""
         self.pynvml.nvmlShutdown()
 
-    def availableSensors(self) -> Dict[str, Tuple[str]]:
+    def availableSensors(self) -> Dict[str, Tuple]:
         """Return string ids of visible devices.
 
         Returns
@@ -60,24 +60,30 @@ class NVMLBackend(Backend):
             try:
                 if np.uint32(self.pynvml.nvmlDeviceGetPowerUsage(handle)) > 0:
                     devices[f"CUDA:{i}_POWER"] = (self.id, DeviceType.GPU, Unit.WATT)
-            except:
+            except self.pynvml.NVMLError as e:
+                log.info(e)
                 log.info(f"Could not get power usage for device {handle}")
 
             try:
                 if np.uint64(self.pynvml.nvmlDeviceGetMemoryInfo(handle).used) > 0:
                     devices[f"CUDA:{i}_MEM"] = (self.id, DeviceType.GPU, Unit.BYTE)
-            except:
+            except self.pynvml.NVMLError as e:
+                log.info(e)
                 log.info(f"Could not get memory usage for device {handle}")
 
             for clock_name, clock_id in self.clock_types.items():
                 try:
-                    if np.self.pynvml.nvmlDeviceGetClockInfo(handle, clock_id) > 0:
+                    if (
+                        np.uint32(self.pynvml.nvmlDeviceGetClockInfo(handle, clock_id))
+                        > 0
+                    ):
                         devices[f"CUDA:{i}_{clock_name}"] = (
                             self.id,
                             DeviceType.GPU,
                             Unit.HZ,
                         )
-                except:
+                except self.pynvml.NVMLError as e:
+                    log.info(e)
                     log.info(f"Could not get {clock_name} usage for device {handle}")
 
         return devices
@@ -123,7 +129,7 @@ class NVMLBackend(Backend):
         device_metadata = {
             "uuid": uuid,
             "name": str(self.pynvml.nvmlDeviceGetName(handle)),
-            **self.metadata,
+            **self._metadata,
         }
         try:
             max_power: np.number = np.uint32(
@@ -164,7 +170,7 @@ class NVMLBackend(Backend):
 
         return func
 
-    def _getMemorySensor(self, device_idx: str) -> Sensor:
+    def _getMemorySensor(self, device_idx: int) -> Sensor:
         handle = self.pynvml.nvmlDeviceGetHandleByIndex(device_idx)
         uuid = self.pynvml.nvmlDeviceGetUUID(handle)
         log.debug(f"Index: {device_idx} - UUID : {uuid}")
@@ -174,7 +180,7 @@ class NVMLBackend(Backend):
         device_metadata = {
             "uuid": uuid,
             "name": str(self.pynvml.nvmlDeviceGetName(handle)),
-            **self.metadata,
+            **self._metadata,
         }
 
         try:
@@ -216,7 +222,7 @@ class NVMLBackend(Backend):
 
         return func
 
-    def _getClockSensor(self, device_idx: str, clock_type: str) -> Sensor:
+    def _getClockSensor(self, device_idx: int, clock_type: str) -> Sensor:
         handle = self.pynvml.nvmlDeviceGetHandleByIndex(device_idx)
         uuid = self.pynvml.nvmlDeviceGetUUID(handle)
         log.debug(f"Index: {device_idx} - UUID : {uuid}")
@@ -226,7 +232,7 @@ class NVMLBackend(Backend):
         device_metadata = {
             "uuid": uuid,
             "name": str(self.pynvml.nvmlDeviceGetName(handle)),
-            **self.metadata,
+            **self._metadata,
         }
 
         try:

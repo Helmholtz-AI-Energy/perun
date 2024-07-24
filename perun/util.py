@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict, List
 
 from perun import config
 
@@ -147,37 +147,37 @@ def increaseIdCounter(existing: List[str], newId: str) -> str:
     return newId + f"_{count}" if count > 0 else newId
 
 
-def printableSensorConfiguration(
-    sensors_config: List[Dict[str, Set[str]]], host_rank: Dict[str, List[int]]
-) -> str:
-    """Create string with the available backends and sensors in each node.
+# def printableSensorConfiguration(
+#     sensors_config: List[Dict[str, Set[str]]], host_rank: Dict[str, List[int]]
+# ) -> str:
+#     """Create string with the available backends and sensors in each node.
 
-    Parameters
-    ----------
-    sensors_config : List[Dict[str, Set[str]]]
-        Perun Sensor configuration
-    host_rank : Dict[str, List[int]]
-        Perun Host Rank mapping
+#     Parameters
+#     ----------
+#     sensors_config : List[Dict[str, Set[str]]]
+#         Perun Sensor configuration
+#     host_rank : Dict[str, List[int]]
+#         Perun Host Rank mapping
 
-    Returns
-    -------
-    str
-        String to print for the sensors CLI subcommand.
-    """
-    configString: str = ""
-    for rank, bes in enumerate(sensors_config):
-        configString += f"Rank: {rank}\n"
-        for key in sorted(bes.keys()):
-            items = bes[key]
-            if len(items) > 0:
-                configString += f"   {key}:\n"
+#     Returns
+#     -------
+#     str
+#         String to print for the sensors CLI subcommand.
+#     """
+#     configString: str = ""
+#     for rank, bes in enumerate(sensors_config):
+#         configString += f"Rank: {rank}\n"
+#         for key in sorted(bes.keys()):
+#             items = bes[key]
+#             if len(items) > 0:
+#                 configString += f"   {key}:\n"
 
-                for device in sorted(items):
-                    configString += f"       {device}\n"
-                configString += "\n"
+#                 for device in sorted(items):
+#                     configString += f"       {device}\n"
+#                 configString += "\n"
 
-    configString += "Hostnames:\n"
-    for host, ranks in host_rank.items():
-        configString += f"   {host}: {ranks}\n"
+#     configString += "Hostnames:\n"
+#     for host, ranks in host_rank.items():
+#         configString += f"   {host}: {ranks}\n"
 
-    return configString
+#     return configString

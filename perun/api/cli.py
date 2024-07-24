@@ -1,20 +1,20 @@
 """Command line API."""
 
 import argparse
-import functools
 import json
 import logging
+import pprint as pp
 import sys
 from pathlib import Path
-from pprint import pprint
-from typing import List
+from typing import Dict, List, Tuple
 
 import perun
 from perun.configuration import config, read_custom_config, read_environ, save_to_config
 from perun.core import Perun
 from perun.io.io import IOFormat
 from perun.monitoring.application import Application
-from perun.util import printableSensorConfiguration
+
+# from perun.util import printableSensorConfiguration
 
 log = logging.getLogger("perun")
 
@@ -232,25 +232,30 @@ def showconf(args: argparse.Namespace):
 
 
 def sensors(args: argparse.Namespace):
-    """Print sensors assigned to each rank by perun."""
+    """Print available sensors."""
     perun = Perun(config)
+    log.debug("Initialized perun object.")
     arg_by_rank = args.by_rank
     arg_active = args.active
 
     if arg_by_rank:
+        log.debug("Printing sensors by rank.")
         g_available_sensors = perun.g_available_sensors
         if perun.comm.Get_rank() == 0:
-            pprint(g_available_sensors)
+            print(pp.pformat(g_available_sensors))
     elif arg_active:
+        log.debug("Printing active sensors by rank.")
         g_assigned_sensors = perun.g_assigned_sensors
         if perun.comm.Get_rank() == 0:
-            pprint(g_assigned_sensors)
+            print(pp.pformat(g_assigned_sensors))
     else:
-        available_sensors = functools.reduce(
-            lambda x, y: x | y, g_available_sensors, {}
-        )
+        log.debug("Printing all available sensors.")
+        g_available_sensors = perun.g_available_sensors
+        available_sensors: Dict[str, Tuple] = {}
+        for _, sensors in enumerate(g_available_sensors):
+            available_sensors.update(sensors)
         if perun.comm.Get_rank() == 0:
-            pprint(available_sensors)
+            print(pp.pformat(available_sensors))
 
 
 def metadata(args: argparse.Namespace):

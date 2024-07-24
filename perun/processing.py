@@ -73,7 +73,7 @@ def processEnergyData(
 
         # Transform the energy series to a power series
         power_W = d_energy / np.diff(t_s)
-        power_W = np.insert(power_W, power_W, 0)
+        power_W = np.insert(power_W, power_W[0], 0)
         power_W *= magFactor
 
         raw_data.alt_values = e_J
@@ -97,7 +97,7 @@ def processEnergyData(
         t_s, power_W = getInterpolatedValues(t_s, power_W, start, end)
 
     avg_power_W = np.mean(power_W)
-    energy_J = np.trapz(power_W, t_s)
+    energy_J = np.trapz(power_W, x=t_s)  # type: ignore
     return energy_J, avg_power_W
 
 

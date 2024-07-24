@@ -9,7 +9,7 @@ import pprint as pp
 from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from perun import __version__
 from perun.backend.backend import Backend
@@ -45,10 +45,10 @@ class Perun(metaclass=Singleton):
         self._comm: Optional[Comm] = None
         self._backends: Optional[Dict[str, Backend]] = None
 
-        self._g_available_sensors: List[Dict[str, Tuple[str]]] = []
-        self._l_available_sensors: Dict[str, Tuple[str]] = {}
-        self._g_assigned_sensors: List[Dict[str, Tuple[str]]] = []
-        self._l_assigned_sensors: Dict[str, Tuple[str]] = {}
+        self._g_available_sensors: List[Dict[str, Tuple]] = []
+        self._l_available_sensors: Dict[str, Tuple] = {}
+        self._g_assigned_sensors: List[Dict[str, Tuple]] = []
+        self._l_assigned_sensors: Dict[str, Tuple] = {}
         self._host_rank: Optional[Dict[str, List[int]]] = None
 
         self._hostname: Optional[str] = None
@@ -88,8 +88,8 @@ class Perun(metaclass=Singleton):
 
         # Ensure that the monitoring options are valid
         sampling_period = self.config.getfloat("monitor", "sampling_period")
-        selected_backends = self.config.get("monitor", "backends")
-        selected_sensors = self.config.get("monitor", "sensors")
+        # selected_backends = self.config.get("monitor", "backends")
+        # selected_sensors = self.config.get("monitor", "sensors")
 
         if sampling_period < 0.1:
             log.warning(
@@ -98,23 +98,23 @@ class Perun(metaclass=Singleton):
             self.config.set("monitor", "sampling_period", "1")
 
         # If the selected backends are not empty, check if they exist
-        selected_backends_list = []
-        selected_sensors_list = []
-        if selected_backends != "":
-            log.debug(selected_backends)
-            selected_backends_list = []
-            for backend in selected_backends.split(","):
-                if backend not in self.backends:
-                    log.warn(f"Unknown backend {backend}. Removing from the list.")
-                else:
-                    selected_backends_list.append(backend)
+        # selected_backends_list = []
+        # selected_sensors_list = []
+        # if selected_backends != "":
+        #     log.debug(selected_backends)
+        #     selected_backends_list = []
+        #     for backend in selected_backends.split(","):
+        #         if backend not in self.backends:
+        #             log.warn(f"Unknown backend {backend}. Removing from the list.")
+        #         else:
+        #             selected_backends_list.append(backend)
 
-            if len(selected_backends_list) == 0:
-                log.warn(
-                    "No valid backends selected. Defaulting to all available backends."
-                )
+        #     if len(selected_backends_list) == 0:
+        #         log.warn(
+        #             "No valid backends selected. Defaulting to all available backends."
+        #         )
 
-        self.config.set("monitor", "backends", ",".join(selected_backends_list))
+        # self.config.set("monitor", "backends", ",".join(selected_backends_list))
 
         # if selected_sensors != "":
         #    if selected_backends_list != []:
@@ -229,7 +229,7 @@ class Perun(metaclass=Singleton):
         return self._host_rank
 
     @property
-    def l_available_sensors(self) -> Dict[str, Tuple[str]]:
+    def l_available_sensors(self) -> Dict[str, Tuple]:
         """Lazy initialization of local available sensors.
 
         Returns
@@ -243,7 +243,7 @@ class Perun(metaclass=Singleton):
         return self._l_available_sensors
 
     @property
-    def g_available_sensors(self) -> List[Dict[str, Tuple[str]]]:
+    def g_available_sensors(self) -> List[Dict[str, Tuple]]:
         """Lazy initialization of global available sensors.
 
         Returns
@@ -252,11 +252,12 @@ class Perun(metaclass=Singleton):
             Global available sensor.
         """
         if not self._g_available_sensors:
+            log.debug(f"Rank {self.comm.Get_rank()} : Gathering available sensors")
             self._g_available_sensors = self.comm.allgather(self.l_available_sensors)
         return self._g_available_sensors
 
     @property
-    def g_assigned_sensors(self) -> List[Dict[str, Tuple[str]]]:
+    def g_assigned_sensors(self) -> List[Dict[str, Tuple]]:
         """Lazy initialization of global sensors assignment.
 
         Returns
@@ -271,7 +272,7 @@ class Perun(metaclass=Singleton):
         return self._g_assigned_sensors
 
     @property
-    def l_assigned_sensors(self) -> Dict[str, Tuple[str]]:
+    def l_assigned_sensors(self) -> Dict[str, Tuple]:
         """Lazy initialization of local assigned sensors.
 
         Returns
