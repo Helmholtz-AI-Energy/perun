@@ -1,5 +1,7 @@
 """Text report module."""
 
+from typing import Any, Dict, List
+
 import pandas as pd
 
 from perun import config, log
@@ -137,3 +139,50 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
         app_summary_str = f"The application has been run {n_runs} times."
 
     return report_header + mr_report_str + region_report_str + app_summary_str
+
+
+def sensors_table(sensors: List[Dict[str, Any]], by_rank=True) -> str:
+    """Create a text table from a list of sensor readings.
+
+    Parameters
+    ----------
+    sensors : List[Dict[str, Any]]
+        List of sensor readings
+
+    Returns
+    -------
+    str
+        Table string
+    """
+    if not sensors:
+        return "No sensor data available."
+
+    result = "Available sensors:\n\n"
+    if by_rank:
+        for rank, rank_sensors in enumerate(sensors):
+            result += f"RANK {rank}:\n"
+
+            table = (
+                pd.DataFrame.from_dict(
+                    rank_sensors, orient="index", columns=["Source", "Device", "Unit"]
+                )
+                .reset_index()
+                .rename(columns={"index": "Sensor"})
+                .sort_values(by=["Source", "Sensor"])
+                .to_markdown(index=False, stralign="right")
+            )
+            result += table + "\n\n"
+
+    else:
+        table = (
+            pd.DataFrame.from_dict(
+                sensors[0], orient="index", columns=["Source", "Device", "Unit"]
+            )
+            .reset_index()
+            .rename(columns={"index": "Sensor"})
+            .sort_values(by=["Source", "Sensor"])
+            .to_markdown(index=False, stralign="right")
+        )
+        result += table + "\n"
+
+    return result

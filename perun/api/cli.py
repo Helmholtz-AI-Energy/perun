@@ -3,7 +3,6 @@
 import argparse
 import json
 import logging
-import pprint as pp
 import sys
 from pathlib import Path
 from typing import Dict, List, Tuple
@@ -12,9 +11,8 @@ import perun
 from perun.configuration import config, read_custom_config, read_environ, save_to_config
 from perun.core import Perun
 from perun.io.io import IOFormat
+from perun.io.text_report import sensors_table
 from perun.monitoring.application import Application
-
-# from perun.util import printableSensorConfiguration
 
 log = logging.getLogger("perun")
 
@@ -242,12 +240,12 @@ def sensors(args: argparse.Namespace):
         log.debug("Printing sensors by rank.")
         g_available_sensors = perun.g_available_sensors
         if perun.comm.Get_rank() == 0:
-            print(pp.pformat(g_available_sensors))
+            print(sensors_table(g_available_sensors))
     elif arg_active:
         log.debug("Printing active sensors by rank.")
         g_assigned_sensors = perun.g_assigned_sensors
         if perun.comm.Get_rank() == 0:
-            print(pp.pformat(g_assigned_sensors))
+            print(sensors_table(g_assigned_sensors))
     else:
         log.debug("Printing all available sensors.")
         g_available_sensors = perun.g_available_sensors
@@ -255,7 +253,7 @@ def sensors(args: argparse.Namespace):
         for _, sensors in enumerate(g_available_sensors):
             available_sensors.update(sensors)
         if perun.comm.Get_rank() == 0:
-            print(pp.pformat(available_sensors))
+            print(sensors_table([available_sensors], by_rank=False))
 
 
 def metadata(args: argparse.Namespace):
