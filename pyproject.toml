@@ -21,6 +21,10 @@ tabulate = ">=0.9"
 mpi4py = {version = "^3.1", optional = true }
 nvidia-ml-py = {version = "^12.535.77", optional = true }
 pyrsmi = {version = "^1.0.1", optional = true }
+sphinx = {version = "^7", optional = true }
+sphinx-autoapi = {version = "^3", optional = true }
+sphinx-rtd-theme = {version = "^2", optional = true }
+
 
 [tool.poetry.extras]
 mpi = ["mpi4py"]
