@@ -124,12 +124,22 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         help="Sampling period in seconds. Defaults to 1 second.",
     )
     monitor_parser.add_argument(
-        "--sensors",
+        "--include_sensors",
         type=str,
-        help="Comma separated list of sensors to use. Defaults to an empty string (all available sensors).",
+        help="Comma separated list of sensors to use. Defaults to an empty string (all available sensors). ",
     )
     monitor_parser.add_argument(
-        "--backends",
+        "--include_backends",
+        type=str,
+        help="Comma separated list of measuring backends to use. Defaults to an empty string (all available sensors).",
+    )
+    monitor_parser.add_argument(
+        "--exclude_sensors",
+        type=str,
+        help="Comma separated list of sensors to exclude. Defaults to an empty string (all available sensors).",
+    )
+    monitor_parser.add_argument(
+        "--exclude_backends",
         type=str,
         help="Comma separated list of measuring backends to use. Defaults to an empty string (all available sensors).",
     )

@@ -19,6 +19,7 @@ from perun.backend.psutil import PSUTILBackend
 from perun.backend.rocmsmi import ROCMBackend
 from perun.backend.util import getBackendMetadata, getHostMetadata
 from perun.comm import Comm
+from perun.configuration import sanitize_config
 from perun.coordination import assignSensors, getHostRankDict
 from perun.data_model.data import DataNode, NodeType
 from perun.io.io import IOFormat, exportTo, importFrom
@@ -57,95 +58,7 @@ class Perun(metaclass=Singleton):
         self._monitor: Optional[PerunMonitor] = None
         self.postprocess_callbacks: Dict[str, Callable[[DataNode], None]] = {}
 
-        self._sanitize_config()
-
-    def _sanitize_config(self):
-        # Ensure post processing variables are valid
-        power_overhead = self.config.getfloat("post-processing", "power_overhead")
-        pue = self.config.getfloat("post-processing", "pue")
-        emissions_factor = self.config.getfloat("post-processing", "emissions_factor")
-        price_factor = self.config.getfloat("post-processing", "price_factor")
-        if power_overhead < 0:
-            log.warning(
-                f"Invalid power overhead {power_overhead}. Should be a number higher or equal than 0. Defaulting to 0."
-            )
-            self.config.set("post-processing", "power_overhead", 0)
-        if pue < 1:
-            log.warning(
-                f"Invalid PUE {pue}. Should be a number higher or equal than 1. Defaulting to 1."
-            )
-            self.config.set("post-processing", "pue", 1.0)
-        if emissions_factor < 0:
-            log.warning(
-                f"Invalid emissions factor {emissions_factor}. Should be a number higher or equal than 0. Defaulting to 417.80 gCO2eq/kWh."
-            )
-            self.config.set("post-processing", "emissions_factor", 417.80)
-        if price_factor < 0:
-            log.warning(
-                f"Invalid price factor {price_factor}. Should be a number higher or equal than 0. Defaulting to 0.3251 Currency/kWh."
-            )
-            self.config.set("post-processing", "price_factor", 0.3251)
-
-        # Ensure that the monitoring options are valid
-        sampling_period = self.config.getfloat("monitor", "sampling_period")
-        # selected_backends = self.config.get("monitor", "backends")
-        # selected_sensors = self.config.get("monitor", "sensors")
-
-        if sampling_period < 0.1:
-            log.warning(
-                f"Invalid sampling period {sampling_period}. Should be a number higher than 0.1 . Defaulting to 1."
-            )
-            self.config.set("monitor", "sampling_period", "1")
-
-        # If the selected backends are not empty, check if they exist
-        # selected_backends_list = []
-        # selected_sensors_list = []
-        # if selected_backends != "":
-        #     log.debug(selected_backends)
-        #     selected_backends_list = []
-        #     for backend in selected_backends.split(","):
-        #         if backend not in self.backends:
-        #             log.warn(f"Unknown backend {backend}. Removing from the list.")
-        #         else:
-        #             selected_backends_list.append(backend)
-
-        #     if len(selected_backends_list) == 0:
-        #         log.warn(
-        #             "No valid backends selected. Defaulting to all available backends."
-        #         )
-
-        # self.config.set("monitor", "backends", ",".join(selected_backends_list))
-
-        # if selected_sensors != "":
-        #    if selected_backends_list != []:
-
-        # Ensure that the output directory exists
-        data_out = Path(self.config.get("output", "data_out"))
-        if not data_out.exists():
-            data_out.mkdir(parents=True)
-
-        # Ensure that the output format is valid
-        out_format = IOFormat(self.config.get("output", "format"))
-        if out_format not in IOFormat:
-            log.warning(
-                f"Invalid output format {out_format}. Defaulting to text. Avilable formats: {pp.pformat(IOFormat)}"
-            )
-            self.config.set("output", "format", IOFormat.TEXT.value)
-
-        # Ensure that the rounds and warmup rounds are valid
-        rounds = self.config.getint("benchmarking", "rounds")
-        warmup_rounds = self.config.getint("benchmarking", "warmup_rounds")
-        if rounds < 1:
-            log.warning(
-                f"Invalid number rounds {rounds}. Should be a number higher than 1. Defaulting to 1."
-            )
-            self.config.set("benchmarking", "rounds", "1")
-
-        if warmup_rounds < 0:
-            log.warning(
-                f"Invalid number warmup rounds {warmup_rounds}. Should be a number higher than 0. Defaulting to 0."
-            )
-            self.config.set("benchmarking", "warmup_rounds", "0")
+        self.config = sanitize_config(self.config)
 
     def __del__(self):
         """Perun object destructor."""
