@@ -26,6 +26,7 @@ pyrsmi = {version = "^1.0.1", optional = true }
 mpi = ["mpi4py"]
 nvidia = ["nvidia-ml-py"]
 rocm = ["pyrsmi"]
+docs = ["sphinx", "sphinx-autoapi", "sphinx-rtd-theme", "sphinx-autodoc-typehints"]
 
 [tool.poetry.group.dev]
 optional = true

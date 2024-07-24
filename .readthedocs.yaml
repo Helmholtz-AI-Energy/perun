@@ -27,4 +27,6 @@ sphinx:
 python:
    install:
       - method: pip
-        path: "sphinx sphinx-rtd-theme sphinx-autopi sphinx-autodoc-typehints"
+        path: .
+        extra_requirements:
+          - docs
