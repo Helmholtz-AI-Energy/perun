@@ -8,7 +8,13 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 import perun
-from perun.configuration import config, read_custom_config, read_environ, save_to_config
+from perun.configuration import (
+    config,
+    read_custom_config,
+    read_environ,
+    sanitize_config,
+    save_to_config,
+)
 from perun.core import Perun
 from perun.io.io import IOFormat
 from perun.io.text_report import sensors_table
@@ -219,6 +225,8 @@ def cli():
     for key, value in vars(args).items():
         if value:
             save_to_config(key, value)
+
+    sanitize_config(config)
 
     # set logging
     log.setLevel(config.get("debug", "log_lvl"))

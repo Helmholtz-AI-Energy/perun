@@ -75,10 +75,6 @@ def exportTo(
         log.error("Data has not been processed before import. Proceed with caution.")
         raise Exception("DataNode needs to be processed before it can be exported.")
 
-    if not output_path.exists():
-        log.info(f"{output_path} does not exists. So lets make it.")
-        output_path.mkdir(parents=True)
-
     if not mr_id and (
         format == IOFormat.BENCH or format == IOFormat.TEXT or format == IOFormat.CSV
     ):

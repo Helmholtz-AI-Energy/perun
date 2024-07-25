@@ -115,46 +115,78 @@ def sanitize_config(config) -> configparser.ConfigParser:
         Sanitized configuration object.
     """
     # Ensure post processing variables are valid
-    power_overhead = config.getfloat("post-processing", "power_overhead")
-    pue = config.getfloat("post-processing", "pue")
-    emissions_factor = config.getfloat("post-processing", "emissions_factor")
-    price_factor = config.getfloat("post-processing", "price_factor")
-    if power_overhead < 0:
+    try:
+        power_overhead = config.getfloat("post-processing", "power_overhead")
+        if power_overhead < 0:
+            log.warning(
+                f"Invalid power overhead {power_overhead}. Should be a number higher or equal than 0. Defaulting to 0."
+            )
+            config.set("post-processing", "power_overhead", "0")
+    except ValueError:
         log.warning(
-            f"Invalid power overhead {power_overhead}. Should be a number higher or equal than 0. Defaulting to 0."
+            "Invalid power overhead. Should be a number higher or equal than 0. Defaulting to 0."
         )
-        config.set("post-processing", "power_overhead", 0)
-    if pue < 1:
+        config.set("post-processing", "power_overhead", "0")
+
+    try:
+        pue = config.getfloat("post-processing", "pue")
+        if pue < 1:
+            log.warning(
+                f"Invalid PUE {pue}. Should be a number higher or equal than 1. Defaulting to 1."
+            )
+            config.set("post-processing", "pue", "1.0")
+    except ValueError:
         log.warning(
-            f"Invalid PUE {pue}. Should be a number higher or equal than 1. Defaulting to 1."
+            "Invalid PUE. Should be a number higher or equal than 1. Defaulting to 1."
         )
-        config.set("post-processing", "pue", 1.0)
-    if emissions_factor < 0:
+        config.set("post-processing", "pue", "1.0")
+
+    try:
+        emissions_factor = config.getfloat("post-processing", "emissions_factor")
+        if emissions_factor < 0:
+            log.warning(
+                f"Invalid emissions factor {emissions_factor}. Should be a number higher or equal than 0. Defaulting to 417.80 gCO2eq/kWh."
+            )
+            config.set("post-processing", "emissions_factor", "417.80")
+    except ValueError:
         log.warning(
-            f"Invalid emissions factor {emissions_factor}. Should be a number higher or equal than 0. Defaulting to 417.80 gCO2eq/kWh."
+            "Invalid emissions factor. Should be a number higher or equal than 0. Defaulting to 417.80 gCO2eq/kWh."
         )
-        config.set("post-processing", "emissions_factor", 417.80)
-    if price_factor < 0:
+        config.set("post-processing", "emissions_factor", "417.80")
+
+    try:
+        price_factor = config.getfloat("post-processing", "price_factor")
+        if price_factor < 0:
+            log.warning(
+                f"Invalid price factor {price_factor}. Should be a number higher or equal than 0. Defaulting to 0.3251 Currency/kWh."
+            )
+            config.set("post-processing", "price_factor", "0.3251")
+    except ValueError:
         log.warning(
-            f"Invalid price factor {price_factor}. Should be a number higher or equal than 0. Defaulting to 0.3251 Currency/kWh."
+            "Invalid price factor. Should be a number higher or equal than 0. Defaulting to 0.3251 Currency/kWh."
         )
-        config.set("post-processing", "price_factor", 0.3251)
+        config.set("post-processing", "price_factor", "0.3251")
 
     # Ensure that the monitoring options are valid
-    sampling_period = config.getfloat("monitor", "sampling_period")
-
-    if sampling_period < 0.1:
+    try:
+        sampling_period = config.getfloat("monitor", "sampling_period")
+        if sampling_period < 0.1:
+            log.warning(
+                f"Invalid sampling period {sampling_period}. Should be a number higher than 0.1 . Defaulting to 1."
+            )
+            config.set("monitor", "sampling_period", "1")
+    except ValueError:
         log.warning(
-            f"Invalid sampling period {sampling_period}. Should be a number higher than 0.1 . Defaulting to 1."
+            "Invalid sampling period. Should be a number higher than 0.1 . Defaulting to 1."
         )
         config.set("monitor", "sampling_period", "1")
 
+    # Ensure only the include or exclude options are set
     include_backends = config.get("monitor", "include_backends")
     include_sensors = config.get("monitor", "include_sensors")
     exclude_backends = config.get("monitor", "exclude_backends")
     exclude_sensors = config.get("monitor", "exclude_sensors")
 
-    # Ensure only the include or exclude options are set
     if include_backends and exclude_backends:
         log.warning(
             "Both include and exclude backends options are set. Defaulting to exclude only."
@@ -170,29 +202,50 @@ def sanitize_config(config) -> configparser.ConfigParser:
     # Ensure that the output directory exists
     data_out = Path(config.get("output", "data_out"))
     if not data_out.exists():
+        log.warning("Output directory does not exist. Creating it.")
         data_out.mkdir(parents=True)
 
     # Ensure that the output format is valid
-    out_format = IOFormat(config.get("output", "format"))
-    if out_format not in IOFormat:
+    try:
+        format = config.get("output", "format")
+        IOFormat(format)
+    except ValueError:
         log.warning(
-            f"Invalid output format {out_format}. Defaulting to text. Avilable formats: {pp.pformat(IOFormat)}"
+            f"Invalid output format {format}. Defaulting to text. Avilable formats: {pp.pformat([f.value for f in IOFormat])}"
         )
         config.set("output", "format", IOFormat.TEXT.value)
 
     # Ensure that the rounds and warmup rounds are valid
-    rounds = config.getint("benchmarking", "rounds")
-    warmup_rounds = config.getint("benchmarking", "warmup_rounds")
-    if rounds < 1:
+    try:
+        rounds = config.getint("benchmarking", "rounds")
+        if rounds < 1:
+            log.warning(
+                f"Invalid number rounds {rounds}. Should be a number higher than 1. Defaulting to 1."
+            )
+            config.set("benchmarking", "rounds", "1")
+    except ValueError:
         log.warning(
-            f"Invalid number rounds {rounds}. Should be a number higher than 1. Defaulting to 1."
+            "Invalid number rounds. Should be a number higher than 1. Defaulting to 1."
         )
         config.set("benchmarking", "rounds", "1")
 
-    if warmup_rounds < 0:
+    try:
+        warmup_rounds = config.getint("benchmarking", "warmup_rounds")
+        if warmup_rounds < 0:
+            log.warning(
+                f"Invalid number warmup rounds {warmup_rounds}. Should be a number higher than 0. Defaulting to 0."
+            )
+            config.set("benchmarking", "warmup_rounds", "0")
+    except ValueError:
         log.warning(
-            f"Invalid number warmup rounds {warmup_rounds}. Should be a number higher than 0. Defaulting to 0."
+            "Invalid number warmup rounds. Should be a number higher than 0. Defaulting to 0."
         )
         config.set("benchmarking", "warmup_rounds", "0")
+
+    # Ensure that the log_lvl is valid
+    log_lvl = config.get("debug", "log_lvl")
+    if log_lvl not in ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]:
+        log.warning(f"Invalid log level {log_lvl}. Defaulting to WARNING.")
+        config.set("debug", "log_lvl", "WARNING")
 
     return config
