@@ -7,7 +7,6 @@ from perun.comm import Comm
 
 log = logging.getLogger("perun")
 
-
 def getHostRankDict(comm: Comm, hostname: str) -> Dict[str, List[int]]:
     """Return a dictionary with all the host names with each MPI rank in them.
 
@@ -39,8 +38,6 @@ def getHostRankDict(comm: Comm, hostname: str) -> Dict[str, List[int]]:
 def assignSensors(
     host_rank_dict: Dict[str, List[int]],
     g_available_sensors: List[Dict[str, Tuple]],
-    selected_backends: List[str],
-    selected_sensors: List[str],
 ) -> List[Dict[str, Tuple]]:
     """Assings each mpi rank a sensor based on available backends and Host to rank mapping.
 
@@ -48,16 +45,12 @@ def assignSensors(
     ----------
     host_rank_dict : Dict[str, List[int]]
         Host to rank mapping.
-    g_available_sensors : List[Dict[str, Tuple[str]]]
+    g_available_sensors : List[Dict[str, Tuple]]
         List of available sensors for each backend for each rank.
-    selected_backends : List[str]
-        List of selected backends.
-    selected_sensors : List[str]
-        List of selected sensors.
 
     Returns
     -------
-    List[Dict[str, Set[str]]]
+    List[Dict[str, Tuple]]
         List with apointed backend and sensors for each MPI rank.
     """
     g_assigned_sensors: List[Dict[str, Tuple]] = [
@@ -68,21 +61,6 @@ def assignSensors(
         merged_sensors: Dict[str, Tuple] = {}
         for rank in ranks:
             merged_sensors.update(g_available_sensors[rank])
-
-        if len(selected_backends) > 0 and len(selected_sensors) > 0:
-            merged_sensors = {
-                k: v
-                for k, v in merged_sensors.items()
-                if (v[0] in selected_backends) and (k in selected_sensors)
-            }
-        elif len(selected_sensors) > 0:
-            merged_sensors = {
-                k: v for k, v in merged_sensors.items() if k in selected_sensors
-            }
-        elif len(selected_backends) > 0:
-            merged_sensors = {
-                k: v for k, v in merged_sensors.items() if v[0] in selected_backends
-            }
 
         g_assigned_sensors[firstRank] = merged_sensors
     return g_assigned_sensors

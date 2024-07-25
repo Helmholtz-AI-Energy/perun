@@ -144,7 +144,13 @@ def increaseIdCounter(existing: List[str], newId: str) -> str:
     """
     exp = re.compile(r"^" + newId + r"(_\d+)?$")
     count = len(list(filter(lambda x: exp.match(x), existing)))
-    return newId + f"_{count}" if count > 0 else newId
+    if count > 0:
+        if f"{newId}_{count}" in existing:
+            return f"{newId}_{count + 1}"
+        else:
+            return f"{newId}_{count}"
+    else:
+        return newId
 
 
 def filter_sensors(

@@ -21,11 +21,11 @@ def reset_config():
     config.read_dict(_default_config)
 
 
-@pytest.fixture(autouse=True)
-def run_around_tests():
-    reset_config()
-    yield
-    reset_config()
+# @pytest.fixture(autouse=False)
+# def run_around_tests():
+#     reset_config()
+#     yield
+#     reset_config()
 
 
 def test_read_custom_config():
@@ -124,6 +124,7 @@ def test_save_to_config_nonexistent_key():
 def test_read_environ_invalid_value():
     with mock.patch.dict(os.environ, {"PERUN_POWER_OVERHEAD": "invalid"}):
         read_environ()
+        sanitize_config(config)
         # Ensure that the invalid value is not set
         assert config.getfloat("post-processing", "power_overhead") == 0
 

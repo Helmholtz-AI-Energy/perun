@@ -10,33 +10,37 @@ from perun.backend.rocmsmi import ROCMBackend
 from perun.configuration import _default_config
 from perun.core import Perun
 
-
-@pytest.fixture()
-def defaultConfig():
-    defaultConfig = configparser.ConfigParser(allow_no_value=True)
-    defaultConfig.read_dict(_default_config)
-    return defaultConfig
+from hypothesis import settings
+settings.register_profile('no_db', database=None)
+settings.load_profile('no_db')
 
 
-@pytest.fixture(scope="function")
-def perun(defaultConfig):
-    return Perun(defaultConfig)
+# @pytest.fixture()
+# def defaultConfig():
+#     defaultConfig = configparser.ConfigParser(allow_no_value=True)
+#     defaultConfig.read_dict(_default_config)
+#     return defaultConfig
 
 
-@pytest.fixture(scope="function")
-def setup_cleanup():
-    # Setup
-    Perun._instances = {}
-    NVMLBackend._instances = {}
-    PowercapRAPLBackend._instances = {}
-    PSUTILBackend._instances = {}
-    ROCMBackend._instances = {}
+# @pytest.fixture(scope="function")
+# def perun(defaultConfig):
+#     return Perun(defaultConfig)
 
-    yield
-    # Cleanup
 
-    Perun._instances = {}
-    NVMLBackend._instances = {}
-    PowercapRAPLBackend._instances = {}
-    PSUTILBackend._instances = {}
-    ROCMBackend._instances = {}
+# @pytest.fixture(scope="function")
+# def setup_cleanup():
+#     # Setup
+#     Perun._instances = {}
+#     NVMLBackend._instances = {}
+#     PowercapRAPLBackend._instances = {}
+#     PSUTILBackend._instances = {}
+#     ROCMBackend._instances = {}
+
+#     yield
+#     # Cleanup
+
+#     Perun._instances = {}
+#     NVMLBackend._instances = {}
+#     PowercapRAPLBackend._instances = {}
+#     PSUTILBackend._instances = {}
+#     ROCMBackend._instances = {}
