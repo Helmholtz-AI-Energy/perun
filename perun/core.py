@@ -26,7 +26,7 @@ from perun.io.io import IOFormat, exportTo, importFrom
 from perun.monitoring.application import Application
 from perun.monitoring.monitor import MonitorStatus, PerunMonitor
 from perun.processing import processDataNode
-from perun.util import Singleton, getRunId, increaseIdCounter
+from perun.util import Singleton, filter_sensors, getRunId, increaseIdCounter
 
 log = logging.getLogger("perun")
 
@@ -179,9 +179,48 @@ class Perun(metaclass=Singleton):
             Local assigned sensors.
         """
         if not self._g_assigned_sensors:
-            self._g_assigned_sensors = assignSensors(
+            include_backends = (
+                None
+                if self.config.get("monitor", "include_backends") == ""
+                else self.config.get("monitor", "include_backends").split(" ")
+            )
+            include_sensors = (
+                None
+                if self.config.get("monitor", "include_sensors") == ""
+                else self.config.get("monitor", "include_sensors").split(" ")
+            )
+            exclude_backends = (
+                None
+                if self.config.get("monitor", "exclude_backends") == ""
+                else self.config.get("monitor", "exclude_backends").split(" ")
+            )
+            exclude_sensors = (
+                None
+                if self.config.get("monitor", "exclude_sensors") == ""
+                else self.config.get("monitor", "exclude_sensors").split(" ")
+            )
+
+            assigned_sensors = assignSensors(
                 self.host_rank, self.g_available_sensors, [], []
             )
+            log.debug(
+                f"Rank {self.comm.Get_rank()} : Assigned sensors: {pp.pformat(assigned_sensors[self.comm.Get_rank()])}"
+            )
+
+            for rank, sensors_in_rank in enumerate(assigned_sensors):
+                if len(sensors_in_rank.keys()) != 0:
+                    assigned_sensors[rank] = filter_sensors(
+                        sensors_in_rank,
+                        include_sensors,
+                        exclude_sensors,
+                        include_backends,
+                        exclude_backends,
+                    )
+
+            log.debug(
+                f"Rank {self.comm.Get_rank()} : Filtered assigned sensors: {pp.pformat(assigned_sensors[self.comm.Get_rank()])}"
+            )
+            self._g_assigned_sensors = assigned_sensors
         return self._g_assigned_sensors
 
     @property

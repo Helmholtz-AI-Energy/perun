@@ -159,7 +159,7 @@ def sensors_table(sensors: List[Dict[str, Any]], by_rank=True) -> str:
     if not sensors:
         return "No sensor data available."
 
-    result = "Available sensors:\n\n"
+    result = ""
     if by_rank:
         for rank, rank_sensors in enumerate(sensors):
             result += f"RANK {rank}:\n"
