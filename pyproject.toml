@@ -79,7 +79,7 @@ testpaths = ["tests"]
 
 [tool.isort]
 skip = ["perun/__init__.py"]
-known_third_party = ["cpuinfo", "h5py", "mpi4py", "numpy", "pandas", "psutil", "pytest"]
+known_third_party = ["cpuinfo", "h5py", "hypothesis", "mpi4py", "numpy", "pandas", "psutil", "pytest"]
 profile = "black"
 
 [tool.pydocstyle]

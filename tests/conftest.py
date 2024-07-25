@@ -2,6 +2,7 @@
 import configparser
 
 import pytest
+from hypothesis import settings
 
 from perun.backend.nvml import NVMLBackend
 from perun.backend.powercap_rapl import PowercapRAPLBackend
@@ -10,9 +11,8 @@ from perun.backend.rocmsmi import ROCMBackend
 from perun.configuration import _default_config
 from perun.core import Perun
 
-from hypothesis import settings
-settings.register_profile('no_db', database=None)
-settings.load_profile('no_db')
+settings.register_profile("no_db", database=None)
+settings.load_profile("no_db")
 
 
 # @pytest.fixture()

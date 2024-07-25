@@ -7,11 +7,14 @@
 
 
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import given
+from hypothesis import strategies as st
+
 
 # Simple function to add two integers
 def add(x: int, y: int) -> int:
     return x + y
+
 
 # Hypothesis test for the add function
 # @pytest.mark.parametrize("x, y", [(1, 2), (3, 4), (5, 6)])
@@ -19,6 +22,7 @@ def add(x: int, y: int) -> int:
 @given(st.integers(), st.integers())
 def test_add(x, y):
     assert add(x, y) == x + y
+
 
 # @given(
 #     hostnames=st.lists(st.tuples(st.text(), st.integers(min_value=1, max_value=5)), min_size=1),
@@ -40,7 +44,7 @@ def test_add(x, y):
 
 
 #     assert isinstance(hostRankDict_result, dict)
-    
+
 #     assigned_ranks = set()
 #     for key, value in hostRankDict_result.items():
 #         assert isinstance(key, str)
@@ -52,10 +56,10 @@ def test_add(x, y):
 #             assigned_ranks.add(rank)
 #             assert rank < world_size
 #             assert rank >= 0
-    
+
 #     comm.Get_rank.assert_called()
 #     comm.allgather.assert_called()
-    
+
 #     g_available_sensors = [available_sensors for _ in range(world_size)]
 
 #     assignedSensors_result = assignSensors(hostRankDict_result, g_available_sensors)

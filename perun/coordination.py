@@ -7,6 +7,7 @@ from perun.comm import Comm
 
 log = logging.getLogger("perun")
 
+
 def getHostRankDict(comm: Comm, hostname: str) -> Dict[str, List[int]]:
     """Return a dictionary with all the host names with each MPI rank in them.
 
