@@ -21,7 +21,7 @@ conda activate perun-example
 Once your new enviornment is ready, you can install the dependencies for the example.
 
 ```console
-pip install -r requirements.txt
+pip install torch perun[mpi,nvidia]
 ```
 
 This includes **perun** and the scripts dependencies. The the root of the project includes a minimal configuration file example.perun.ini*, with some basic options. More details on the configuration options can be found [in the docs](https://perun.readthedocs.io/en/latest/configuration.html).

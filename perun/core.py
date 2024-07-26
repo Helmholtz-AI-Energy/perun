@@ -9,7 +9,7 @@ import pprint as pp
 from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from perun import __version__
 from perun.backend.backend import Backend
@@ -19,13 +19,14 @@ from perun.backend.psutil import PSUTILBackend
 from perun.backend.rocmsmi import ROCMBackend
 from perun.backend.util import getBackendMetadata, getHostMetadata
 from perun.comm import Comm
-from perun.coordination import getGlobalSensorRankConfiguration, getHostRankDict
+from perun.configuration import sanitize_config
+from perun.coordination import assignSensors, getHostRankDict
 from perun.data_model.data import DataNode, NodeType
 from perun.io.io import IOFormat, exportTo, importFrom
 from perun.monitoring.application import Application
 from perun.monitoring.monitor import MonitorStatus, PerunMonitor
 from perun.processing import processDataNode
-from perun.util import Singleton, getRunId, increaseIdCounter
+from perun.util import Singleton, filter_sensors, getRunId, increaseIdCounter
 
 log = logging.getLogger("perun")
 
@@ -44,15 +45,22 @@ class Perun(metaclass=Singleton):
         self.config = config
         self._comm: Optional[Comm] = None
         self._backends: Optional[Dict[str, Backend]] = None
-        self._sensors_config: Optional[List[Dict[str, Set[str]]]] = None
-        self._l_sensor_config: Optional[Dict[str, Set[str]]] = None
-        self._hostname: Optional[str] = None
+
+        self._g_available_sensors: List[Dict[str, Tuple]] = []
+        self._l_available_sensors: Dict[str, Tuple] = {}
+        self._g_assigned_sensors: List[Dict[str, Tuple]] = []
+        self._l_assigned_sensors: Dict[str, Tuple] = {}
         self._host_rank: Optional[Dict[str, List[int]]] = None
+
+        self._hostname: Optional[str] = None
         self._l_host_metadata: Optional[Dict[str, Any]] = None
         self._l_backend_metadata: Optional[Dict[str, Any]] = None
         self._monitor: Optional[PerunMonitor] = None
         self.postprocess_callbacks: Dict[str, Callable[[DataNode], None]] = {}
+
         self.warmup_round: bool = False
+
+        self.config = sanitize_config(self.config)
 
     def __del__(self):
         """Perun object destructor."""
@@ -136,33 +144,95 @@ class Perun(metaclass=Singleton):
         return self._host_rank
 
     @property
-    def sensors_config(self) -> List[Dict[str, Set[str]]]:
-        """Lazy initialization of global sensor configuration.
+    def l_available_sensors(self) -> Dict[str, Tuple]:
+        """Lazy initialization of local available sensors.
 
         Returns
         -------
-        List[Dict[str, Set[str]]]
-            Global sensor configuration.
+        Dict[str, Tuple[str]]
+            Local available sensor.
         """
-        if not self._sensors_config:
-            self._sensors_config = getGlobalSensorRankConfiguration(
-                self.comm, self.backends, self.host_rank
-            )
-        return self._sensors_config
+        if not self._l_available_sensors:
+            for backend in self.backends.values():
+                self._l_available_sensors.update(backend.availableSensors())
+        return self._l_available_sensors
 
     @property
-    def l_sensors_config(self) -> Dict[str, Set[str]]:
-        """Lazy initialization of local sensor configuration.
+    def g_available_sensors(self) -> List[Dict[str, Tuple]]:
+        """Lazy initialization of global available sensors.
 
         Returns
         -------
-        Dict[str, Set[str]]
-            Local sensor configuration.
+        List[Dict[str, Tuple[str]]]
+            Global available sensor.
         """
-        if not self._l_sensor_config:
-            self._l_sensor_config = self.sensors_config[self.comm.Get_rank()]
+        if not self._g_available_sensors:
+            log.debug(f"Rank {self.comm.Get_rank()} : Gathering available sensors")
+            self._g_available_sensors = self.comm.allgather(self.l_available_sensors)
+        return self._g_available_sensors
 
-        return self._l_sensor_config
+    @property
+    def g_assigned_sensors(self) -> List[Dict[str, Tuple]]:
+        """Lazy initialization of global sensors assignment.
+
+        Returns
+        -------
+        List[Dict[str, Tuple[str]]]
+            Local assigned sensors.
+        """
+        if not self._g_assigned_sensors:
+            include_backends = (
+                None
+                if self.config.get("monitor", "include_backends") == ""
+                else self.config.get("monitor", "include_backends").split(" ")
+            )
+            include_sensors = (
+                None
+                if self.config.get("monitor", "include_sensors") == ""
+                else self.config.get("monitor", "include_sensors").split(" ")
+            )
+            exclude_backends = (
+                None
+                if self.config.get("monitor", "exclude_backends") == ""
+                else self.config.get("monitor", "exclude_backends").split(" ")
+            )
+            exclude_sensors = (
+                None
+                if self.config.get("monitor", "exclude_sensors") == ""
+                else self.config.get("monitor", "exclude_sensors").split(" ")
+            )
+
+            assigned_sensors = assignSensors(self.host_rank, self.g_available_sensors)
+            log.debug(
+                f"Rank {self.comm.Get_rank()} : Assigned sensors: {pp.pformat(assigned_sensors[self.comm.Get_rank()])}"
+            )
+
+            for rank, sensors_in_rank in enumerate(assigned_sensors):
+                if len(sensors_in_rank.keys()) != 0:
+                    assigned_sensors[rank] = filter_sensors(
+                        sensors_in_rank,
+                        include_sensors,
+                        exclude_sensors,
+                        include_backends,
+                        exclude_backends,
+                    )
+
+            log.debug(
+                f"Rank {self.comm.Get_rank()} : Filtered assigned sensors: {pp.pformat(assigned_sensors[self.comm.Get_rank()])}"
+            )
+            self._g_assigned_sensors = assigned_sensors
+        return self._g_assigned_sensors
+
+    @property
+    def l_assigned_sensors(self) -> Dict[str, Tuple]:
+        """Lazy initialization of local assigned sensors.
+
+        Returns
+        -------
+        Dict[str, Tuple[str]]
+            Local assigned sensors.
+        """
+        return self.g_assigned_sensors[self.comm.Get_rank()]
 
     @property
     def l_host_metadata(self) -> Dict[str, Any]:
@@ -188,7 +258,7 @@ class Perun(metaclass=Singleton):
         """
         if not self._l_backend_metadata:
             self._l_backend_metadata = getBackendMetadata(
-                self.backends, self.l_sensors_config
+                self.backends, self.l_assigned_sensors
             )
         return self._l_backend_metadata
 
@@ -233,12 +303,13 @@ class Perun(metaclass=Singleton):
         log.info(f"App: {app_name}, MR_ID: {multirun_id}")
 
         backends = self.backends
-        l_sensors_config = self.l_sensors_config
         self._monitor = PerunMonitor(
-            app, self.comm, backends, l_sensors_config, self.config
+            app, self.comm, backends, self.l_assigned_sensors, self.config
         )
 
-        if self.config.getint("benchmarking", "warmup_rounds"):
+        warmup_rounds = self.config.getint("benchmarking", "warmup_rounds")
+
+        if warmup_rounds > 0:
             log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
             self.warmup_round = True
             for i in range(self.config.getint("benchmarking", "warmup_rounds")):
@@ -250,10 +321,9 @@ class Perun(metaclass=Singleton):
                 ):
                     return
 
-            self.warmup_round = False
-
         log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
         multirun_nodes: Dict[str, DataNode] = {}
+        self.warmup_round = False
         for i in range(self.config.getint("benchmarking", "rounds")):
             status, runNode = self._monitor.run_application(str(i), record=True)
 

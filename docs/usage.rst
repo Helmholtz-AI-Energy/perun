@@ -41,7 +41,7 @@ To modify the peruns behaviour, the subcommand accepts options many configuratio
 
 .. code-block:: console
 
-    $ perun monitor --format json --sampling_rate 5 your_app.py
+    $ perun monitor --format json --sampling_period 5 your_app.py
 
 The options can also be set as environmental variables.
 
@@ -157,22 +157,26 @@ To get a quick overview of which interfaces and information perun has access to,
 .. code-block:: console
 
     $ perun sensors
-    Rank: 0
-    NVIDIA ML:
-        GPU-ffaa4aca-7ecb-f1ad-b36d-a71e094b183b
+    |           Sensor |   Source |          Device |   Unit |
+    |-----------------:|---------:|----------------:|-------:|
+    |       CPU_FREQ_0 |   psutil |  DeviceType.CPU |     Hz |
+    |       CPU_FREQ_1 |   psutil |  DeviceType.CPU |     Hz |
+    |       CPU_FREQ_2 |   psutil |  DeviceType.CPU |     Hz |
+    |       CPU_FREQ_3 |   psutil |  DeviceType.CPU |     Hz |
+    |       CPU_FREQ_4 |   psutil |  DeviceType.CPU |     Hz |
+    |       CPU_FREQ_5 |   psutil |  DeviceType.CPU |     Hz |
+    |       CPU_FREQ_6 |   psutil |  DeviceType.CPU |     Hz |
+    |       CPU_FREQ_7 |   psutil |  DeviceType.CPU |     Hz |
+    |        CPU_USAGE |   psutil |  DeviceType.CPU |      % |
+    |  DISK_READ_BYTES |   psutil | DeviceType.DISK |      B |
+    | DISK_WRITE_BYTES |   psutil | DeviceType.DISK |      B |
+    |   NET_READ_BYTES |   psutil |  DeviceType.NET |      B |
+    |  NET_WRITE_BYTES |   psutil |  DeviceType.NET |      B |
+    |        RAM_USAGE |   psutil |  DeviceType.RAM |      B |
 
-    PSUTIL:
-        NET_WRITE_BYTES
-        CPU_USAGE
-        RAM_USAGE
-        DISK_READ_BYTES
-        NET_READ_BYTES
-        DISK_WRITE_BYTES
+perun will print an overview of all the sensors that are available to perun, including the source of the data, the device type and the unit of the data. This can be useful to check if the sensors you need are available, or to get an overview of the data that perun can collect.
 
-    Hostnames:
-        uc2n520.localdomain: [0]
-
-perun will print an overview of the interfaces and individual "sensors" available on each mpi rank, and to which host node the mpi ranks belong to.
+To print the sensors available in each MPI rank, use the option `--by_rank`. To see which sensors will be used during monitoring based on the current configuration file, use the option `--active`.
 
 
 export
@@ -197,14 +201,19 @@ To get a quick overview of the current configuration that perun is using, use th
 .. code-block:: console
 
    $ perun showconf
-    [post-processing]
-    pue = 1.58
+   [post-processing]
+    power_overhead = 0
+    pue = 1.0
     emissions_factor = 417.8
     price_factor = 0.3251
     price_unit = €
 
     [monitor]
-    sampling_rate = 1
+    sampling_period = 1
+    include_backends =
+    include_sensors =
+    exclude_backends =
+    exclude_sensors =
 
     [output]
     app_name
@@ -215,9 +224,19 @@ To get a quick overview of the current configuration that perun is using, use th
     [benchmarking]
     rounds = 1
     warmup_rounds = 0
+    metrics = runtime,energy
+    region_metrics = runtime,power
+
+    [benchmarking.units]
+    joule = k
+    second =
+    percent =
+    watt =
+    byte = G
 
     [debug]
     log_lvl = WARNING
+
 
 The command will print the current perun configuration in ``.ini`` format, which can be used as a starting point for your own ``.perun.ini`` file.
 

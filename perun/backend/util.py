@@ -2,7 +2,7 @@
 
 import logging
 import platform
-from typing import Any, Dict, Set
+from typing import Any, Dict, Tuple
 
 from perun.backend.backend import Backend
 
@@ -35,7 +35,7 @@ def getHostMetadata() -> Dict[str, Any]:
 
 
 def getBackendMetadata(
-    backends: Dict[str, Backend], backendConfig: Dict[str, Set[str]]
+    backends: Dict[str, Backend], sensors: Dict[str, Tuple[str]]
 ) -> Dict[str, Any]:
     """Get backend related metadata dictionary based on the current sensor configuration.
 
@@ -52,10 +52,9 @@ def getBackendMetadata(
         Backend metadata dictionary.
     """
     backend_metadata: Dict[str, Any] = {}
-    for backend in backends.values():
-        if backend.name in backendConfig:
-            backend_metadata[backend.name] = {}
-            sensors = backend.getSensors(backendConfig[backend.name])
-            for sensor in sensors:
-                backend_metadata[backend.name][sensor.id] = sensor.metadata
+    for _, sensor_md in sensors.items():
+        backend = backends[sensor_md[0]]
+        if backend.name not in backend_metadata:
+            backend_metadata[backend.name] = backend.metadata
+
     return backend_metadata

@@ -21,11 +21,16 @@ tabulate = ">=0.9"
 mpi4py = {version = "^3.1", optional = true }
 nvidia-ml-py = {version = "^12.535.77", optional = true }
 pyrsmi = {version = "^1.0.1", optional = true }
+sphinx = {version = "^7", optional = true }
+sphinx-autoapi = {version = "^3", optional = true }
+sphinx-rtd-theme = {version = "^2", optional = true }
+
 
 [tool.poetry.extras]
 mpi = ["mpi4py"]
 nvidia = ["nvidia-ml-py"]
 rocm = ["pyrsmi"]
+docs = ["sphinx", "sphinx-autoapi", "sphinx-rtd-theme", "sphinx-autodoc-typehints"]
 
 [tool.poetry.group.dev]
 optional = true
@@ -39,14 +44,7 @@ black = "*"
 pre-commit = "*"
 pydocstyle = "*"
 python-semantic-release = "^8.1.1"
-
-[tool.poetry.group.docs]
-optional = true
-
-[tool.poetry.group.docs.dependencies]
-sphinx = "*"
-sphinx-rtd-theme = "*"
-sphinx-autoapi = "*"
+hypothesis = "~6.100"
 
 [tool.poetry.group.mpi]
 optional = true
@@ -81,7 +79,7 @@ testpaths = ["tests"]
 
 [tool.isort]
 skip = ["perun/__init__.py"]
-known_third_party = ["cpuinfo", "h5py", "mpi4py", "numpy", "pandas", "psutil", "pytest"]
+known_third_party = ["cpuinfo", "h5py", "hypothesis", "mpi4py", "numpy", "pandas", "psutil", "pytest"]
 profile = "black"
 
 [tool.pydocstyle]

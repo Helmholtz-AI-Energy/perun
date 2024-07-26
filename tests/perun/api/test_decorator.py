@@ -6,7 +6,7 @@ from pathlib import Path
 import perun
 
 
-def test_perun_cli(tmp_path: Path):
+def test_perun_decorator_cli(tmp_path: Path):
     # Test case for perun decorator
     # Add your test logic here
 
