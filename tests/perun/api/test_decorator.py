@@ -76,7 +76,6 @@ def test_monitor_decorator(tmp_path: Path, setup_cleanup: None):
     # Are the files in the correct folder
     resultFiles = list(results_path.iterdir())
     assert len(resultFiles) == 2
-    print(resultFiles)
     assert results_path / "perun_sleep.hdf5" in resultFiles
     assert (results_path / "perun_sleep.hdf5").is_file()
 
