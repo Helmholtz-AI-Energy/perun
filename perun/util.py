@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Tuple
 
 from perun import config
 
@@ -144,40 +144,116 @@ def increaseIdCounter(existing: List[str], newId: str) -> str:
     """
     exp = re.compile(r"^" + newId + r"(_\d+)?$")
     count = len(list(filter(lambda x: exp.match(x), existing)))
-    return newId + f"_{count}" if count > 0 else newId
+    if count > 0:
+        if f"{newId}_{count}" in existing:
+            return f"{newId}_{count + 1}"
+        else:
+            return f"{newId}_{count}"
+    else:
+        return newId
 
 
-def printableSensorConfiguration(
-    sensors_config: List[Dict[str, Set[str]]], host_rank: Dict[str, List[int]]
-) -> str:
-    """Create string with the available backends and sensors in each node.
+def filter_sensors(
+    sensors: Dict[str, Tuple],
+    include_sensors: Optional[List[str]] = None,
+    exclude_sensors: Optional[List[str]] = None,
+    include_backends: Optional[List[str]] = None,
+    exclude_backends: Optional[List[str]] = None,
+) -> Dict[str, Tuple]:
+    """Filter sensors based on include and exclude lists.
 
     Parameters
     ----------
-    sensors_config : List[Dict[str, Set[str]]]
-        Perun Sensor configuration
-    host_rank : Dict[str, List[int]]
-        Perun Host Rank mapping
+    sensors : Dict[str, Tuple]
+        Dictionary of sensors.
+    include_sensors : Optional[List[str]], optional
+        List of sensors to include, by default None
+    exclude_sensors : Optional[List[str]], optional
+        List of sensors to exclude, by default None
+    include_backends : Optional[List[str]], optional
+        List of backends to include, by default None
+    exclude_backends : Optional[List[str]], optional
+        List of backends to exclude, by default None
 
     Returns
     -------
-    str
-        String to print for the sensors CLI subcommand.
+    Dict[str, Tuple]
+        Filtered dictionary of sensors.
     """
-    configString: str = ""
-    for rank, bes in enumerate(sensors_config):
-        configString += f"Rank: {rank}\n"
-        for key in sorted(bes.keys()):
-            items = bes[key]
-            if len(items) > 0:
-                configString += f"   {key}:\n"
+    # Ensure only include or excluce lists are set
 
-                for device in sorted(items):
-                    configString += f"       {device}\n"
-                configString += "\n"
+    if include_sensors and exclude_sensors:
+        log.warning(
+            "Both include and exclude sensors options are set. Defaulting to exclude only."
+        )
+        include_sensors = None
 
-    configString += "Hostnames:\n"
-    for host, ranks in host_rank.items():
-        configString += f"   {host}: {ranks}\n"
+    if include_backends and exclude_backends:
+        log.warning(
+            "Both include and exclude backends options are set. Defaulting to exclude only."
+        )
+        include_backends = None
 
-    return configString
+    # If all are None, return all sensors
+    if not any([include_sensors, exclude_sensors, include_backends, exclude_backends]):
+        return sensors
+
+    # Ensure exlude and include lists are unique
+    if include_sensors:
+        include_sensors = list(set(include_sensors))
+        log.debug(f"Include sensors: {include_sensors}")
+    if exclude_sensors:
+        exclude_sensors = list(set(exclude_sensors))
+        log.debug(f"Exclude sensors: {exclude_sensors}")
+    if include_backends:
+        include_backends = list(set(include_backends))
+        log.debug(f"Include backends: {include_backends}")
+    if exclude_backends:
+        exclude_backends = list(set(exclude_backends))
+        log.debug(f"Exclude backends: {exclude_backends}")
+
+    # Filter sensors based on include and exclude lists
+    filtered_sensors = {}
+    for sensor_name, sensor in sensors.items():
+        backend = sensor[0]
+
+        if include_backends:
+            if not matchesOneOf(include_backends, backend):
+                continue
+        if exclude_backends:
+            if matchesOneOf(exclude_backends, backend):
+                continue
+        if include_sensors:
+            if not matchesOneOf(include_sensors, sensor_name):
+                continue
+        if exclude_sensors:
+            if matchesOneOf(exclude_sensors, sensor_name):
+                continue
+        filtered_sensors[sensor_name] = sensor
+
+    # If no sensors were matched, log a warning
+    if not filtered_sensors:
+        log.warning("No sensors matched the include and exclude filters.")
+
+    return filtered_sensors
+
+
+def matchesOneOf(patterns: List[str], string: str) -> bool:
+    """Check if a string matches any of the given patterns.
+
+    Parameters
+    ----------
+    patterns : List[str]
+        List of patterns to match against.
+    string : str
+        String to check.
+
+    Returns
+    -------
+    bool
+        True if the string matches any of the patterns, False otherwise.
+    """
+    for pattern in patterns:
+        if re.match(pattern, string):
+            return True
+    return False

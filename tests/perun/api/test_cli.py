@@ -7,7 +7,7 @@ import pytest
 
 from perun.api.cli import _get_arg_parser
 from perun.core import Perun
-from perun.util import printableSensorConfiguration
+from perun.io.text_report import sensors_table
 
 
 def test_no_subcommand():
@@ -16,12 +16,26 @@ def test_no_subcommand():
     assert processOut.stdout == expectedResult
 
 
-def test_sensors_command(perun: Perun):
+@pytest.mark.parametrize(
+    "flag, by_rank",
+    [
+        ([""], False),
+        (["--all"], False),
+        (["--by_rank"], True),
+        (["--active"], True),
+    ],
+)
+def test_sensors_command(flag, by_rank, perun: Perun):
     processOut = subprocess.run(
-        ["perun", "sensors"], capture_output=True, text=True, timeout=10
+        ["perun", "sensors"] + flag, capture_output=True, text=True, timeout=10
     ).stdout.rstrip()
-    expectedResult = printableSensorConfiguration(
-        perun.sensors_config, perun.host_rank
+    expectedResult = sensors_table(
+        (
+            perun.g_available_sensors
+            if flag[0] != "--active"
+            else perun.g_assigned_sensors
+        ),
+        by_rank=by_rank,
     ).rstrip()
     assert processOut == expectedResult
 
@@ -52,7 +66,7 @@ def test_showconf_command_with_conf_file(
 ):
     # 3) Are files read correctly?
     confPath = tmp_path / ".perun.ini"
-    defaultConfig.set("monitor", "sampling_rate", "2")
+    defaultConfig.set("monitor", "sampling_period", "2")
     with open(confPath, "w+") as configFile:
         defaultConfig.write(configFile)
 
@@ -63,7 +77,7 @@ def test_showconf_command_with_conf_file(
     ).stdout
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
-    assert parser.get("monitor", "sampling_rate") == "2"
+    assert parser.get("monitor", "sampling_period") == "2"
     assert parser == defaultConfig
 
 
@@ -72,7 +86,7 @@ def test_showconf_command_with_default(
 ):
     # 4) Does default ignore everything?
     confPath = tmp_path / ".perun.ini"
-    defaultConfig.set("monitor", "sampling_rate", "2")
+    defaultConfig.set("monitor", "sampling_period", "2")
     with open(confPath, "w+") as configFile:
         defaultConfig.write(configFile)
 
@@ -84,13 +98,13 @@ def test_showconf_command_with_default(
     print(processorOut)
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
-    assert defaultConfig.get("monitor", "sampling_rate") == "2"
+    assert defaultConfig.get("monitor", "sampling_period") == "2"
     assert defaultConfig.get("debug", "log_lvl") == "WARNING"
-    assert parser.get("monitor", "sampling_rate") == "2"
+    assert parser.get("monitor", "sampling_period") == "2"
     assert parser.get("debug", "log_lvl") == "ERROR"
     assert parser != defaultConfig
 
-    defaultConfig.set("monitor", "sampling_rate", "1")
+    defaultConfig.set("monitor", "sampling_period", "1")
     processorOut = subprocess.run(
         [
             "perun",
@@ -108,10 +122,10 @@ def test_showconf_command_with_default(
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
 
-    assert defaultConfig.get("monitor", "sampling_rate") == "1"
+    assert defaultConfig.get("monitor", "sampling_period") == "1"
     assert defaultConfig.get("debug", "log_lvl") == "WARNING"
     assert parser.get("debug", "log_lvl") == "WARNING"
-    assert parser.get("monitor", "sampling_rate") == "1"
+    assert parser.get("monitor", "sampling_period") == "1"
     assert parser == defaultConfig
 
 

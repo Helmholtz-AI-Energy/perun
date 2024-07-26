@@ -2,7 +2,7 @@
 
 import logging
 from abc import abstractmethod
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Tuple
 
 from perun.util import Singleton
 
@@ -23,21 +23,39 @@ class Backend(metaclass=Singleton):
         super().__init__()
         self.devices: Dict = {}
         self.setup()
+        self._metadata: Dict = {}
         log.info(f"Initialized {self.name} backend")
 
+    @property
+    def metadata(self) -> Dict:
+        """Return backend metadata."""
+        return self._metadata
+
     @abstractmethod
-    def visibleSensors(self) -> Set[str]:
-        """Get a string id of devices visible by the backend."""
+    def availableSensors(self) -> Dict[str, Tuple]:
+        """Return a dictionary with all available sensors. Each entry contains the backend id and type of sensor.
+
+        Returns
+        -------
+        Dict[Tuple[str]]
+            Dictionary with device ids and measurement unit.
+        """
         pass
 
     @abstractmethod
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
-        """Return device objects based on the provided list of device ids.
+        """
+        Return device objects based on the provided list of device ids.
 
-        :param deviceList: List with wanted device ids
-        :type deviceList: Set[str]
-        :return: List of device objects
-        :rtype: List[Sensor]
+        Parameters
+        ----------
+        deviceList : Set[str]
+            List with wanted device ids
+
+        Returns
+        -------
+        List[Sensor]
+            List of device objects
         """
         pass
 

@@ -5,14 +5,20 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import List
+from typing import Dict, List, Tuple
 
 import perun
-from perun.configuration import config, read_custom_config, read_environ, save_to_config
+from perun.configuration import (
+    config,
+    read_custom_config,
+    read_environ,
+    sanitize_config,
+    save_to_config,
+)
 from perun.core import Perun
 from perun.io.io import IOFormat
+from perun.io.text_report import sensors_table
 from perun.monitoring.application import Application
-from perun.util import printableSensorConfiguration
 
 log = logging.getLogger("perun")
 
@@ -47,6 +53,20 @@ def _get_arg_parser() -> argparse.ArgumentParser:
     # sensors
     sensor_parser = subparsers.add_parser(
         "sensors", help="Print available sensors by host and rank."
+    )
+    sensor_group = sensor_parser.add_mutually_exclusive_group()
+    sensor_group.add_argument(
+        "--all", help="Print all available sensors.", action="store_true"
+    )
+    sensor_group.add_argument(
+        "--by_rank",
+        help="Print sensors by available on each rank.",
+        action="store_true",
+    )
+    sensor_group.add_argument(
+        "--active",
+        help="Print active sensors by rank based on the configuration file.",
+        action="store_true",
     )
     sensor_parser.set_defaults(func=sensors)
 
@@ -105,9 +125,29 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         help="Directory where output files are saved. Defaults to ./perun_results",
     )
     monitor_parser.add_argument(
-        "--sampling_rate",
+        "--sampling_period",
         type=float,
-        help="Sampling rate in seconds. Defaults to 1 second.",
+        help="Sampling period in seconds. Defaults to 1 second.",
+    )
+    monitor_parser.add_argument(
+        "--include_sensors",
+        type=str,
+        help="Comma separated list of sensors to use. Defaults to an empty string (all available sensors). ",
+    )
+    monitor_parser.add_argument(
+        "--include_backends",
+        type=str,
+        help="Comma separated list of measuring backends to use. Defaults to an empty string (all available sensors).",
+    )
+    monitor_parser.add_argument(
+        "--exclude_sensors",
+        type=str,
+        help="Comma separated list of sensors to exclude. Defaults to an empty string (all available sensors).",
+    )
+    monitor_parser.add_argument(
+        "--exclude_backends",
+        type=str,
+        help="Comma separated list of measuring backends to use. Defaults to an empty string (all available sensors).",
     )
     monitor_parser.add_argument(
         "--power_overhead",
@@ -186,6 +226,8 @@ def cli():
         if value:
             save_to_config(key, value)
 
+    sanitize_config(config)
+
     # set logging
     log.setLevel(config.get("debug", "log_lvl"))
 
@@ -206,15 +248,30 @@ def showconf(args: argparse.Namespace):
 
 
 def sensors(args: argparse.Namespace):
-    """Print sensors assigned to each rank by perun."""
+    """Print available sensors."""
     perun = Perun(config)
-    log.debug(f"Rank {perun.comm.Get_rank()}: Sensors initialized perun object")
-    sensor_config = perun.sensors_config
-    host_rank = perun.host_rank
-    log.debug(f"Rank {perun.comm.Get_rank()}: Sensors gather global configuration")
-    if perun.comm.Get_rank() == 0:
-        printableConfig = printableSensorConfiguration(sensor_config, host_rank)
-        print(printableConfig)
+    log.debug("Initialized perun object.")
+    arg_by_rank = args.by_rank
+    arg_active = args.active
+
+    if arg_by_rank:
+        log.debug("Printing sensors by rank.")
+        g_available_sensors = perun.g_available_sensors
+        if perun.comm.Get_rank() == 0:
+            print(sensors_table(g_available_sensors))
+    elif arg_active:
+        log.debug("Printing active sensors by rank.")
+        g_assigned_sensors = perun.g_assigned_sensors
+        if perun.comm.Get_rank() == 0:
+            print(sensors_table(g_assigned_sensors))
+    else:
+        log.debug("Printing all available sensors.")
+        g_available_sensors = perun.g_available_sensors
+        available_sensors: Dict[str, Tuple] = {}
+        for _, sensors in enumerate(g_available_sensors):
+            available_sensors.update(sensors)
+        if perun.comm.Get_rank() == 0:
+            print(sensors_table([available_sensors], by_rank=False))
 
 
 def metadata(args: argparse.Namespace):

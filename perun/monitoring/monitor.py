@@ -8,7 +8,7 @@ from configparser import ConfigParser
 from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as EventClass
 from subprocess import Popen
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from perun.backend.backend import Backend
 from perun.comm import Comm
@@ -70,7 +70,7 @@ class PerunMonitor:
         The application to be monitored.
     _comm : Comm
         The communication object for inter-process communication.
-    _l_sensors_config : Dict[str, Set[str]]
+    _l_sensors_config : Dict[str, Tuple]
         The configuration for local sensors.
     _backends : Dict[str, Backend]
         The backends for data collection.
@@ -85,14 +85,14 @@ class PerunMonitor:
         app: Application,
         comm: Comm,
         backends: Dict[str, Backend],
-        l_sensors_config: Dict[str, Set[str]],
+        l_assigned_sensors: Dict[str, Tuple],
         config: ConfigParser,
     ) -> None:
 
         self._app = app
         self._comm = comm
         self._backends = backends
-        self._l_sensors_config = l_sensors_config
+        self._l_assigned_sensors = l_assigned_sensors
         self._config = config
         self.status = MonitorStatus.SETUP
         self._reset_subprocess_handlers()
@@ -180,9 +180,9 @@ class PerunMonitor:
         self.perunSP = None
 
         # 2) If assigned devices, create subprocess
-        if len(self._l_sensors_config.keys()) > 0:
+        if len(self._l_assigned_sensors.keys()) > 0:
             log.debug(
-                f"Rank {self._comm.Get_rank()} - Local Backendens : {pp.pformat(self._l_sensors_config)}"
+                f"Rank {self._comm.Get_rank()} - Local Backendens : {pp.pformat(self._l_assigned_sensors)}"
             )
             self.queue = Queue()
             self.perunSP = Process(
@@ -191,12 +191,12 @@ class PerunMonitor:
                     self.queue,
                     self._comm.Get_rank(),
                     self._backends,
-                    self._l_sensors_config,
+                    self._l_assigned_sensors,
                     self._config,
                     self.sp_ready_event,
                     self.start_event,
                     self.stop_event,
-                    self._config.getfloat("monitor", "sampling_rate"),
+                    self._config.getfloat("monitor", "sampling_period"),
                 ],
             )
             self.perunSP.start()
@@ -250,12 +250,12 @@ class PerunMonitor:
             t_metadata,
             rawValues,
             lSensors,
-        ) = prepSensors(self._backends, self._l_sensors_config)
+        ) = prepSensors(self._backends, self._l_assigned_sensors)
         log.debug(f"SP: backends -- {self._backends}")
-        log.debug(f"SP: l_sensor_config -- {self._l_sensors_config}")
+        log.debug(f"SP: l_sensor_config -- {self._l_assigned_sensors}")
         log.debug(f"Rank {self._comm.Get_rank()}: perunSP lSensors: {lSensors}")
 
-        sampling_rate = self._config.getfloat("monitor", "sampling_rate")
+        sampling_period = self._config.getfloat("monitor", "sampling_period")
 
         # 2) Start monitoring process
         starttime_ns = time.time_ns()
@@ -268,7 +268,7 @@ class PerunMonitor:
         exitCode = process.poll()
 
         while not isinstance(exitCode, int):
-            time.sleep(sampling_rate)
+            time.sleep(sampling_period)
             timesteps.append(time.time_ns())
             for idx, device in enumerate(lSensors):
                 rawValues[idx].append(device.read())

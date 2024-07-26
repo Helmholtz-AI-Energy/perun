@@ -33,6 +33,7 @@ class Comm:
             log.info(e)
 
     def _mpi_init(self):
+        log.debug("Initializing MPI")
         if not self._MPI.Is_initialized():
             self._MPI.Init()
         self._comm = self._MPI.COMM_WORLD
@@ -40,6 +41,8 @@ class Comm:
         self._size = self._comm.Get_size()
         self._initialized = True
         log.info(f"MPI initialized: rank={self._rank}, size={self._size}")
+        if self._size == 1:
+            log.info("Single node monitoring mode")
 
     def Get_rank(self) -> int:
         """Get local MPI rank.

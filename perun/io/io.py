@@ -76,7 +76,7 @@ def exportTo(
         raise Exception("DataNode needs to be processed before it can be exported.")
 
     if not output_path.exists():
-        log.info(f"{output_path} does not exists. So lets make it.")
+        log.warning("Output directory does not exist. Creating it.")
         output_path.mkdir(parents=True)
 
     if not mr_id and (
