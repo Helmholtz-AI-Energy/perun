@@ -7,8 +7,7 @@ import pytest
 
 from perun.api.cli import _get_arg_parser
 from perun.core import Perun
-
-# from perun.util import printableSensorConfiguration
+from perun.io.text_report import sensors_table
 
 
 def test_no_subcommand():
@@ -17,14 +16,28 @@ def test_no_subcommand():
     assert processOut.stdout == expectedResult
 
 
-# def test_sensors_command(perun: Perun):
-#     processOut = subprocess.run(
-#         ["perun", "sensors"], capture_output=True, text=True, timeout=10
-#     ).stdout.rstrip()
-#     expectedResult = printableSensorConfiguration(
-#         perun.g_available_sensors, perun.host_rank
-#     ).rstrip()
-#     assert processOut == expectedResult
+@pytest.mark.parametrize(
+    "flag, by_rank",
+    [
+        ([""], False),
+        (["--all"], False),
+        (["--by_rank"], True),
+        (["--active"], True),
+    ],
+)
+def test_sensors_command(flag, by_rank, perun: Perun):
+    processOut = subprocess.run(
+        ["perun", "sensors"] + flag, capture_output=True, text=True, timeout=10
+    ).stdout.rstrip()
+    expectedResult = sensors_table(
+        (
+            perun.g_available_sensors
+            if flag[0] != "--active"
+            else perun.g_assigned_sensors
+        ),
+        by_rank=by_rank,
+    ).rstrip()
+    assert processOut == expectedResult
 
 
 def test_showconf_command(defaultConfig: configparser.ConfigParser):

@@ -1,6 +1,5 @@
 import os
 import tempfile
-from pathlib import Path
 from unittest import mock
 
 import pytest
@@ -21,11 +20,11 @@ def reset_config():
     config.read_dict(_default_config)
 
 
-# @pytest.fixture(autouse=False)
-# def run_around_tests():
-#     reset_config()
-#     yield
-#     reset_config()
+@pytest.fixture(autouse=True)
+def run_around_tests():
+    reset_config()
+    yield
+    reset_config()
 
 
 def test_read_custom_config():
@@ -79,9 +78,6 @@ def test_sanitize_config():
     assert sanitized_config.getint("benchmarking", "rounds") == 1
     assert sanitized_config.getint("benchmarking", "warmup_rounds") == 0
     assert sanitized_config.get("debug", "log_lvl") == "WARNING"
-
-    data_out = Path(sanitized_config.get("output", "data_out"))
-    assert data_out.exists()
 
 
 def test_sanitize_config_valid_values():

@@ -58,6 +58,8 @@ class Perun(metaclass=Singleton):
         self._monitor: Optional[PerunMonitor] = None
         self.postprocess_callbacks: Dict[str, Callable[[DataNode], None]] = {}
 
+        self.warmup_round: bool = False
+
         self.config = sanitize_config(self.config)
 
     def __del__(self):
@@ -200,9 +202,7 @@ class Perun(metaclass=Singleton):
                 else self.config.get("monitor", "exclude_sensors").split(" ")
             )
 
-            assigned_sensors = assignSensors(
-                self.host_rank, self.g_available_sensors, [], []
-            )
+            assigned_sensors = assignSensors(self.host_rank, self.g_available_sensors)
             log.debug(
                 f"Rank {self.comm.Get_rank()} : Assigned sensors: {pp.pformat(assigned_sensors[self.comm.Get_rank()])}"
             )
@@ -311,6 +311,7 @@ class Perun(metaclass=Singleton):
 
         if warmup_rounds > 0:
             log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
+            self.warmup_round = True
             for i in range(self.config.getint("benchmarking", "warmup_rounds")):
                 log.info(f"Warmup run: {i}")
                 status, _ = self._monitor.run_application(str(i), record=False)
@@ -322,6 +323,7 @@ class Perun(metaclass=Singleton):
 
         log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
         multirun_nodes: Dict[str, DataNode] = {}
+        self.warmup_round = False
         for i in range(self.config.getint("benchmarking", "rounds")):
             status, runNode = self._monitor.run_application(str(i), record=True)
 

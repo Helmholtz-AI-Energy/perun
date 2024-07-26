@@ -199,12 +199,6 @@ def sanitize_config(config) -> configparser.ConfigParser:
         )
         config.set("monitor", "include_sensors", "")
 
-    # Ensure that the output directory exists
-    data_out = Path(config.get("output", "data_out"))
-    if not data_out.exists():
-        log.warning("Output directory does not exist. Creating it.")
-        data_out.mkdir(parents=True)
-
     # Ensure that the output format is valid
     try:
         format = config.get("output", "format")
