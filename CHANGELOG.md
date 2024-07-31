@@ -1,6 +1,27 @@
 # CHANGELOG
 
 
+## v0.8.0 (2024-07-31)
+
+
+### Build
+
+* build(deps): bump certifi in /examples/torch_mnist (#133) ([`e13fd16`](https://github.com/Helmholtz-AI-Energy/perun/commit/e13fd167c9b64aad25eabf6a12be3886111150d7))
+
+* build(deps): bump urllib3 from 2.0.7 to 2.2.2 in /examples/torch_mnist (#130) ([`028a781`](https://github.com/Helmholtz-AI-Energy/perun/commit/028a781211d887733a59bf1a220e9a2d922f109b))
+
+
+### Ci
+
+* ci: pre-commit autoupdate (#131) ([`dcf277e`](https://github.com/Helmholtz-AI-Energy/perun/commit/dcf277e9c1ec5c67326795b094bf3f2915a0d5a9))
+
+* ci: action version updates ([`9b546e4`](https://github.com/Helmholtz-AI-Energy/perun/commit/9b546e4a188f264882e9c731030d2c719b312e32))
+
+
+### Feature
+
+* feat: include/exclude measurements and precise sampling period (#134) ([`6c1db34`](https://github.com/Helmholtz-AI-Energy/perun/commit/6c1db34d6210e814a7028e2ca581ca3e4d48b5e8))
+
 ## v0.7.0 (2024-06-07)
 
 
@@ -503,3 +524,4 @@
 ### Fix
 
 * fix: semantic-release action ([`90caf3d`](https://github.com/Helmholtz-AI-Energy/perun/commit/90caf3d6817e42c21ad1f9d30a32038fe96c0362))
+
