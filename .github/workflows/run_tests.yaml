@@ -29,4 +29,8 @@ jobs:
         run: |
           poetry run perun
           poetry run perun sensors
-          poetry run pytest
+          poetry run pytest --cov=perun
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v4.0.1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
