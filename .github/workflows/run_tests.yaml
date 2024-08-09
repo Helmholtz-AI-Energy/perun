@@ -29,7 +29,7 @@ jobs:
         run: |
           poetry run perun
           poetry run perun sensors
-          poetry run pytest --cov=perun
+          poetry run pytest --cov=perun --cov-report=xml
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.0.1
         with:
