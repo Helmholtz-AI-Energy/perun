@@ -39,4 +39,4 @@ jobs:
           repository-url: https://test.pypi.org/legacy/
       - name: Create release
         run : |
-          semantic-release publish
+          semantic-release publish --tag ${{ github.ref }}
