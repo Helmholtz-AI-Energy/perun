@@ -4,18 +4,15 @@ on:
   push:
     tags:
       - 'v*.*.*'
-      - 'v*.*.*rc'
+      - 'v*.*.*-rc.*'
 jobs:
-  Test:
-    uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@main
-
-  pypi-publish:
+  Pypi-publish:
       name: Upload release to PyPI
       runs-on: ubuntu-latest
       # Specifying a GitHub environment is optional, but strongly encouraged
       environment: release
       permissions:
-        # IMPORTANT: this permission is mandatory for trusted publishing
+        contents: write
         id-token: write
       steps:
       - uses: actions/checkout@v4
@@ -39,4 +36,12 @@ jobs:
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'rc')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          server: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
+      - name: Extract tag name
+        id: extract_tag
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      - name: Create draft release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create --draft --generate-notes --title ${{ env.TAG_NAME }} --verify-tag ${{ env.TAG_NAME }} ./dist/**
