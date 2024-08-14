@@ -37,6 +37,10 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+      - name: Extract tag name
+        id: extract_tag
+        run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
       - name: Create release
+        # Get the tag name from the ref
         run : |
-          semantic-release publish --tag ${{ github.ref }}
+          semantic-release publish --tag ${{ env.TAG_NAME }}
