@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.8.2-rc.1 (2024-08-14)
+
+
+### Documentation
+
+* docs: cleaner changelog ([`bd4e0c2`](https://github.com/Helmholtz-AI-Energy/perun/commit/bd4e0c2c510d090e62c998ec8f77e27323d5eecf))
+
+
+### Feature
+
+* feat: Coverage badge and PR reports (#141) ([`cfef4ec`](https://github.com/Helmholtz-AI-Energy/perun/commit/cfef4ec0074eb15f99a901264485aa080df043d6))
+
+
 ## v0.8.1 (2024-07-31)
 
 
@@ -407,3 +420,4 @@
 ### Fix
 
 * fix: semantic-release action ([`90caf3d`](https://github.com/Helmholtz-AI-Energy/perun/commit/90caf3d6817e42c21ad1f9d30a32038fe96c0362))
+
