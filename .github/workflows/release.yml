@@ -36,7 +36,7 @@ jobs:
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'rc')
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          server: https://test.pypi.org/legacy/
+          repository-url: https://test.pypi.org/legacy/
       - name: Create release
         run : |
           semantic-release publish
