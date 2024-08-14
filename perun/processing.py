@@ -53,7 +53,6 @@ def processEnergyData(
     magFactor = raw_data.v_md.mag.value / Magnitude.ONE.value
 
     if raw_data.v_md.unit == Unit.JOULE:
-
         # If getting energy, transform to power
         e_J = raw_data.values
         maxValue = raw_data.v_md.max
@@ -90,7 +89,6 @@ def processEnergyData(
         )
 
     elif raw_data.v_md.unit == Unit.WATT:
-
         power_W = raw_data.values.astype("float32") * magFactor
 
     if start and end:
@@ -175,9 +173,9 @@ def processSensorData(sensorData: DataNode) -> DataNode:
 
             elif sensorData.deviceType == DeviceType.OTHER:
                 sensorData.metrics[MetricType.OTHER_ENERGY] = energyMetric.copy()
-                sensorData.metrics[MetricType.OTHER_ENERGY].type = (
+                sensorData.metrics[
                     MetricType.OTHER_ENERGY
-                )
+                ].type = MetricType.OTHER_ENERGY
                 sensorData.metrics[MetricType.OTHER_POWER] = powerMetric.copy()
                 sensorData.metrics[MetricType.OTHER_POWER].type = MetricType.OTHER_POWER
 

@@ -39,7 +39,6 @@ class Singleton(type):
     --------
     >>> class MyClass(metaclass=Singleton):
     ...     pass
-    ...
     >>> my_instance = MyClass()  # Returns the instance of MyClass
     """
 

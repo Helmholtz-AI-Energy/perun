@@ -222,7 +222,9 @@ def _readRawData(group: h5py.Group) -> RawData:
     v_md = _readMetricMetadata(group["values"])  # type: ignore
 
     alt_values = group["alt_values"][:] if "alt_values" in group else None  # type: ignore
-    alt_v_md = _readMetricMetadata(group["alt_values"]) if alt_values is not None else None  # type: ignore
+    alt_v_md = (
+        _readMetricMetadata(group["alt_values"]) if alt_values is not None else None
+    )  # type: ignore
     return RawData(
         timesteps=timesteps,  # type: ignore
         values=values,  # type: ignore

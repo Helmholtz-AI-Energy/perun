@@ -34,7 +34,6 @@ def test_perun_decorator_cli(tmp_path: Path):
 
 
 def test_perun_decorator(tmp_path: Path, setup_cleanup: None):
-
     results_path = tmp_path / "results"
 
     @perun.perun(data_out=str(results_path))
@@ -58,7 +57,6 @@ def test_perun_decorator(tmp_path: Path, setup_cleanup: None):
 
 
 def test_monitor_decorator(tmp_path: Path, setup_cleanup: None):
-
     results_path = tmp_path / "results"
 
     @perun.monitor()

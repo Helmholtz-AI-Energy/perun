@@ -119,7 +119,6 @@ class NVMLBackend(Backend):
         return devices
 
     def _getPowerSensor(self, device_idx: int) -> Sensor:
-
         handle = self.pynvml.nvmlDeviceGetHandleByIndex(device_idx)
         uuid = self.pynvml.nvmlDeviceGetUUID(handle)
         log.debug(f"Index: {device_idx} - UUID : {uuid}")

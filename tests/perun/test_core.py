@@ -5,7 +5,6 @@ from perun.monitoring.application import Application
 
 
 def test_binary_app(tmp_path: Path, perun: Perun):
-
     resultPath = tmp_path / "results"
 
     app = Application("sleep", perun.config, is_binary=True, args=("10",))
