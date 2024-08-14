@@ -88,7 +88,6 @@ class PerunMonitor:
         l_assigned_sensors: Dict[str, Tuple],
         config: ConfigParser,
     ) -> None:
-
         self._app = app
         self._comm = comm
         self._backends = backends
@@ -243,7 +242,6 @@ class PerunMonitor:
         return self.status, self._process_single_run(run_id, starttime_ns)
 
     def _run_binary_app(self, run_id: str) -> Tuple[MonitorStatus, Optional[DataNode]]:
-
         # 1) Prepare sensors
         (
             timesteps,
@@ -292,7 +290,6 @@ class PerunMonitor:
         return MonitorStatus.SUCCESS, runNode
 
     def _handle_failed_run(self) -> Optional[DataNode]:
-
         availableRanks = self._comm.check_available_ranks()
 
         log.error(f"Rank {self._comm.Get_rank()}: Available ranks {availableRanks}")

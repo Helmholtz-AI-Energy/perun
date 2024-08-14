@@ -2,99 +2,41 @@ name: Release
 
 on:
   push:
-    branches:
-      - release
-      - release-test
-
+    tags:
+      - 'v*.*.*'
+      - 'v*.*.*rc'
 jobs:
   Test:
     uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@main
-  VersionAndChangelog:
-    outputs:
-      tag: ${{ steps.semantic-release.outputs.tag }}
-    needs: Test
-    runs-on: ubuntu-latest
-    environment: release
-    concurrency: publish
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.PERSONAL_GH_TOKEN }}
-    - uses: actions/setup-python@v4
-    - name: Install dependencies
-      run: |
-        pip install poetry
-        poetry install --with dev
-    - name: Update version and changelog
-      id: semantic-release
-      run: |
-        poetry run semantic-release version --no-vcs-release --skip-build
-        cat $GITHUB_OUTPUT
-      env:
-        GH_TOKEN: ${{ secrets.PERSONAL_GH_TOKEN }}
-  Release-to-Pypi:
-    runs-on: ubuntu-latest
-    needs: VersionAndChangelog
-    environment: release
-    concurrency: publish
-    permissions:
-      contents: write
-      id-token: write
-    steps:
-    - name: Get new tag
-      run: |
-        echo ${{ needs.VersionAndChangelog.outputs.tag }}
-    - uses: actions/checkout@v4
-      with:
-        ref: ${{ needs.VersionAndChangelog.outputs.tag }}
-    - uses: actions/setup-python@v5
-    - name: Install dependencies
-      run: |
-        pip install poetry
-    - name: Build perun
-      run: |
-        poetry build
-    - name: Store the distribution packages
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-package-distributions
-        path: dist/
-    - name: Publish to Pypi
 
-      if: ${{ !contains(needs.VersionAndChangelog.outputs.tag, 'rc') }}
-      run: |
-        poetry config pypi-token.pypi ${{ secrets.PYPI_TOKEN }}
-        poetry publish
-    - name: Publish to Test Pypi
-      if: ${{ contains(needs.VersionAndChangelog.outputs.tag, 'rc') }}
-      run: |
-        poetry config repositories.testpypi https://test.pypi.org/legacy/
-        poetry config pypi-token.testpypi ${{ secrets.TESTPYPI_TOKEN }}
-        poetry publish --repository testpypi
-  Release-to-GitHub:
-    needs: [Release-to-Pypi, VersionAndChangelog]
-    runs-on: ubuntu-latest
-    environment: release
-    concurrency: publish
-    permissions:
-      contents: write
-      id-token: write
-    steps:
+  pypi-publish:
+      name: Upload release to PyPI
+      runs-on: ubuntu-latest
+      # Specifying a GitHub environment is optional, but strongly encouraged
+      environment: release
+      permissions:
+        # IMPORTANT: this permission is mandatory for trusted publishing
+        id-token: write
+      steps:
       - uses: actions/checkout@v4
+        # Checkout the tag that triggered the workflow
         with:
-          ref: ${{ needs.VersionAndChangelog.outputs.tag }}
-      - name: Download all the dists
-        uses: actions/download-artifact@v4
+          ref: ${{ github.ref }}
+      - uses: actions/setup-python@v4
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
+      - name: Build package
+        run: |
+          python -m build
+      - name: Publish package distributions to PyPI
+        # Only run if the tag is a release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'rc')
+        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Publish package to Test PyPI
+        # Only run if the tag is a release candidate
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'rc')
+        uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          name: python-package-distributions
-          path: dist/
-      - name: Upload artifact signatures to GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          PERUN_VERSION: ${{ needs.VersionAndChangelog.outputs.tag }}
-        run: >-
-          gh release create --draft --generate-notes --title $PERUN_VERSION --verify-tag $PERUN_VERSION ./dist/**
+          server: https://test.pypi.org/legacy/

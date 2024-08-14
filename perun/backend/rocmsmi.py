@@ -92,7 +92,6 @@ class ROCMBackend(Backend):
         return devices
 
     def _getPowerSensor(self, device_idx: int) -> Sensor:
-
         device_id = self.rocml.smi_get_device_id(device_idx)
         log.debug(f"Setting up device {device_id}")
 

@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v4
@@ -23,13 +23,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          pip install poetry
-          poetry install --with dev
+          python -m pip install --upgrade pip
+          pip install -e .[dev]
       - name: Test with pytest and cmdline commands
         run: |
-          poetry run perun
-          poetry run perun sensors
-          poetry run pytest --cov=perun --cov-report=xml
+          perun
+          perun sensors
+          coverage run
+          coverage xml
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4.0.1
         with:
