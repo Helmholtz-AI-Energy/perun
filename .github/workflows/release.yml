@@ -6,7 +6,7 @@ on:
       - 'v*.*.*'
       - 'v*.*.*-rc.*'
 jobs:
-  pypi-publish:
+  Pypi-publish:
       name: Upload release to PyPI
       runs-on: ubuntu-latest
       # Specifying a GitHub environment is optional, but strongly encouraged
@@ -40,7 +40,8 @@ jobs:
       - name: Extract tag name
         id: extract_tag
         run: echo "TAG_NAME=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-      - name: Create release
-        # Get the tag name from the ref
-        run : |
-          semantic-release publish --tag ${{ env.TAG_NAME }}
+      - name: Create draft release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create --draft --generate-notes --title ${{ env.TAG_NAME }} --verify-tag ${{ env.TAG_NAME }} ./dist/**
