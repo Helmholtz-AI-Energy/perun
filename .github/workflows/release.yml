@@ -6,9 +6,6 @@ on:
       - 'v*.*.*'
       - 'v*.*.*-rc.*'
 jobs:
-  Test:
-    uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@main
-
   pypi-publish:
       name: Upload release to PyPI
       runs-on: ubuntu-latest
