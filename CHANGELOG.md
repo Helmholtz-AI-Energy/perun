@@ -1,9 +1,6 @@
 # CHANGELOG
 
 
-## v0.8.3-rc.1 (2024-08-14)
-
-
 ## v0.8.2-rc.1 (2024-08-14)
 
 
@@ -292,14 +289,12 @@
 
 * fix: catching influxdb import error ([`851bfb4`](https://github.com/Helmholtz-AI-Energy/perun/commit/851bfb4a574b8cab91ff08540b3090c3af337efe))
 
-
 ## v0.1.0-beta.15 (2022-09-19)
 
 
 ### Fix
 
 * fix: relaxed dependencies (will tighten them later) ([`6509481`](https://github.com/Helmholtz-AI-Energy/perun/commit/650948170150eee242ae9bc78d1ea6bb1e9285b4))
-
 
 ## v0.1.0-beta.14 (2022-09-19)
 
@@ -308,14 +303,12 @@
 
 * fix: removed RAM_POWER from psutil backend ([`9ef751f`](https://github.com/Helmholtz-AI-Energy/perun/commit/9ef751f3784dcf1b065be79adc950d4bb0f0e22f))
 
-
 ## v0.1.0-beta.13 (2022-09-02)
 
 
 ### Feature
 
 * feat: psutil backend ([`7d3aa61`](https://github.com/Helmholtz-AI-Energy/perun/commit/7d3aa61a4164463bec88343e2efb139464bc30ae))
-
 
 ## v0.1.0-beta.12 (2022-08-30)
 
@@ -324,14 +317,12 @@
 
 * feat: energy conversion to euro and co2e (#17) ([`ee89583`](https://github.com/Helmholtz-AI-Energy/perun/commit/ee8958357298780e285412360c33856a13ee49d5))
 
-
 ## v0.1.0-beta.11 (2022-08-29)
 
 
 ### Feature
 
 * feat: configuration files (#16) ([`1035763`](https://github.com/Helmholtz-AI-Energy/perun/commit/1035763c2e66f2973180bceca52b7c0ef04d6f8b))
-
 
 ## v0.1.0-beta.10 (2022-08-24)
 
@@ -340,14 +331,12 @@
 
 * feat: serial hdf5 support (#15) ([`e9caa69`](https://github.com/Helmholtz-AI-Energy/perun/commit/e9caa69948eec4f6baf98807d7e4bcaf81700e8a))
 
-
 ## v0.1.0-beta.9 (2022-08-23)
 
 
 ### Refactor
 
 * refactor: device uses numpy types and no pyrapl dependency ([`f6ba3e9`](https://github.com/Helmholtz-AI-Energy/perun/commit/f6ba3e92a95cd9e6114008225ff73485349e72c7))
-
 
 ## v0.1.0-beta.8 (2022-08-22)
 
@@ -372,14 +361,12 @@
 
 * docs: expanded usage documentation ([`e2c0c2d`](https://github.com/Helmholtz-AI-Energy/perun/commit/e2c0c2dae77100a68fcab9c875f9c22efce4d149))
 
-
 ## v0.1.0-beta.5 (2022-08-11)
 
 
 ### Fix
 
 * fix: missing report after monitor ([`5234a96`](https://github.com/Helmholtz-AI-Energy/perun/commit/5234a96292de553b57f4aaa82deb90153fe41ffc))
-
 
 ## v0.1.0-beta.4 (2022-08-11)
 
@@ -388,14 +375,12 @@
 
 * docs: updated readme ([`75d10bb`](https://github.com/Helmholtz-AI-Energy/perun/commit/75d10bbbef942695c8505bb5863a71ae523fbe54))
 
-
 ## v0.1.0-beta.3 (2022-08-11)
 
 
 ### Fix
 
 * fix: missing pyyaml dependency ([`3b8e74a`](https://github.com/Helmholtz-AI-Energy/perun/commit/3b8e74a3318bcac43398db3f86cc9be9da75ce5a))
-
 
 ## v0.1.0-beta.2 (2022-08-11)
 
