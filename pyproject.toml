@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "perun"
-version = "0.8.5-rc.1"
+version = "0.8.6-rc.1"
 description = "Measure the energy used by your MPI+Python applications."
 authors = [
     {name = "Gutiérrez Hermosillo Muriedas, Juan Pedro", email="juan.muriedas@kit.edu"}

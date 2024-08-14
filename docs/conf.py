@@ -9,7 +9,7 @@
 project = "perun"
 copyright = "2023, Juan Pedro Gutiérrez Hermosillo Muriedas"
 author = "Juan Pedro Gutiérrez Hermosillo Muriedas"
-release = "0.8.5-rc.1"
+release = "0.8.6-rc.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
