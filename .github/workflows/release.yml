@@ -11,7 +11,6 @@ jobs:
       runs-on: ubuntu-latest
       # Specifying a GitHub environment is optional, but strongly encouraged
       environment: release
-      concurrency: publish
       permissions:
         contents: write
         id-token: write
