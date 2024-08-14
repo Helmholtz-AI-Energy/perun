@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
-      - 'v*.*.*rc'
+      - 'v*.*.*-rc.*'
 jobs:
   Test:
     uses: Helmholtz-AI-Energy/perun/.github/workflows/run_tests.yaml@main
@@ -40,3 +40,6 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           server: https://test.pypi.org/legacy/
+      - name: Create release
+        run : |
+          semantic-release publish
