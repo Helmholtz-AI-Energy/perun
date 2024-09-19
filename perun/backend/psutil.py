@@ -59,9 +59,8 @@ class PSUTILBackend(Backend):
             sensors["DISK_WRITE_BYTES"] = (self.id, DeviceType.DISK, Unit.BYTE)
 
         if psutil.cpu_freq(percpu=True) is not None:
-            for i in range(psutil.cpu_count()):
-                if psutil.cpu_freq(percpu=True)[i].current is not None:
-                    sensors[f"CPU_FREQ_{i}"] = (self.id, DeviceType.CPU, Unit.HZ)
+            for cpu_id, _ in enumerate(psutil.cpu_freq(percpu=True)):
+                sensors[f"CPU_FREQ_{cpu_id}"] = (self.id, DeviceType.CPU, Unit.HZ)
         return sensors
 
     def _getCallback(self, device: str) -> Callable[[], np.number]:
