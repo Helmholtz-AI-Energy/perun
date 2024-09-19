@@ -10,8 +10,7 @@ authors:
     family-names: Gutiérrez Hermosillo Muriedas
     email: juan.muriedas@kit.edu
     affiliation: >-
-      Scientific Computing Center, Karlsruhe Institute für
-      Technologie
+      Scientific Computing Center, Karlsruhe Institute of Technology
     orcid: 'https://orcid.org/0000-0001-8439-7145'
 repository-code: 'https://github.com/Helmholtz-AI-Energy/perun'
 repository: 'https://perun.readthedocs.io/en/latest/?badge=latest'
@@ -28,7 +27,7 @@ preferred-citation:
     - given-names: Juan Pedro
       family-names: Gutiérrez Hermosillo Muriedas
       email: juan.muriedas@kit.edu
-      affiliation: Karlsruhe Institute für Technologie
+      affiliation: Karlsruhe Institute of Technology 
       orcid: 'https://orcid.org/0000-0001-8439-7145'
     - given-names: Katharina
       family-names: Flügel
