@@ -139,3 +139,7 @@ command_line = "-m pytest"
 
 [tool.coverage.report]
 format = "markdown"
+
+[tool.mypy]
+plugins = "numpy.typing.mypy_plugin"
+ignore_missing_imports = false

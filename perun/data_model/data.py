@@ -5,7 +5,7 @@ import enum
 import logging
 import time
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Self
 
 import numpy as np
 
@@ -80,50 +80,6 @@ class MetricType(str, enum.Enum):
         return MetricType(value)
 
 
-class AggregateType(str, enum.Enum):
-    """Types of data aggregation."""
-
-    SUM = "sum"
-    MEAN = "mean"
-    MAX = "max"
-    MIN = "min"
-
-
-@dataclasses.dataclass
-class Metric:
-    """Struct with resulting metrics and the metadata."""
-
-    type: MetricType
-    value: np.number
-    metric_md: MetricMetaData
-    agg: AggregateType
-
-    @classmethod
-    def fromDict(cls, metricDict: Dict):
-        """Create RawData object from a dictionary."""
-        return cls(
-            MetricType(metricDict["type"]),
-            np.float32(metricDict["value"]),
-            MetricMetaData.fromDict(metricDict["metric_md"]),
-            AggregateType(metricDict["agg"]),
-        )
-
-    def copy(self):
-        """Create copy metric object.
-
-        Returns
-        -------
-        _type_
-            Copy of object.
-        """
-        return Metric(
-            MetricType(self.type.value),
-            self.value.copy(),
-            self.metric_md.copy(),
-            AggregateType(self.agg.value),
-        )
-
-
 @dataclasses.dataclass
 class Stats:
     """Collects statistics based on multiple metrics of the same type."""
@@ -137,13 +93,14 @@ class Stats:
     min: np.number
 
     @classmethod
-    def fromMetrics(cls, metrics: List[Metric]):
-        """Create stats object from list of metrics with the same type.
+    def fromStats(cls, stats: List[Self]):
+        """
+        Aggregate a list of stats into a single stats object.
 
         Parameters
         ----------
-        metrics : List[Metric]
-            List of metrics with  the same type.
+        stats : List[stats]
+            List of stats with  the same type.
 
         Returns
         -------
@@ -155,20 +112,18 @@ class Stats:
         Exception
             If metrics are not from the same type.
         """
-        type = metrics[0].type
-        metric_md = metrics[0].metric_md
+        if not all([stats[0].type == stat.type for stat in stats]):
+            log.error("Stats given to Stats class do not match")
+            raise Exception("Stats type don't match. Invalid Stats")
 
-        for m in metrics:
-            if m.type != type:
-                log.error("Metrics given to Stats class do not match")
-                raise Exception("Metrics type don't match. Invalid Stats")
+        type = stats[0].type
+        metric_md = stats[0].metric_md
 
-        values = np.array([metric.value for metric in metrics])
-        sum = values.sum()
-        mean = values.mean()
-        std = values.std()
-        max = values.max()
-        min = values.min()
+        sum = np.sum([stat.sum for stat in stats])
+        mean = np.mean([stat.mean for stat in stats])
+        std = np.std([stat.mean for stat in stats])
+        max = np.max([stat.max for stat in stats])
+        min = np.min([stat.min for stat in stats])
         return cls(type, metric_md, sum, mean, std, max, min)
 
     @property
@@ -195,6 +150,12 @@ class Stats:
             statsDict["std"],
             statsDict["max"],
             statsDict["min"],
+        )
+
+    def copy(self) -> Self:
+        """Copy stats object."""
+        return Stats(
+            self.type, self.metric_md, self.sum, self.mean, self.std, self.max, self.min
         )
 
 
@@ -346,7 +307,7 @@ class DataNode:
         type: NodeType,
         metadata: Dict = {},
         nodes: Optional[Dict[str, Any]] = None,
-        metrics: Optional[Dict[MetricType, Union[Metric, Stats]]] = None,
+        stats: Optional[Dict[MetricType, Stats]] = None,
         deviceType: Optional[DeviceType] = None,
         raw_data: Optional[RawData] = None,
         regions: Optional[Dict[str, Region]] = None,
@@ -376,10 +337,8 @@ class DataNode:
         self.id = id
         self.type = type
         self.metadata: Dict[str, Any] = metadata
-        self.nodes: Dict[str, Any] = nodes if nodes else {}
-        self.metrics: Dict[MetricType, Union[Metric, Stats]] = (
-            metrics if metrics else {}
-        )
+        self.nodes: Dict[str, DataNode] = nodes if nodes else {}
+        self.stats: Dict[MetricType, Stats] = stats if stats else {}
         self.deviceType: Optional[DeviceType] = deviceType
         self.raw_data: Optional[RawData] = raw_data
         self.regions: Optional[Dict[str, Region]] = regions
@@ -417,9 +376,9 @@ class DataNode:
             "id": self.id,
             "type": self.type.value,
             "metadata": self.metadata,
-            "metrics": {
-                type.value: dataclasses.asdict(metric)
-                for type, metric in self.metrics.items()
+            "stats": {
+                type.value: dataclasses.asdict(stat)
+                for type, stat in self.stats.items()
             },
             "regions": (
                 {
@@ -469,16 +428,16 @@ class DataNode:
         if "deviceType" in resultsDict:
             newResults.deviceType = DeviceType(resultsDict["deviceType"])
 
-        if "metrics" in resultsDict:
+        if "stats" in resultsDict:
             if type == NodeType.MULTI_RUN:
-                newResults.metrics = {
-                    MetricType(type): Stats.fromDict(metricDict)
-                    for type, metricDict in resultsDict["metrics"].items()
+                newResults.stats = {
+                    MetricType(type): Stats.fromDict(statDict)
+                    for type, statDict in resultsDict["stats"].items()
                 }
             else:
-                newResults.metrics = {
-                    MetricType(type): Metric.fromDict(metricDict)
-                    for type, metricDict in resultsDict["metrics"].items()
+                newResults.stats = {
+                    MetricType(type): Stats.fromDict(statDict)
+                    for type, statDict in resultsDict["stats"].items()
                 }
         if "raw_data" in resultsDict:
             newResults.raw_data = RawData.fromDict(resultsDict["raw_data"])

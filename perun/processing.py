@@ -10,9 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 
 from perun.data_model.data import (
-    AggregateType,
     DataNode,
-    Metric,
     MetricType,
     NodeType,
     RawData,
@@ -95,7 +93,7 @@ def processEnergyData(
         t_s, power_W = getInterpolatedValues(t_s, power_W, start, end)
 
     avg_power_W = np.mean(power_W)
-    energy_J = np.trapz(power_W, x=t_s)  # type: ignore
+    energy_J = np.trapz(power_W, x=t_s)
     return energy_J, avg_power_W
 
 
@@ -116,16 +114,21 @@ def processSensorData(sensorData: DataNode) -> DataNode:
         rawData = sensorData.raw_data
 
         runtime = rawData.timesteps[-1]
-        sensorData.metrics[MetricType.RUNTIME] = Metric(
-            MetricType.RUNTIME, runtime, rawData.t_md, AggregateType.MAX
+        sensorData.stats[MetricType.RUNTIME] = Stats(
+            MetricType.RUNTIME,
+            rawData.t_md,
+            runtime,
+            runtime,
+            0,
+            runtime,
+            runtime,
         )
 
         if rawData.v_md.unit == Unit.JOULE or rawData.v_md.unit == Unit.WATT:
-            energy_J, power_W = processEnergyData(rawData)
+            energy_J, avg_power_W = processEnergyData(rawData)
 
-            energyMetric = Metric(
+            energyMetric = Stats(
                 MetricType.ENERGY,
-                energy_J,
                 MetricMetaData(
                     Unit.JOULE,
                     Magnitude.ONE,
@@ -134,11 +137,14 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                     np.finfo("float32").max,
                     np.float32(-1),
                 ),
-                AggregateType.SUM,
+                energy_J,
+                energy_J,
+                0,
+                energy_J,
+                energy_J,
             )
-            powerMetric = Metric(
+            powerMetric = Stats(
                 MetricType.POWER,
-                power_W,
                 MetricMetaData(
                     Unit.WATT,
                     Magnitude.ONE,
@@ -147,37 +153,39 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                     np.finfo("float32").max,
                     np.float32(-1),
                 ),
-                AggregateType.SUM,
+                avg_power_W,
+                avg_power_W,
+                np.std(rawData.values),
+                np.max(rawData.values),
+                np.min(rawData.values),
             )
 
-            sensorData.metrics[MetricType.ENERGY] = energyMetric
-            sensorData.metrics[MetricType.POWER] = powerMetric
+            sensorData.stats[MetricType.ENERGY] = energyMetric
+            sensorData.stats[MetricType.POWER] = powerMetric
 
             if sensorData.deviceType == DeviceType.CPU:
-                sensorData.metrics[MetricType.CPU_ENERGY] = energyMetric.copy()
-                sensorData.metrics[MetricType.CPU_ENERGY].type = MetricType.CPU_ENERGY
-                sensorData.metrics[MetricType.CPU_POWER] = powerMetric.copy()
-                sensorData.metrics[MetricType.CPU_POWER].type = MetricType.CPU_POWER
+                sensorData.stats[MetricType.CPU_ENERGY] = energyMetric.copy()
+                sensorData.stats[MetricType.CPU_ENERGY].type = MetricType.CPU_ENERGY
+                sensorData.stats[MetricType.CPU_POWER] = powerMetric.copy()
+                sensorData.stats[MetricType.CPU_POWER].type = MetricType.CPU_POWER
 
             elif sensorData.deviceType == DeviceType.GPU:
-                sensorData.metrics[MetricType.GPU_ENERGY] = energyMetric.copy()
-                sensorData.metrics[MetricType.GPU_ENERGY].type = MetricType.GPU_ENERGY
-                sensorData.metrics[MetricType.GPU_POWER] = powerMetric.copy()
-                sensorData.metrics[MetricType.GPU_POWER].type = MetricType.GPU_POWER
+                sensorData.stats[MetricType.GPU_ENERGY] = energyMetric.copy()
+                sensorData.stats[MetricType.GPU_ENERGY].type = MetricType.GPU_ENERGY
+                sensorData.stats[MetricType.GPU_POWER] = powerMetric.copy()
+                sensorData.stats[MetricType.GPU_POWER].type = MetricType.GPU_POWER
 
             elif sensorData.deviceType == DeviceType.RAM:
-                sensorData.metrics[MetricType.DRAM_ENERGY] = energyMetric.copy()
-                sensorData.metrics[MetricType.DRAM_ENERGY].type = MetricType.DRAM_ENERGY
-                sensorData.metrics[MetricType.DRAM_POWER] = powerMetric.copy()
-                sensorData.metrics[MetricType.DRAM_POWER].type = MetricType.DRAM_POWER
+                sensorData.stats[MetricType.DRAM_ENERGY] = energyMetric.copy()
+                sensorData.stats[MetricType.DRAM_ENERGY].type = MetricType.DRAM_ENERGY
+                sensorData.stats[MetricType.DRAM_POWER] = powerMetric.copy()
+                sensorData.stats[MetricType.DRAM_POWER].type = MetricType.DRAM_POWER
 
             elif sensorData.deviceType == DeviceType.OTHER:
-                sensorData.metrics[MetricType.OTHER_ENERGY] = energyMetric.copy()
-                sensorData.metrics[
-                    MetricType.OTHER_ENERGY
-                ].type = MetricType.OTHER_ENERGY
-                sensorData.metrics[MetricType.OTHER_POWER] = powerMetric.copy()
-                sensorData.metrics[MetricType.OTHER_POWER].type = MetricType.OTHER_POWER
+                sensorData.stats[MetricType.OTHER_ENERGY] = energyMetric.copy()
+                sensorData.stats[MetricType.OTHER_ENERGY].type = MetricType.OTHER_ENERGY
+                sensorData.stats[MetricType.OTHER_POWER] = powerMetric.copy()
+                sensorData.stats[MetricType.OTHER_POWER].type = MetricType.OTHER_POWER
 
         elif rawData.v_md.unit == Unit.PERCENT:
             if sensorData.deviceType == DeviceType.CPU:
@@ -187,11 +195,14 @@ def processSensorData(sensorData: DataNode) -> DataNode:
             else:
                 metricType = MetricType.OTHER_UTIL
 
-            sensorData.metrics[metricType] = Metric(
+            sensorData.stats[metricType] = Stats(
                 metricType,
-                np.mean(rawData.values),
                 rawData.v_md,
-                AggregateType.MEAN,
+                np.mean(rawData.values),
+                np.mean(rawData.values),
+                np.std(rawData.values),
+                np.max(rawData.values),
+                np.min(rawData.values),
             )
         elif rawData.v_md.unit == Unit.BYTE:
             bytes_v = rawData.values
@@ -202,33 +213,33 @@ def processSensorData(sensorData: DataNode) -> DataNode:
                 else:
                     metricType = MetricType.NET_WRITE
 
-                d_bytes = bytes_v[1:] - bytes_v[:-1]
-                result = d_bytes.sum()
-                aggType = AggregateType.SUM
+                result = bytes_v[1:] - bytes_v[:-1]
             elif sensorData.deviceType == DeviceType.DISK:
                 if "READ" in sensorData.id:
                     metricType = MetricType.DISK_READ
                 else:
                     metricType = MetricType.DISK_WRITE
 
-                d_bytes = bytes_v[1:] - bytes_v[:-1]
-                result = d_bytes.sum()
-                aggType = AggregateType.SUM
+                result = bytes_v[1:] - bytes_v[:-1]
             elif sensorData.deviceType == DeviceType.GPU:
                 metricType = MetricType.GPU_MEM
-                result = bytes_v.mean()
-                aggType = AggregateType.SUM
+                result = bytes_v
             elif sensorData.deviceType == DeviceType.RAM:
                 metricType = MetricType.DRAM_MEM
-                result = bytes_v.mean()
-                aggType = AggregateType.SUM
+                result = bytes_v
             else:
                 metricType = MetricType.OTHER_MEM
-                result = bytes_v.mean()
-                aggType = AggregateType.SUM
+                result = bytes_v
 
-            sensorData.metrics[metricType] = Metric(
-                metricType, result.astype(rawData.v_md.dtype), rawData.v_md, aggType
+            result = result.astype(rawData.v_md.dtype)
+            sensorData.stats[metricType] = Stats(
+                metricType,
+                rawData.v_md,
+                np.sum(result),
+                np.mean(result),
+                np.std(result),
+                np.max(result),
+                np.min(result),
             )
 
         sensorData.processed = True
@@ -268,7 +279,7 @@ def processDataNode(
         duration = datetime.now() - start
         log.info(f"Region processing duration: {duration}")
 
-    aggregatedMetrics: Dict[MetricType, List[Metric]] = {}
+    aggregatedStats: Dict[MetricType, List[Stats]] = {}
     for _, subNode in dataNode.nodes.items():
         # Make sure sub nodes have their metrics ready
         if not subNode.processed or force_process:
@@ -279,61 +290,44 @@ def processDataNode(
                     subNode, perunConfig=perunConfig, force_process=force_process
                 )
 
+        # Why did we need a special case for the APP node?
         if dataNode.type == NodeType.APP:
             for subSubNode in subNode.nodes.values():
-                for metricType, metric in subSubNode.metrics.items():
-                    if isinstance(metric, Metric):
-                        if metricType in aggregatedMetrics:
-                            aggregatedMetrics[metricType].append(metric)
-                        else:
-                            aggregatedMetrics[metricType] = [metric]
-
-        else:
-            for metricType, metric in subNode.metrics.items():
-                if isinstance(metric, Metric):
-                    if metricType in aggregatedMetrics:
-                        aggregatedMetrics[metricType].append(metric)
+                for metricType, metric in subSubNode.stats.items():
+                    if metricType in aggregatedStats:
+                        aggregatedStats[metricType].append(metric)
                     else:
-                        aggregatedMetrics[metricType] = [metric]
+                        aggregatedStats[metricType] = [metric]
 
-    for metricType, metrics in aggregatedMetrics.items():
-        aggType = metrics[0].agg
-        metric_md = metrics[0].metric_md
-        if dataNode.type == NodeType.MULTI_RUN or dataNode.type == NodeType.APP:
-            dataNode.metrics[metricType] = Stats.fromMetrics(metrics)
         else:
-            if aggType == AggregateType.MEAN:
-                aggregatedValue = np.array([metric.value for metric in metrics]).mean()
-            elif aggType == AggregateType.MAX:
-                aggregatedValue = np.array([metric.value for metric in metrics]).max()
-            elif aggType == AggregateType.MIN:
-                aggregatedValue = np.array([metric.value for metric in metrics]).min()
-            else:
-                aggregatedValue = np.array([metric.value for metric in metrics]).sum()
+            for metricType, metric in subNode.stats.items():
+                if metricType in aggregatedStats:
+                    aggregatedStats[metricType].append(metric)
+                else:
+                    aggregatedStats[metricType] = [metric]
 
-            dataNode.metrics[metricType] = Metric(
-                metricType, aggregatedValue, metric_md, aggType
-            )
+    for metricType, stats in aggregatedStats.items():
+        dataNode.stats[metricType] = Stats.fromStats(stats)
 
     # Apply power overhead to each computational node if there is power data available.
-    if dataNode.type == NodeType.NODE and MetricType.POWER in dataNode.metrics:
+    if dataNode.type == NodeType.NODE and MetricType.POWER in dataNode.stats:
         power_overhead = perunConfig.getfloat("post-processing", "power_overhead")
-        dataNode.metrics[MetricType.POWER].value += power_overhead  # type: ignore
-        runtime = dataNode.metrics[MetricType.RUNTIME].value
-        dataNode.metrics[MetricType.ENERGY].value += runtime * power_overhead  # type: ignore
+        dataNode.stats[MetricType.POWER].value += power_overhead  # type: ignore
+        runtime = dataNode.stats[MetricType.RUNTIME].max
+        dataNode.stats[MetricType.ENERGY].value += runtime * power_overhead  # type: ignore
 
     # If there is energy data, apply PUE, and convert to currency and CO2 emmisions.
     if dataNode.type == NodeType.RUN and MetricType.ENERGY in dataNode.metrics:
         pue = perunConfig.getfloat("post-processing", "pue")
         emissions_factor = perunConfig.getfloat("post-processing", "emissions_factor")
         price_factor = perunConfig.getfloat("post-processing", "price_factor")
-        total_energy = dataNode.metrics[MetricType.ENERGY].value * pue  # type: ignore
-        dataNode.metrics[MetricType.ENERGY].value = total_energy  # type: ignore
+        total_energy = dataNode.stats[MetricType.ENERGY].value * pue  # type: ignore
+        dataNode.stats[MetricType.ENERGY].value = total_energy  # type: ignore
         e_kWh = total_energy / (3600 * 1e3)
 
-        costMetric = Metric(
+        cost_value = e_kWh * price_factor
+        costMetric = Stats(
             MetricType.MONEY,
-            e_kWh * price_factor,
             MetricMetaData(
                 Unit.SCALAR,
                 Magnitude.ONE,
@@ -342,12 +336,16 @@ def processDataNode(
                 np.finfo("float32").max,
                 np.float32(0),
             ),
-            AggregateType.SUM,
+            cost_value,
+            cost_value,
+            0,
+            cost_value,
+            cost_value,
         )
 
-        co2Emissions = Metric(
+        co2_value = e_kWh * emissions_factor
+        co2Emissions = Stats(
             MetricType.CO2,
-            e_kWh * emissions_factor,
             MetricMetaData(
                 Unit.GRAM,
                 Magnitude.ONE,
@@ -356,10 +354,14 @@ def processDataNode(
                 np.finfo("float32").max,
                 np.float32(0),
             ),
-            AggregateType.SUM,
+            co2_value,
+            co2_value,
+            0,
+            co2_value,
+            co2_value,
         )
-        dataNode.metrics[MetricType.MONEY] = costMetric
-        dataNode.metrics[MetricType.CO2] = co2Emissions
+        dataNode.stats[MetricType.MONEY] = costMetric
+        dataNode.stats[MetricType.CO2] = co2Emissions
 
     dataNode.processed = True
     return dataNode

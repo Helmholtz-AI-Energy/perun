@@ -5,13 +5,13 @@ repos:
       - id: commitizen
         stages: [commit-msg]
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.1 # Use the sha / tag you want to point at
+    rev: v1.11.2 # Use the sha / tag you want to point at
     hooks:
       - id: mypy
-        # additional_dependencies: [types-all]
+        additional_dependencies: [numpy]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.6.0
+    rev: v0.6.5
     hooks:
       # Run the linter.
       - id: ruff
