@@ -1,6 +1,16 @@
 # CHANGELOG
 
 
+## v0.8.8 (2024-10-18)
+
+
+### Fix
+
+* fix: `@perun` decorator returns the last execution result (#147) ([`1647f9d`](https://github.com/helmholtz-ai-energy/perun/commit/1647f9db042c006046881cad6eafe649c963e4b8))
+
+* fix: fixed wrong assumption on number of core freq elements (#145) ([`96803df`](https://github.com/helmholtz-ai-energy/perun/commit/96803df9c118b37aa37da120f631220efbb9b8d0))
+
+
 ## v0.8.7 (2024-08-16)
 
 
