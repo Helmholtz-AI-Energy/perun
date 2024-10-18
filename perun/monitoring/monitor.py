@@ -8,7 +8,7 @@ from configparser import ConfigParser
 from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as EventClass
 from subprocess import Popen
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from perun.backend.backend import Backend
 from perun.comm import Comm
@@ -109,7 +109,7 @@ class PerunMonitor:
         self,
         run_id: str,
         record: bool = True,
-    ) -> Tuple[MonitorStatus, Optional[DataNode]]:
+    ) -> Tuple[MonitorStatus, Optional[DataNode], Any]:
         """
         Run the application and returns the monitor status and data node.
 
@@ -122,8 +122,8 @@ class PerunMonitor:
 
         Returns
         -------
-        Tuple[MonitorStatus, Optional[DataNode]]
-            A tuple containing the monitor status and the data node.
+        Tuple[MonitorStatus, Optional[DataNode], Any]
+            A tuple containing the monitor status and the data node, and the application result.
 
         Raises
         ------
@@ -152,7 +152,7 @@ class PerunMonitor:
         else:
             try:
                 self.status = MonitorStatus.RUNNING
-                self._app.run()
+                result = self._app.run()
                 self.status = MonitorStatus.PROCESSING
             except SystemExit:
                 self.status = MonitorStatus.PROCESSING
@@ -167,9 +167,11 @@ class PerunMonitor:
                 s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
                 log.error(f"Rank {self._comm.Get_rank()}: {s}")
                 log.error(f"Rank {self._comm.Get_rank()}: {r}")
-            return self.status, None
+            return self.status, None, result
 
-    def _run_python_app(self, run_id: str) -> Tuple[MonitorStatus, Optional[DataNode]]:
+    def _run_python_app(
+        self, run_id: str
+    ) -> Tuple[MonitorStatus, Optional[DataNode], Any]:
         # 1) Get sensor configuration
         self.sp_ready_event = Event()
         self.start_event = Event()
@@ -212,7 +214,7 @@ class PerunMonitor:
         starttime_ns = time.time_ns()
         self.status = MonitorStatus.RUNNING
         try:
-            self._app.run()
+            app_result = self._app.run()
         except SystemExit:
             log.info(
                 "The application exited using exit(), quit() or sys.exit(). This is not the recommended way to exit an application, as it complicates the data collection process. Please refactor your code."
@@ -231,7 +233,7 @@ class PerunMonitor:
                 f"Rank {self._comm.Get_rank()}:  Set start and stop event forcefully"
             )
             recoveredNodes = self._handle_failed_run()
-            return self.status, recoveredNodes
+            return self.status, recoveredNodes, None
 
         self.status = MonitorStatus.PROCESSING
         # run_stoptime = datetime.utcnow()
@@ -239,9 +241,11 @@ class PerunMonitor:
         self.stop_event.set()  # type: ignore
 
         # 4) App finished, stop subrocess and get data
-        return self.status, self._process_single_run(run_id, starttime_ns)
+        return self.status, self._process_single_run(run_id, starttime_ns), app_result
 
-    def _run_binary_app(self, run_id: str) -> Tuple[MonitorStatus, Optional[DataNode]]:
+    def _run_binary_app(
+        self, run_id: str
+    ) -> Tuple[MonitorStatus, Optional[DataNode], Any]:
         # 1) Prepare sensors
         (
             timesteps,
@@ -287,7 +291,7 @@ class PerunMonitor:
         runNode = DataNode(id=run_id, type=NodeType.RUN, nodes={hostNode.id: hostNode})
         runNode.addRegionData(globalRegions, starttime_ns)
 
-        return MonitorStatus.SUCCESS, runNode
+        return MonitorStatus.SUCCESS, runNode, None
 
     def _handle_failed_run(self) -> Optional[DataNode]:
         availableRanks = self._comm.check_available_ranks()

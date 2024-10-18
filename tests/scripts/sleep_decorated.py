@@ -1,12 +1,16 @@
+import random
 import time
 
 import perun
 
 
 @perun.perun()
-def sleep():
+def sleep(value):
     time.sleep(10)
+    return value
 
 
 if __name__ == "__main__":
-    sleep()
+    value = random.randint(0, 100)
+    result = sleep(value)
+    assert result == value
