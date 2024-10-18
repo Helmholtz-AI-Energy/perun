@@ -281,13 +281,18 @@ class Perun(metaclass=Singleton):
     def monitor_application(
         self,
         app: Application,
-    ):
+    ) -> Any:
         """Execute coordination, monitoring, post-processing, and reporting steps, in that order.
 
         Parameters
         ----------
         app : Path
             App script file path
+
+        Returns
+        -------
+        Any
+            Last result of the application execution, only when the perun decorator is used.
         """
         log.debug(f"Rank {self.comm.Get_rank()} Backends: {pp.pformat(self.backends)}")
 
@@ -314,7 +319,9 @@ class Perun(metaclass=Singleton):
             self.warmup_round = True
             for i in range(self.config.getint("benchmarking", "warmup_rounds")):
                 log.info(f"Warmup run: {i}")
-                status, _ = self._monitor.run_application(str(i), record=False)
+                status, _, last_result = self._monitor.run_application(
+                    str(i), record=False
+                )
                 if (
                     status == MonitorStatus.FILE_NOT_FOUND
                     or status == MonitorStatus.SCRIPT_ERROR
@@ -325,7 +332,9 @@ class Perun(metaclass=Singleton):
         multirun_nodes: Dict[str, DataNode] = {}
         self.warmup_round = False
         for i in range(self.config.getint("benchmarking", "rounds")):
-            status, runNode = self._monitor.run_application(str(i), record=True)
+            status, runNode, last_result = self._monitor.run_application(
+                str(i), record=True
+            )
 
             if status == MonitorStatus.SCRIPT_ERROR:
                 if runNode is not None:
@@ -356,6 +365,8 @@ class Perun(metaclass=Singleton):
             multirun_node = self._process_multirun(multirun_nodes)
             self._export_multirun(multirun_node)
             self._run_postprocess_callbacks(multirun_node)
+
+        return last_result
 
     def _export_multirun(self, multirun_node: DataNode):
         data_out = Path(self.config.get("output", "data_out"))

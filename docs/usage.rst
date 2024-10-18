@@ -86,6 +86,9 @@ The decorator takes the same options as the monitor command, and can be set usin
 .. caution::
     If the decorated function is run multiple times, perun will behave as if it was run multiple times, initializing everything multiple times. To avoid this overhead, ensure the decorated function is called a single time. If information about a particular function which runs multiple times is needed, check  out the :ref:`monitoring functions` section.
 
+.. caution::
+    If due to configuration options, perun is setup to run for multiple rounds, and the decorated function retuns a value, only the result of the last run will be returned.
+
 
 Application Name and Run ID
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

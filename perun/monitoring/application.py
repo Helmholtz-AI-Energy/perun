@@ -7,7 +7,7 @@ import os
 import subprocess
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Callable, Dict, Union
+from typing import Any, Callable, Dict, Union
 
 log = logging.getLogger("perun")
 
@@ -123,9 +123,9 @@ class Application:
         for i in range(3):
             gc.collect(i)
 
-    def run(self):
+    def run(self) -> Any:
         """
-        Execute the application.
+        Execute the application. If callable, returns the function result.
 
         Raises
         ------
@@ -141,8 +141,9 @@ class Application:
             )
             self._cleanup()
         elif callable(self._app):
-            self._app(*self._args, **self._kwargs)
+            result = self._app(*self._args, **self._kwargs)
             self._cleanup()
+            return result
         else:
             raise ValueError("Application not found")
 
