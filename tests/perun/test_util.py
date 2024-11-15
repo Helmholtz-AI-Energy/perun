@@ -43,6 +43,30 @@ def test_increaseIdCounter_existing_ids_with_suffix():
     assert result == "test_4"
 
 
+def test_increaseIdCounter_existing_ids_with_missing_entries():
+    existing = ["test_1", "test", "test_3", "test_10"]
+    newId = "test"
+    result = increaseIdCounter(existing, newId)
+    assert result == "test_11"
+
+    existing = ["test_10"]
+    newId = "test"
+    result = increaseIdCounter(existing, newId)
+    assert result == "test_11"
+
+
+def test_increaseIdCounter_double_suffix():
+    existing = ["test_1", "test_2", "test_3", "test_3_1", "test_3_2"]
+    newId = "test_2"
+    result = increaseIdCounter(existing, newId)
+    assert result == "test_2_1"
+
+    existing = ["test_1", "test_2", "test_3", "test_3_1", "test_3_2"]
+    newId = "test_3"
+    result = increaseIdCounter(existing, newId)
+    assert result == "test_3_3"
+
+
 def test_filter_sensors_no_filters():
     sensors = {
         "sensor1": ("backend1",),
