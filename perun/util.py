@@ -145,12 +145,10 @@ def increaseIdCounter(existing: List[str], newId: str) -> str:
     matches: List[re.Match] = list(
         filter(lambda m: isinstance(m, re.Match), map(lambda x: exp.match(x), existing))  # type: ignore
     )
-    print(matches)
     if len(matches) > 0:
         existing_idxs = list(
             sorted(map(lambda m: int(m.group(1)[1:]) if m.group(1) else 0, matches))
         )
-        print(existing_idxs)
         highest_idx = existing_idxs[-1]
         return newId + f"_{highest_idx + 1}"
     else:
