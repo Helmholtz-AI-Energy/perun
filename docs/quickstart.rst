@@ -38,7 +38,7 @@ Once your code finishes running, you will find a new directory called ``perun_re
     |         0 | hkn0436.localdomain | 994.847 s | 960.469 kJ | 235.162 W   | 3.239 %    | 701.588 W   | 56.934 GB  | 27.830 W     | 0.061 %    |
     |         0 | All                 | 995.967 s | 1.921 MJ   | 466.981 W   | 3.240 %    | 1.404 kW    | 112.192 GB | 57.145 W     | 0.061 %    |
 
-    The application has been run 7 times. Throught its runtime, it has used 3.128 kWh, released a total of 1.307 kgCO2e into the atmosphere, and you paid 1.02 € in electricity for it.
+    The application has been run 7 times. In total, it has used 3.128 kWh, released a total of 1.307 kgCO2e into the atmosphere, and you paid 1.02 € in electricity for it.
 
 
 .. note::
@@ -46,7 +46,7 @@ Once your code finishes running, you will find a new directory called ``perun_re
     Depending on the hardware you are running and the available interfaces, the output might look different than the one listed here. For more details on the support data sources used by perun, check the :ref:`dependencies` section
 
 
-The the text report summarizes the data gathered throught the application run by individual host, and averaging power consumption of the full runtime. Perun also makes all the raw data gathered from the hardware on an HDF5 file that is located on the same results folder. To explore the data manually, we recommend the Visual Studio Code extension `H5Web <https://marketplace.visualstudio.com/items?itemName=h5web.vscode-h5web>`_, to process it with python using `h5py <https://www.h5py.org/>`_, or to export using the :code:`perun export` subcommand (see :ref:`usage`).
+The text report summarizes the data gathered while the application was running. Perun also makes all the raw data gathered from the hardware on an HDF5 file that is located on the same results folder. To explore the data manually, we recommend the Visual Studio Code extension `H5Web <https://marketplace.visualstudio.com/items?itemName=h5web.vscode-h5web>`_, to process it with python using `h5py <https://www.h5py.org/>`_, or to export using the :code:`perun export` subcommand (see :ref:`usage`).
 
 The hdf5 file collects information over multiple runs of the application, adding a new section every time the application is executed using perun. The simplifies studying the behaviour of the application over time, make the last line in the summary report posible.
 

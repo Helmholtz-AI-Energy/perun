@@ -136,7 +136,7 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
         money = dataNode.metrics[MetricType.MONEY].sum  # type: ignore
         money_icon = mr_node.metadata["post-processing.price_unit"]
 
-        app_summary_str = f"Application Summary\n\nThe application has been run {n_runs} times. Throughout its runtime, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it."
+        app_summary_str = f"Application Summary\n\nThe application has been run {n_runs} times. TIn total, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it."
     else:
         app_summary_str = f"The application has been run {n_runs} times."
 

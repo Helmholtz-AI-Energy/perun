@@ -69,7 +69,7 @@ Monitored Functions
 |         0 | train_epoch |                  5 | 8.980±1.055 s  | 433.082±11.012 W | 0.874±0.007 %  | 2.746±0.148 %      |
 |         0 | test        |                  5 | 1.098±0.003 s  | 274.947±83.746 W | 0.804±0.030 %  | 2.808±0.025 %      |
 
-The application has been run 1 times. Throught its runtime, it has used 0.012 kWh, released a total of 0.005 kgCO2e into the atmosphere, and you paid 0.00 € in electricity for it.
+The application has been run 1 times. Throughout its runtime, it has used 0.012 kWh, released a total of 0.005 kgCO2e into the atmosphere, and you paid 0.00 € in electricity for it.
 ```
 
 The results display data about the functions *train*, *test_epoch* and *test*. Those functions were specialy marked using the ```@monitor()``` decorator.
@@ -135,5 +135,5 @@ Monitored Functions
 |         4 | train_epoch |                  5 | 8.555±0.011 s  | 433.582±12.606 W | 0.899±0.029 %  | 2.820±0.000 %      |
 |         4 | test        |                  5 | 1.118±0.002 s  | 233.367±2.238 W  | 0.818±0.045 %  | 2.820±0.000 %      |
 
-The application has been run 2 times. Throught its runtime, it has used 0.062 kWh, released a total of 0.026 kgCO2e into the atmosphere, and you paid 0.02 € in electricity for it.
+The application has been run 2 times. Throughout its runtime, it has used 0.062 kWh, released a total of 0.026 kgCO2e into the atmosphere, and you paid 0.02 € in electricity for it.
 ```
