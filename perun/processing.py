@@ -589,7 +589,7 @@ def addRunAndRuntimeInfoToRegion(region: Region):
 def getInterpolatedValues(
     t: np.ndarray, x: np.ndarray, start: np.number, end: np.number
 ) -> Tuple[np.ndarray, np.ndarray]:
-    """Filter timeseries with a start and end limit, and interpolate the values at the edges.
+    """Extract a time range out of a time series, and interpolate the values at the edges.
 
     Parameters
     ----------
@@ -598,14 +598,14 @@ def getInterpolatedValues(
     x : np.ndarray
         Original values
     start : np.number
-        Start of the region of interest
+        Start of the roi
     end : np.number
         End of the roi
 
     Returns
     -------
-    np.ndarray
-        ROI values
+    Tuple[np.ndarray, np.ndarray]
+        Tuple with the new time steps and values.
     """
     new_t = np.concatenate([[start], t[np.all([t >= start, t <= end], axis=0)], [end]])
     new_x = np.interp(new_t, t, x)  # type: ignore

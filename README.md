@@ -37,7 +37,7 @@ From PyPI:
 pip install perun
 ```
 
-> Extra dependencies like nvidia-smi, rocm-smi and mpi can be installed through pip as well:
+> Extra dependencies like nvidia-smi, rocm-smi and mpi can be installed using pip as well:
 ```console
 pip install perun[nvidia, rocm, mpi]
 ```
@@ -77,7 +77,7 @@ RUN ID: 2023-08-17T13:29:29.969779
 |         0 | hkn0436.localdomain | 994.847 s | 960.469 kJ | 235.162 W   | 3.239 %    | 701.588 W   | 56.934 GB  | 27.830 W     | 0.061 %    |
 |         0 | All                 | 995.967 s | 1.921 MJ   | 466.981 W   | 3.240 %    | 1.404 kW    | 112.192 GB | 57.145 W     | 0.061 %    |
 
-The application has been run 7 times. Throught its runtime, it has used 3.128 kWh, released a total of 1.307 kgCO2e into the atmosphere, and you paid 1.02 € in electricity for it.
+The application has been run 7 times. In total, it has used 3.128 kWh, released a total of 1.307 kgCO2e into the atmosphere, and you paid 1.02 € in electricity for it.
 ```
 
 Perun will keep track of the energy of your application over multiple runs.

@@ -56,7 +56,7 @@ CPU
 
 Supported backends:
 
- - CPU energy: Powercap RAPL throught `powercap <https://github.com/powercap/powercap>`_ for linux machines, supports recent Intel and AMD CPUs.
+ - CPU energy: Powercap RAPL using `powercap <https://github.com/powercap/powercap>`_ for linux machines, supports recent Intel and AMD CPUs.
  - CPU utilization: `psutil <https://github.com/giampaolo/psutil>`_
 
 Currently, cpu energy readings from perun only support linux environments with read access to the *powercap-rapl* interface, which can only be read by ``root`` on Linux 5.10 and later. If that is the case, please contact you system admin for solutions. We are currently working on alternative methods to provide energy readings.
@@ -66,14 +66,14 @@ GPU
 
 Supported backends:
 
- - NVIDIA GPU power draw: `NVIDIA NVML <https://developer.nvidia.com/nvidia-management-library-nvml>`_ through nvidia-ml-py.
- - AMD GPU power draw: `ROCM SMI <https://github.com/RadeonOpenCompute/pyrsmi>`_ through pyrsmi.
+ - NVIDIA GPU power draw: `NVIDIA NVML <https://developer.nvidia.com/nvidia-management-library-nvml>`_ using nvidia-ml-py.
+ - AMD GPU power draw: `ROCM SMI <https://github.com/RadeonOpenCompute/pyrsmi>`_ using pyrsmi.
 
 DRAM
 ~~~~
 
 Supported backends:
- - DRAM energy: Intel RAPL throught `powercap <https://github.com/powercap/powercap>`_ for linux machines.
+ - DRAM energy: Intel RAPL using `powercap <https://github.com/powercap/powercap>`_ for linux machines.
 
 Misc
 ~~~~
