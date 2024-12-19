@@ -196,6 +196,7 @@ def perunSubprocess(
     sampling_period : float
         Sampling period in seconds
     """
+    log.debug(f"Rank {rank}: Subprocess: Entered perunSubprocess")
     (
         timesteps,
         t_metadata,

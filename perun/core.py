@@ -331,7 +331,10 @@ class Perun(metaclass=Singleton):
         log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
         multirun_nodes: Dict[str, DataNode] = {}
         self.warmup_round = False
-        for i in range(self.config.getint("benchmarking", "rounds")):
+        i = 0
+        rounds = self.config.getint("benchmarking", "rounds")
+        while i < rounds:
+            log.info(f"Rank {self.comm.Get_rank()}: Starting run {i}")
             status, runNode, last_result = self._monitor.run_application(
                 str(i), record=True
             )
@@ -351,14 +354,27 @@ class Perun(metaclass=Singleton):
             elif status == MonitorStatus.FILE_NOT_FOUND:
                 log.error(f"Rank {self.comm.Get_rank()}: App not found")
                 return
+            elif status == MonitorStatus.SP_ERROR:
+                log.error(
+                    f"Rank {self.comm.Get_rank()}: Failed to start run {i}, saving previous runs (if any), and exiting."
+                )
+                self._monitor.status = MonitorStatus.PROCESSING
+                # Ideally this should just retry to run the application again, hopping for the perunSubprocess to work, but this is not working as expected, because of heat's incrementalSVD, so we will just exit out of the loop for now. This should be fixed in the future.
+                # This should still save the data from the previous run, so it should be fine.
+
+                # continue
+                break
 
             if self.comm.Get_rank() == 0 and runNode:
+                log.info(f"Rank {self.comm.Get_rank()}: Processing run {i}")
                 runNode.metadata = {**runNode.metadata, **self.l_host_metadata}
                 for node in runNode.nodes.values():
                     node.metadata["mpi_ranks"] = self.host_rank[node.id]
 
                 runNode = processDataNode(runNode, self.config)
                 multirun_nodes[str(i)] = runNode
+
+            i += 1
 
         # Get app node data if it exists
         if self.comm.Get_rank() == 0 and len(multirun_nodes) > 0:
