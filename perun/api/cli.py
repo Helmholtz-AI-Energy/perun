@@ -324,9 +324,14 @@ def monitor(args: argparse.Namespace):
     log.debug(f"Cmd args: {cmd_args}")
     if not args.binary:
         scriptPath = Path(cmd)
-        assert scriptPath.exists()
-        assert scriptPath.is_file()
-        assert scriptPath.suffix == ".py"
+        try:
+            assert scriptPath.exists()
+            assert scriptPath.is_file()
+            assert scriptPath.suffix == ".py"
+        except AssertionError:
+            log.error(
+                f"Invalid script path. File {scriptPath} does not exist or is not a python script."
+            )
 
         sys.path.insert(0, str(scriptPath.parent.absolute()))
         app = Application(scriptPath, config, args=tuple(sys.argv[1:]))
