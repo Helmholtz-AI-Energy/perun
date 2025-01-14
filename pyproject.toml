@@ -45,7 +45,7 @@ dependencies = [
 [project.optional-dependencies]
 nvidia = ["nvidia-ml-py>=12.535.77"]
 mpi = ["mpi4py>=3.1"]
-rocm = ["pyrsmi>=1.0.1"]
+rocm = ["amdsmi>=6.2.0"]
 docs = [
     "sphinx>=3",
     "sphinx-autoapi>=3",
