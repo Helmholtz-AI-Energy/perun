@@ -1,7 +1,6 @@
 """Defines Intel RAPL related classes."""
 
 import logging
-import os
 import pprint as pp
 import re
 from io import IOBase
@@ -68,104 +67,115 @@ class PowercapRAPLBackend(Backend):
         for child in raplPath.iterdir():
             log.debug(child)
             match = re.match(DIR_RGX, child.name)
+            log.debug(match)
             if match:
-                if os.access(child / "energy_uj", os.R_OK):
-                    socket = match.groups()[0]
-                    with open(child / "name", "r") as file:
-                        device_name = file.readline().strip()
+                energy_path = child / "energy_uj"
+                log.debug(f"Path: {energy_path}")
+                log.debug(f"Exists: {energy_path.exists()}")
+                log.debug(f"Is file: {energy_path.is_file()}")
+                # Change os.access to Path.exists() and Path.is_file(), and open with Path.open(), as it is more secure and reliable according to https://docs.python.org/3/library/os.html#os.access
+                try:
+                    energy_file = open(child / "energy_uj", "r")
+                except Exception as e:
+                    log.debug(f"Error opening file: {child / 'energy_uj'}")
+                    log.debug(e)
+                    continue
+                log.debug(f"Opened file: {energy_file}")
 
-                    log.debug(device_name)
+                socket = match.groups()[0]
+                with open(child / "name", "r") as file:
+                    device_name = file.readline().strip()
 
-                    if "dram" in device_name:
-                        devType = DeviceType.RAM
-                    elif "package" in device_name:
-                        devType = DeviceType.CPU
-                    # Ignoring psys interface until I get more data.
-                    # This paper might have no clue : https://dl.acm.org/doi/10.1145/3177754
-                    # elif "psys" in device_name:
-                    #     devType = DeviceType.CPU
-                    #     foundPsys = True
-                    else:
-                        devType = DeviceType.OTHER
+                log.debug(device_name)
 
-                    if devType != DeviceType.OTHER:
-                        with open(child / "max_energy_range_uj", "r") as file:
-                            line = file.readline().strip()
-                            max_energy = np.uint64(line)
-                        dataType = MetricMetaData(
-                            Unit.JOULE,
-                            Magnitude.MICRO,
-                            np.dtype("uint64"),
-                            np.uint64(0),
-                            max_energy,
-                            max_energy,
-                        )
+                if "dram" in device_name:
+                    devType = DeviceType.RAM
+                elif "package" in device_name:
+                    devType = DeviceType.CPU
+                # Ignoring psys interface until I get more data.
+                # This paper might have no clue : https://dl.acm.org/doi/10.1145/3177754
+                # elif "psys" in device_name:
+                #     devType = DeviceType.CPU
+                #     foundPsys = True
+                else:
+                    devType = DeviceType.OTHER
 
-                        energy_path = str(child / "energy_uj")
-                        energy_file = open(energy_path, "r")
-                        log.debug(f"RAPL FILE OPENED: {energy_path}")
-                        self._files.append(energy_file)
-                        device = Sensor(
-                            f"{devType.value}_{socket}_{device_name}",
-                            devType,
-                            self._metadata,
-                            dataType,
-                            getCallback(energy_file, energy_path),
-                        )
+                if devType != DeviceType.OTHER:
+                    with open(child / "max_energy_range_uj", "r") as file:
+                        line = file.readline().strip()
+                        max_energy = np.uint64(line)
+                    dataType = MetricMetaData(
+                        Unit.JOULE,
+                        Magnitude.MICRO,
+                        np.dtype("uint64"),
+                        np.uint64(0),
+                        max_energy,
+                        max_energy,
+                    )
 
-                        self.devices[device.id] = device
-                        if "package" in device_name:
-                            packageDevices.append(device)
-                            packageFiles.append(energy_file)
+                    log.debug(f"RAPL FILE OPENED: {energy_path}")
+                    self._files.append(energy_file)
+                    device = Sensor(
+                        f"{devType.value}_{socket}_{device_name}",
+                        devType,
+                        self._metadata,
+                        dataType,
+                        getCallback(energy_file, str(energy_path)),
+                    )
 
-                        for grandchild in child.iterdir():
-                            match = re.match(SUBDIR_RGX, grandchild.name)
-                            if match:
-                                with open(grandchild / "name", "r") as file:
-                                    device_name = file.readline().strip()
+                    self.devices[device.id] = device
+                    if "package" in device_name:
+                        packageDevices.append(device)
+                        packageFiles.append(energy_file)
 
-                                if "dram" in device_name:
-                                    devType = DeviceType.RAM
-                                elif "package" in device_name:
-                                    devType = DeviceType.CPU
-                                # elif "psys" in device_name:
-                                #     devType = DeviceType.CPU
-                                #     foundPsys = True
-                                else:
-                                    devType = DeviceType.OTHER
+                    for grandchild in child.iterdir():
+                        match = re.match(SUBDIR_RGX, grandchild.name)
+                        if match:
+                            with open(grandchild / "name", "r") as file:
+                                device_name = file.readline().strip()
 
-                                if devType != DeviceType.OTHER:
-                                    with open(
-                                        grandchild / "max_energy_range_uj", "r"
-                                    ) as file:
-                                        line = file.readline().strip()
-                                        max_energy = np.uint64(line)
+                            if "dram" in device_name:
+                                devType = DeviceType.RAM
+                            elif "package" in device_name:
+                                devType = DeviceType.CPU
+                            # elif "psys" in device_name:
+                            #     devType = DeviceType.CPU
+                            #     foundPsys = True
+                            else:
+                                devType = DeviceType.OTHER
 
-                                    dataType = MetricMetaData(
-                                        Unit.JOULE,
-                                        Magnitude.MICRO,
-                                        np.dtype("uint64"),
-                                        np.uint64(0),
-                                        max_energy,
-                                        max_energy,
-                                    )
+                            if devType != DeviceType.OTHER:
+                                with open(
+                                    grandchild / "max_energy_range_uj", "r"
+                                ) as file:
+                                    line = file.readline().strip()
+                                    max_energy = np.uint64(line)
 
-                                    energy_path = str(grandchild / "energy_uj")
-                                    energy_file = open(energy_path, "r")
-                                    log.debug(f"RAPL FILE OPENED: {energy_path}")
-                                    self._files.append(energy_file)
-                                    device = Sensor(
-                                        f"{devType.value}_{socket}_{device_name}",
-                                        devType,
-                                        self._metadata,
-                                        dataType,
-                                        getCallback(energy_file, energy_path),
-                                    )
-                                    log.debug(device)
-                                    self.devices[device.id] = device
+                                dataType = MetricMetaData(
+                                    Unit.JOULE,
+                                    Magnitude.MICRO,
+                                    np.dtype("uint64"),
+                                    np.uint64(0),
+                                    max_energy,
+                                    max_energy,
+                                )
 
-                                    if "package" in device_name:
-                                        packageDevices.append(device)
+                                energy_path = str(grandchild / "energy_uj")
+                                energy_file = open(energy_path, "r")
+                                log.debug(f"RAPL FILE OPENED: {energy_path}")
+                                self._files.append(energy_file)
+                                device = Sensor(
+                                    f"{devType.value}_{socket}_{device_name}",
+                                    devType,
+                                    self._metadata,
+                                    dataType,
+                                    getCallback(energy_file, energy_path),
+                                )
+                                log.debug(device)
+                                self.devices[device.id] = device
+
+                                if "package" in device_name:
+                                    packageDevices.append(device)
 
         if foundPsys:
             for pkg, file in zip(packageDevices, packageFiles):
