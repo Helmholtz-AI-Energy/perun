@@ -19,23 +19,32 @@ class ROCMBackend(Backend):
     Initialises sensors to get data from AMD GPUs.
     """
 
-    id = "rocm-smi"
+    id = "amdsmi"
     name = "AMD ROCM"
-    description: str = "Access GPU information from rocm-smi python bindings."
+    description: str = "Access GPU information from amd-smi python bindings."
 
     def setup(self):
         """Init rocm object."""
-        self.rocml = importlib.import_module("pyrsmi").rocml
-        self.rocml.smi_initialize()
-        self._metadata = {
-            "rocm_smi_version": self.rocml.smi_get_version(),
-            "rocm_kernel_version": self.rocml.smi_get_kernel_version(),
-            "source": "ROCM SMI",
-        }
+        self.amdsmi = importlib.import_module("amdsmi")
+        try:
+            self.amdsmi.amdsmi_init(self.amdsmi.AmdSmiInitFlags.INIT_AMD_GPUS)
+            self._metadata = {
+                "amdsmi_version": self.amdsmi.amdsmi_get_lib_version(),
+                "source": "AMDSMI",
+            }
+
+            device_handles = self.amdsmi.amdsmi_get_processor_handles()
+            self._uuid_map = {
+                self.amdsmi.amdsmi_get_gpu_device_uuid(handle): handle
+                for handle in device_handles
+            }
+        except self.amdsmi.AmdSmiException as e:
+            log.error("Could not initialize AMD SMI")
+            log.exception(e)
 
     def close(self):
         """Backend cleanup."""
-        self.rocml.smi_shutdown()
+        self.amdsmi.amdsmi_shut_down()
 
     def availableSensors(self) -> Dict[str, Tuple]:
         """Return string ids of visible devices.
@@ -46,21 +55,24 @@ class ROCMBackend(Backend):
             Set with sensor ids.
         """
         devices = {}
-        for i in range(self.rocml.smi_get_device_count()):
-            device_id = self.rocml.smi_get_device_id(i)
+        for i, (uuid, handle) in enumerate(self._uuid_map.items()):
             try:
-                if np.float32(self.rocml.smi_get_device_average_power(device_id)) > 0:
-                    devices[f"ROCM:{i}_POWER"] = (self.id, DeviceType.GPU, Unit.WATT)
-            except self.rocml.RocmSMIError as e:
+                power_info = self.amdsmi.amdsmi_get_power_info(handle)
+                if int(power_info["average_socket_power"]) > 0:
+                    devices[f"ROCM:{uuid}_POWER"] = (self.id, DeviceType.GPU, Unit.WATT)
+            except Exception as e:
                 log.info(e)
-                log.info(f"Could not get power usage for device rocm:{i} {device_id}")
+                log.info(f"Could not get power usage for device rocm:{i} {uuid}")
 
             try:
-                if np.uint64(self.rocml.smi_get_device_memory_total(device_id)) > 0:
-                    devices[f"ROCM:{i}_MEM"] = (self.id, DeviceType.GPU, Unit.BYTE)
-            except self.rocml.RocmSMIError as e:
+                vram_usage = self.amdsmi.amdsmi_get_gpu_memory_usage(
+                    handle, self.amdsmi.AmdSmiMemoryType.VRAM
+                )
+                if vram_usage > 0:
+                    devices[f"ROCM:{uuid}_MEM"] = (self.id, DeviceType.GPU, Unit.BYTE)
+            except Exception as e:
                 log.info(e)
-                log.info(f"Could not get memory usage for device rocm:{i} {device_id}")
+                log.info(f"Could not get memory usage for device rocm:{i} {uuid}")
 
         return devices
 
@@ -77,72 +89,82 @@ class ROCMBackend(Backend):
         List[Sensor]
             List with Sensor objects.
         """
-        self.rocml.smi_initialize()
-
         devices = []
 
         for deviceStr in deviceList:
-            id, measurement_type = deviceStr.split("_")
+            id_type = deviceStr.split(":")[1]
+            id, measurement_type = id_type.split("_")
 
-            device_idx = id[5:]
             if measurement_type == "POWER":
-                devices.append(self._getPowerSensor(int(device_idx)))
+                devices.append(self._getPowerSensor(id))
             elif measurement_type == "MEM":
-                devices.append(self._getMemSensor(int(device_idx)))
+                devices.append(self._getMemSensor(id))
         return devices
 
-    def _getPowerSensor(self, device_idx: int) -> Sensor:
-        device_id = self.rocml.smi_get_device_id(device_idx)
-        log.debug(f"Setting up device {device_id}")
+    def _getPowerSensor(self, d_uuid: str) -> Sensor:
+        d_handle = self._uuid_map[d_uuid]
+        log.debug(f"Setting up device {d_uuid}")
+        board_info = self.amdsmi.amdsmi_get_gpu_board_info(d_handle)
 
-        name = f"{self.rocml.smi_get_device_name(device_id)}_{device_id}"
+        id = f"ROCM:{d_uuid}"
+        name = f"{board_info['product_name']}_{d_uuid}"
         device_type = DeviceType.GPU
         device_metadata = {
-            "uuid": str(self.rocml.smi_get_device_unique_id(device_id)),
-            "name": self.rocml.smi_get_device_name(device_id),
+            "uuid": d_uuid,
+            "name": name,
             **self._metadata,
         }
+
+        power_info = self.amdsmi.amdsmi_get_power_info(d_handle)
 
         data_type = MetricMetaData(
             Unit.WATT,
             Magnitude.ONE,
-            np.dtype("float32"),
-            np.float32(0),
-            np.finfo("float32").max,
+            np.dtype("uint32"),
+            np.uint32(0),
+            np.uint32(int(power_info["power_limit"]) / 10**6),
             np.float32(0),
         )
         return Sensor(
-            name + "_POWER",
+            id + "_POWER",
             device_type,
             device_metadata,
             data_type,
-            self._getPowerCallback(device_id),
+            self._getPowerCallback(d_uuid),
         )
 
-    def _getPowerCallback(self, handle: int) -> Callable[[], np.number]:
+    def _getPowerCallback(self, d_uuid: str) -> Callable[[], np.number]:
+        handle = self._uuid_map[d_uuid]
+
         def func() -> np.number:
             try:
-                return np.float32(self.rocml.smi_get_device_average_power(handle))
-            except self.rocml.RocmSMIError as e:
-                log.warning(f"Could not get power usage for device {handle}")
+                power_info = self.amdsmi.amdsmi_get_power_info(handle)
+                return np.uint32(power_info["average_socket_power"])
+            except Exception as e:
+                log.warning(f"Could not get power usage for device {d_uuid}")
                 log.exception(e)
-                return np.float32(0)
+                return np.uint32(0)
 
         return func
 
-    def _getMemSensor(self, device_idx: int) -> Sensor:
-        device_id = self.rocml.smi_get_device_id(device_idx)
-        log.debug(f"Setting up device {device_id}")
+    def _getMemSensor(self, d_uuid: str) -> Sensor:
+        d_handle = self._uuid_map[d_uuid]
+        log.debug(f"Setting up device {d_uuid}")
+        board_info = self.amdsmi.amdsmi_get_gpu_board_info(d_handle)
 
-        name = f"{self.rocml.smi_get_device_name(device_id)}_{device_id}"
+        id = f"ROCM:{d_uuid}"
+        name = f"{board_info['product_name']}_{d_uuid}"
         device_type = DeviceType.GPU
         device_metadata = {
-            "uuid": str(self.rocml.smi_get_device_unique_id(device_id)),
-            "name": self.rocml.smi_get_device_name(device_id),
+            "uuid": d_uuid,
+            "name": name,
             **self._metadata,
         }
 
-        max_memory = np.uint64(self.rocml.smi_get_device_memory_total(device_id))
+        max_vram = self.amdsmi.amdsmi_get_gpu_memory_total(
+            d_handle, self.amdsmi.AmdSmiMemoryType.VRAM
+        )
+        max_memory = np.uint64(max_vram)
         data_type = MetricMetaData(
             Unit.BYTE,
             Magnitude.ONE,
@@ -152,20 +174,25 @@ class ROCMBackend(Backend):
             np.uint64(0),
         )
         return Sensor(
-            name + "_MEM",
+            id + "_MEM",
             device_type,
             device_metadata,
             data_type,
-            self._getMemCallback(device_id),
+            self._getMemCallback(d_uuid),
         )
 
-    def _getMemCallback(self, handle) -> Callable[[], np.number]:
+    def _getMemCallback(self, d_uuid) -> Callable[[], np.number]:
+        handle = self._uuid_map[d_uuid]
+
         def func() -> np.number:
             try:
-                return np.float32(self.rocml.smi_get_device_memory_used(handle))
-            except self.rocml.RocmSMIError as e:
-                log.warning(f"Could not get memory usage for device {handle}")
+                vram = self.amdsmi.amdsmi_get_gpu_memory_usage(
+                    handle, self.amdsmi.AmdSmiMemoryType.VRAM
+                )
+                return np.uint64(vram)
+            except Exception as e:
+                log.warning(f"Could not get memory usage for device {d_uuid}")
                 log.exception(e)
-                return np.float32(0)
+                return np.uint64(0)
 
         return func
