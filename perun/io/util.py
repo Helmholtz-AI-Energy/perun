@@ -63,7 +63,7 @@ def value2ValueUnitStr(value: np.number, metric_md: MetricMetaData) -> str:
         String represenation
     """
     tfactor, new_mag = getTFactorMag(value, metric_md)
-    return f"{value/tfactor:.3f} {new_mag.symbol}{metric_md.unit.value}"
+    return f"{value / tfactor:.3f} {new_mag.symbol}{metric_md.unit.value}"
 
 
 def value2MeanStdStr(stats: Stats) -> str:
@@ -82,4 +82,4 @@ def value2MeanStdStr(stats: Stats) -> str:
         String represenation
     """
     tfactor, new_mag = getTFactorMag(stats.mean, stats.metric_md)
-    return f"{stats.mean/tfactor:.2f} ± {stats.std/tfactor:.2f} {new_mag.symbol}{stats.metric_md.unit.value}"
+    return f"{stats.mean / tfactor:.2f} ± {stats.std / tfactor:.2f} {new_mag.symbol}{stats.metric_md.unit.value}"
