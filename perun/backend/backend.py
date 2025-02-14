@@ -26,6 +26,11 @@ class Backend(metaclass=Singleton):
         self._metadata: Dict = {}
         log.info(f"Initialized {self.name} backend")
 
+    def __del__(self):
+        """Backend cleanup method."""
+        log.debug("Deleting backend.")
+        self.close()
+
     @property
     def metadata(self) -> Dict:
         """Return backend metadata."""

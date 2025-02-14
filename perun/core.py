@@ -9,15 +9,15 @@ import pprint as pp
 from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from perun import __version__
-from perun.backend.backend import Backend
-from perun.backend.nvml import NVMLBackend
-from perun.backend.powercap_rapl import PowercapRAPLBackend
-from perun.backend.psutil import PSUTILBackend
-from perun.backend.rocmsmi import ROCMBackend
-from perun.backend.util import getBackendMetadata, getHostMetadata
+from perun.backend import (
+    Backend,
+    available_backends,
+    getBackendMetadata,
+    getHostMetadata,
+)
 from perun.comm import Comm
 from perun.configuration import sanitize_config
 from perun.coordination import assignSensors, getHostRankDict
@@ -104,15 +104,9 @@ class Perun(metaclass=Singleton):
         """
         if not self._backends:
             self._backends = {}
-            classList: Dict[str, Type[Backend]] = {
-                "PowercapRAPL": PowercapRAPLBackend,
-                "NVML": NVMLBackend,
-                "PSUTIL": PSUTILBackend,
-                "ROCM": ROCMBackend,
-            }
-            for name, backend in classList.items():
+            for name, backend_class in available_backends.items():
                 try:
-                    backend_instance = backend()
+                    backend_instance = backend_class()
                     self._backends[backend_instance.id] = backend_instance
                 except ImportError as ie:
                     log.info(f"Missing dependencies for backend {name}")

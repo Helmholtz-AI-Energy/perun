@@ -9,7 +9,7 @@ from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 
-from perun.backend.backend import Backend
+from perun.backend import Backend, available_backends
 from perun.data_model.data import DataNode, NodeType, RawData
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType, Sensor
@@ -78,6 +78,7 @@ def _monitoringLoop(
 
     delta = (time.time_ns() - timesteps[-1]) * 1e-9
     while not stopCondition(delta):
+        log.debug("Loop")
         timesteps.append(time.time_ns())
         for idx, device in enumerate(lSensors):
             rawValues[idx].append(device.read())
@@ -167,7 +168,6 @@ def createNode(
 def perunSubprocess(
     queue: Queue,
     rank: int,
-    backends: Dict[str, Backend],
     l_assigned_sensors: Dict[str, Tuple],
     perunConfig: ConfigParser,
     sp_ready_event,
@@ -197,6 +197,18 @@ def perunSubprocess(
         Sampling period in seconds
     """
     log.debug(f"Rank {rank}: Subprocess: Entered perunSubprocess")
+    backends: Dict[str, Backend] = {}
+    for name, backend_class in available_backends.items():
+        try:
+            backend_instance = backend_class()
+            backends[backend_instance.id] = backend_instance
+        except ImportError as ie:
+            log.info(f"Missing dependencies for backend {name}")
+            log.info(ie)
+        except Exception as e:
+            log.info(f"Unknown error loading dependecy {name}")
+            log.info(e)
+    log.debug("Initialized backends.")
     (
         timesteps,
         t_metadata,
@@ -227,4 +239,8 @@ def perunSubprocess(
     # This should send a single processed node for the current computational node
     queue.put(hostNode, block=True)
     log.info(f"Rank {rank}: Subprocess: Sent data")
+    # Close backends
+    for backend in backends:
+        log.debug(f"Closing backend {backend}")
+        del backend
     return hostNode

@@ -96,6 +96,7 @@ class PerunMonitor:
         self._l_assigned_sensors = l_assigned_sensors
         self._config = config
         self.status = MonitorStatus.SETUP
+        multiprocessing.set_start_method("spawn")
         self._reset_subprocess_handlers()
 
     def _reset_subprocess_handlers(self) -> None:
@@ -197,7 +198,6 @@ class PerunMonitor:
                 args=[
                     self.queue,
                     self._comm.Get_rank(),
-                    self._backends,
                     self._l_assigned_sensors,
                     self._config,
                     self.sp_ready_event,
