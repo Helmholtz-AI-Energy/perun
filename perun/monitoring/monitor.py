@@ -49,7 +49,7 @@ class MonitorStatus(enum.Enum):
     SUCCESS = enum.auto()
 
 
-PERUN_MP_START_METHOD = "spawn"
+PERUN_MP_START_METHOD: str = "spawn"
 
 
 class PerunMonitor:
@@ -100,8 +100,13 @@ class PerunMonitor:
         self._config = config
         self.status = MonitorStatus.SETUP
 
+        log.debug(f"MP Start methods: {multiprocessing.get_start_method()}")
         if multiprocessing.get_start_method() != PERUN_MP_START_METHOD:
-            multiprocessing.set_start_method(PERUN_MP_START_METHOD)
+            try:
+                multiprocessing.set_start_method(PERUN_MP_START_METHOD)
+            except Exception as e:
+                log.warning(e)
+
         self._reset_subprocess_handlers()
 
     def _reset_subprocess_handlers(self) -> None:
