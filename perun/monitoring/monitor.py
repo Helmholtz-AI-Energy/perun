@@ -105,6 +105,7 @@ class PerunMonitor:
             try:
                 multiprocessing.set_start_method(PERUN_MP_START_METHOD)
             except Exception as e:
+                print(e)
                 log.warning(e)
 
         self._reset_subprocess_handlers()
