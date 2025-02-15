@@ -20,7 +20,7 @@ log = logging.getLogger("perun")
 
 def prepSensors(
     backends: Dict[str, Backend], l_assigned_sensors: Dict[str, Tuple]
-) -> Tuple[List[int], MetricMetaData, List[List[np.number]], List[Sensor]]:
+) -> Tuple[MetricMetaData, List[Sensor]]:
     """
     Prepare sensors for monitoring.
 
@@ -50,7 +50,6 @@ def prepSensors(
         if len(sensor_ids) > 0:
             lSensors += backend.getSensors(sensor_ids)
 
-    timesteps: List[int] = []
     t_metadata = MetricMetaData(
         Unit.SECOND,
         Magnitude.ONE,
@@ -59,11 +58,8 @@ def prepSensors(
         np.finfo("float32").max,
         np.float32(-1),
     )
-    rawValues: List[List[np.number]] = []
-    for _ in lSensors:
-        rawValues.append([])
 
-    return timesteps, t_metadata, rawValues, lSensors
+    return t_metadata, lSensors
 
 
 def _monitoringLoop(
@@ -78,7 +74,6 @@ def _monitoringLoop(
 
     delta = (time.time_ns() - timesteps[-1]) * 1e-9
     while not stopCondition(delta):
-        log.debug("Loop")
         timesteps.append(time.time_ns())
         for idx, device in enumerate(lSensors):
             rawValues[idx].append(device.read())
@@ -173,6 +168,7 @@ def perunSubprocess(
     sp_ready_event,
     start_event,
     stop_event,
+    close_event,
     sampling_period: float,
 ):
     """Parallel function that samples energy values from hardware libraries.
@@ -210,37 +206,59 @@ def perunSubprocess(
             log.info(e)
     log.debug("Initialized backends.")
     (
-        timesteps,
         t_metadata,
-        rawValues,
         lSensors,
     ) = prepSensors(backends, l_assigned_sensors)
+
+    # Reset
+    timesteps: List[int] = []
+    rawValues: List[List[np.number]] = []
+    for _ in lSensors:
+        rawValues.append([])
     log.debug(f"SP: backends -- {backends}")
     log.debug(f"SP: l_sensor_config -- {l_assigned_sensors}")
     log.debug(f"Rank {rank}: perunSP lSensors: {lSensors}")
 
     # Monitoring process ready
+    monitoring = True
     sp_ready_event.set()
 
-    # Waiting for main process to send the signal
-    start_event.wait()
-    _monitoringLoop(
-        lSensors,
-        timesteps,
-        rawValues,
-        lambda delta: stop_event.wait(sampling_period - delta),
-    )
+    while monitoring:
+        if start_event.is_set():
+            start_event.clear()
+            _monitoringLoop(
+                lSensors,
+                timesteps,
+                rawValues,
+                lambda delta: stop_event.wait(sampling_period - delta),
+            )
+            stop_event.clear()
 
-    log.info(f"Rank {rank}: Subprocess: Stop event received.")
-    hostNode = createNode(timesteps, t_metadata, rawValues, lSensors, perunConfig)
+            log.info(f"Rank {rank}: Subprocess: Stop event received.")
+            hostNode = createNode(
+                timesteps, t_metadata, rawValues, lSensors, perunConfig
+            )
 
-    processDataNode(hostNode, perunConfig)
+            processDataNode(hostNode, perunConfig)
 
-    # This should send a single processed node for the current computational node
-    queue.put(hostNode, block=True)
-    log.info(f"Rank {rank}: Subprocess: Sent data")
+            # This should send a single processed node for the current computational node
+            queue.put(hostNode, block=True)
+            log.info(f"Rank {rank}: Subprocess: Sent data")
+
+            # Reset
+            timesteps = []
+            rawValues = []
+            for _ in lSensors:
+                rawValues.append([])
+        elif close_event.is_set():
+            monitoring = False
+        else:
+            time.sleep(sampling_period / 2)
+
+    log.info("Close event recived.")
+
     # Close backends
     for backend in backends:
         log.debug(f"Closing backend {backend}")
         del backend
-    return hostNode
+    return 0

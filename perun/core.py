@@ -352,11 +352,6 @@ class Perun(metaclass=Singleton):
                 log.error(
                     f"Rank {self.comm.Get_rank()}: Failed to start run {i}, saving previous runs (if any), and exiting."
                 )
-                self._monitor.status = MonitorStatus.PROCESSING
-                # Ideally this should just retry to run the application again, hopping for the perunSubprocess to work, but this is not working as expected, because of heat's incrementalSVD, so we will just exit out of the loop for now. This should be fixed in the future.
-                # This should still save the data from the previous run, so it should be fine.
-
-                # continue
                 break
 
             if self.comm.Get_rank() == 0 and runNode:
@@ -369,6 +364,8 @@ class Perun(metaclass=Singleton):
                 multirun_nodes[str(i)] = runNode
 
             i += 1
+
+        self._monitor.close()
 
         # Get app node data if it exists
         if self.comm.Get_rank() == 0 and len(multirun_nodes) > 0:
