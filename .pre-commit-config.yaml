@@ -1,9 +1,6 @@
+default_stages:
+  - pre-commit
 repos:
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.2.1
-    hooks:
-      - id: commitizen
-        stages: [commit-msg]
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.15.0 # Use the sha / tag you want to point at
     hooks:
@@ -37,3 +34,8 @@ repos:
       - id: "validate-cff"
         args:
           - "--verbose"
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.2.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]

@@ -3,13 +3,13 @@
 import enum
 import logging
 import multiprocessing
-import pprint as pp
 import time
 from configparser import ConfigParser
 from multiprocessing import Event, Process, Queue
-from multiprocessing.synchronize import Event as EventClass
 from subprocess import Popen
 from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 from perun.backend.backend import Backend
 from perun.comm import Comm
@@ -35,10 +35,10 @@ class MonitorStatus(enum.Enum):
         PERUN_ERROR: An error occurred in the Perun system.
         MPI_ERROR: An error occurred in the MPI system.
         FILE_NOT_FOUND: The required file was not found.
-        SUCCESS: The monitor completed successfully.
     """
 
     SETUP = enum.auto()
+    READY = enum.auto()
     RUNNING = enum.auto()
     PROCESSING = enum.auto()
     SCRIPT_ERROR = enum.auto()
@@ -46,7 +46,10 @@ class MonitorStatus(enum.Enum):
     SP_ERROR = enum.auto()
     MPI_ERROR = enum.auto()
     FILE_NOT_FOUND = enum.auto()
-    SUCCESS = enum.auto()
+    CLOSED = enum.auto
+
+
+PERUN_MP_START_METHOD: str = "spawn"
 
 
 class PerunMonitor:
@@ -96,16 +99,89 @@ class PerunMonitor:
         self._l_assigned_sensors = l_assigned_sensors
         self._config = config
         self.status = MonitorStatus.SETUP
+
+        log.debug(f"MP Start methods: {multiprocessing.get_start_method()}")
+        if multiprocessing.get_start_method() != PERUN_MP_START_METHOD:
+            try:
+                multiprocessing.set_start_method(PERUN_MP_START_METHOD)
+            except Exception as e:
+                print(e)
+                log.warning(e)
+
+        self.sp_ready_event = Event()
+        self.start_event = Event()
+        self.stop_event = Event()
+        self.close_event = Event()
+        self.queue: Optional[Queue] = None
+        self.perunSP: Optional[Process] = None
+
         self._reset_subprocess_handlers()
+        if len(self._l_assigned_sensors.keys()) > 0:
+            self._create_subprocess()
+        else:
+            self.sp_ready_event.set()  #
+
+        self._check_subprocess_health()
+
+    def close(self):
+        """Close the monitor."""
+        self._close_subprocess()
+        self.status = MonitorStatus.CLOSED
 
     def _reset_subprocess_handlers(self) -> None:
         """Reset subprocess handlers."""
-        self.sp_ready_event: Optional[EventClass] = None
-        self.start_event: Optional[EventClass] = None
-        self.stop_event: Optional[EventClass] = None
 
-        self.queue: Optional[Queue] = None
-        self.perunSP: Optional[Process] = None
+    def _create_subprocess(self):
+        self.queue = Queue()
+        self.perunSP = Process(
+            target=perunSubprocess,
+            args=[
+                self.queue,
+                self._comm.Get_rank(),
+                self._l_assigned_sensors,
+                self._config,
+                self.sp_ready_event,
+                self.start_event,
+                self.stop_event,
+                self.close_event,
+                self._config.getfloat("monitor", "sampling_period"),
+            ],
+        )
+        log.info(f"Rank {self._comm.Get_rank()}: Starting monitoring subprocess")
+        self.perunSP.start()
+        log.info(f"Rank {self._comm.Get_rank()}: Started monitoring subprocess")
+        log.debug(f"Rank {self._comm.Get_rank()}: Alive: {self.perunSP.is_alive()}")
+        log.debug(f"Rank {self._comm.Get_rank()}: SP PID: {self.perunSP.pid}")
+        log.debug(
+            f"Rank {self._comm.Get_rank()}: SP Exit Code: {self.perunSP.exitcode}"
+        )
+        log.info(f"Rank {self._comm.Get_rank()}: Monitoring subprocess started")
+
+    def _check_subprocess_health(self):
+        event_set = self.sp_ready_event.wait(30)  # type: ignore
+        if self.perunSP and not event_set:
+            log.error(
+                f"Rank {self._comm.Get_rank()}: Children: {multiprocessing.active_children()}"
+            )
+            log.error(
+                f"Rank {self._comm.Get_rank()}: Monitoring subprocess did not start in time"
+            )
+            log.error(f"Rank {self._comm.Get_rank()}: Alive: {self.perunSP.is_alive()}")
+            log.error(f"Rank {self._comm.Get_rank()}: SP PID: {self.perunSP.pid}")
+            log.error(f"Rank {self._comm.Get_rank()}: SP Exit Code: {self.perunSP}")
+            self.status = MonitorStatus.SP_ERROR
+            self._close_subprocess()
+
+        log.info(f"Rank {self._comm.Get_rank()}: Waiting for everyones status")
+        self.all_status = self._comm.allgather(self.status)
+        if MonitorStatus.SP_ERROR in self.all_status:
+            log.error(f"Rank {self._comm.Get_rank()}: Stopping run")
+            log.error(
+                f"Rank {self._comm.Get_rank()}: Children: {multiprocessing.active_children()}"
+            )
+
+            self.status = MonitorStatus.SP_ERROR
+        self.status = MonitorStatus.READY
 
     def run_application(
         self,
@@ -146,18 +222,22 @@ class PerunMonitor:
 
         """
         log.info(f"Rank {self._comm.Get_rank()}: _run_application")
+        if self.status != MonitorStatus.READY:
+            raise SystemError("Not ready for monitoring, exiting!")
+
         if record:
             if self._app.is_binary:
                 return self._run_binary_app(run_id)
             else:
+                self._comm.barrier()
                 return self._run_python_app(run_id)
         else:
             try:
                 self.status = MonitorStatus.RUNNING
                 result = self._app.run()
-                self.status = MonitorStatus.PROCESSING
+                self.status = MonitorStatus.READY
             except SystemExit:
-                self.status = MonitorStatus.PROCESSING
+                self.status = MonitorStatus.SCRIPT_ERROR
                 log.warning(
                     "The application exited using exit(), quit() or sys.exit(). This is not the recommended way to exit an application, as it complicates the data collection process. Please refactor your code."
                 )
@@ -175,75 +255,6 @@ class PerunMonitor:
     def _run_python_app(
         self, run_id: str
     ) -> Tuple[MonitorStatus, Optional[DataNode], Any]:
-        # 1) Get sensor configuration
-        self.sp_ready_event = Event()
-        self.start_event = Event()
-        self.stop_event = Event()
-
-        self.queue = None
-        self.perunSP = None
-
-        # 2) If assigned devices, create subprocess
-        if len(self._l_assigned_sensors.keys()) > 0:
-            log.debug(
-                f"Rank {self._comm.Get_rank()} - Local Backendens : {pp.pformat(self._l_assigned_sensors)}"
-            )
-            self.queue = Queue()
-            log.info(
-                f"Rank {self._comm.Get_rank()}: {self.queue}, {self._backends}, {self._l_assigned_sensors}, {self._config}, {self.sp_ready_event}, {self.start_event}, {self.stop_event}, {self._config.getfloat('monitor', 'sampling_period')}"
-            )
-            self.perunSP = Process(
-                target=perunSubprocess,
-                args=[
-                    self.queue,
-                    self._comm.Get_rank(),
-                    self._backends,
-                    self._l_assigned_sensors,
-                    self._config,
-                    self.sp_ready_event,
-                    self.start_event,
-                    self.stop_event,
-                    self._config.getfloat("monitor", "sampling_period"),
-                ],
-            )
-            log.info(f"Rank {self._comm.Get_rank()}: Starting monitoring subprocess")
-            self.perunSP.start()
-            log.debug(f"Rank {self._comm.Get_rank()}: Alive: {self.perunSP.is_alive()}")
-            log.debug(f"Rank {self._comm.Get_rank()}: SP PID: {self.perunSP.pid}")
-            log.debug(
-                f"Rank {self._comm.Get_rank()}: SP Exit Code: {self.perunSP.exitcode}"
-            )
-            log.info(f"Rank {self._comm.Get_rank()}: Monitoring subprocess started")
-        else:
-            self.sp_ready_event.set()  # type: ignore
-
-        event_set = self.sp_ready_event.wait(30)  # type: ignore
-        if self.perunSP and not event_set:
-            log.error(
-                f"Rank {self._comm.Get_rank()}: Children: {multiprocessing.active_children()}"
-            )
-            log.error(
-                f"Rank {self._comm.Get_rank()}: Monitoring subprocess did not start in time"
-            )
-            log.error(f"Rank {self._comm.Get_rank()}: Alive: {self.perunSP.is_alive()}")
-            log.error(f"Rank {self._comm.Get_rank()}: SP PID: {self.perunSP.pid}")
-            log.error(f"Rank {self._comm.Get_rank()}: SP Exit Code: {self.perunSP}")
-            self.status = MonitorStatus.SP_ERROR
-            self._close_subprocess()
-
-        log.info(f"Rank {self._comm.Get_rank()}: Waiting for everyones status")
-        self.all_status = self._comm.allgather(self.status)
-        if MonitorStatus.SP_ERROR in self.all_status:
-            log.error(f"Rank {self._comm.Get_rank()}: Stopping run")
-            log.error(
-                f"Rank {self._comm.Get_rank()}: Children: {multiprocessing.active_children()}"
-            )
-
-            self.status = MonitorStatus.SP_ERROR
-            self._reset_subprocess_handlers()
-
-            return self.status, None, None
-
         # 3) Start application
         log.info(f"Rank {self._comm.Get_rank()}: Starting App")
         self.local_regions = LocalRegions()
@@ -253,9 +264,12 @@ class PerunMonitor:
         try:
             app_result = self._app.run()
         except SystemExit:
+            self.status = MonitorStatus.SCRIPT_ERROR
             log.info(
                 "The application exited using exit(), quit() or sys.exit(). This is not the recommended way to exit an application, as it complicates the data collection process. Please refactor your code."
             )
+            recoveredNodes = self._handle_failed_run()
+            return self.status, recoveredNodes, None
 
         except Exception as e:
             self.status = MonitorStatus.SCRIPT_ERROR
@@ -272,27 +286,32 @@ class PerunMonitor:
             recoveredNodes = self._handle_failed_run()
             return self.status, recoveredNodes, None
 
+        self.stop_event.set()  # type: ignore
         self.status = MonitorStatus.PROCESSING
         # run_stoptime = datetime.utcnow()
         log.info(f"Rank {self._comm.Get_rank()}: App Stopped")
-        self.stop_event.set()  # type: ignore
+        node = self._process_single_run(run_id, starttime_ns)
 
         # 4) App finished, stop subrocess and get data
-        return self.status, self._process_single_run(run_id, starttime_ns), app_result
+        self.status = MonitorStatus.READY
+        return self.status, node, app_result
 
     def _run_binary_app(
         self, run_id: str
     ) -> Tuple[MonitorStatus, Optional[DataNode], Any]:
         # 1) Prepare sensors
         (
-            timesteps,
             t_metadata,
-            rawValues,
             lSensors,
         ) = prepSensors(self._backends, self._l_assigned_sensors)
         log.debug(f"SP: backends -- {self._backends}")
         log.debug(f"SP: l_sensor_config -- {self._l_assigned_sensors}")
         log.debug(f"Rank {self._comm.Get_rank()}: perunSP lSensors: {lSensors}")
+
+        timesteps: List[int] = []
+        rawValues: List[List[np.number]] = []
+        for _ in lSensors:
+            rawValues.append([])
 
         sampling_period = self._config.getfloat("monitor", "sampling_period")
 
@@ -328,7 +347,7 @@ class PerunMonitor:
         runNode = DataNode(id=run_id, type=NodeType.RUN, nodes={hostNode.id: hostNode})
         runNode.addRegionData(globalRegions, starttime_ns)
 
-        return MonitorStatus.SUCCESS, runNode, None
+        return MonitorStatus.READY, runNode, None
 
     def _handle_failed_run(self) -> Optional[DataNode]:
         availableRanks = self._comm.check_available_ranks()
@@ -376,10 +395,8 @@ class PerunMonitor:
             log.info(f"Rank {self._comm.Get_rank()}: Collecting queue data.")
             nodeData = self.queue.get(block=True)
             log.info(f"Rank {self._comm.Get_rank()}: Closing subprocess.")
-            self._close_subprocess()
         else:
             nodeData = None
-            self._reset_subprocess_handlers()
 
         log.info(f"Rank {self._comm.Get_rank()}: Gathering data.")
 
@@ -416,8 +433,10 @@ class PerunMonitor:
 
     def _close_subprocess(self) -> None:
         """Close the subprocess."""
+        self.close_event.set()
         if self.perunSP and self.queue:
             self.perunSP.join(30)
+            log.debug("SP exit code {self.perunSP.exitcode}")
             if self.perunSP.exitcode is None:
                 log.warning(
                     f"Rank {self._comm.Get_rank()}: Monitoring subprocess did not close in time, terminating."
@@ -432,5 +451,3 @@ class PerunMonitor:
             self.queue.close()
             self.queue = None
             log.info(f"Rank {self._comm.Get_rank()}: Monitoring subprocess closed")
-
-        self._reset_subprocess_handlers()

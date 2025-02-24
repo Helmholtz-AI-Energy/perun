@@ -44,7 +44,11 @@ class NVMLBackend(Backend):
 
     def close(self):
         """Backend shutdown code."""
-        self.pynvml.nvmlShutdown()
+        if hasattr(self, "pynvml"):
+            try:
+                self.pynvml.nvmlShutdown()
+            except Exception as e:
+                log.warning(e)
 
     def availableSensors(self) -> Dict[str, Tuple]:
         """Return string ids of visible devices.
