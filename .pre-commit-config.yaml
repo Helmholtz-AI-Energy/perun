@@ -6,7 +6,7 @@ repos:
     hooks:
       - id: mypy
         args: [--config-file, pyproject.toml]
-        additional_dependencies: [types-psutil, pandas-stubs, numpy, mpi4py, py-cpuinfo, h5py]
+        additional_dependencies: [types-psutil, pandas-stubs, numpy, py-cpuinfo, h5py]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
     rev: v0.11.0
