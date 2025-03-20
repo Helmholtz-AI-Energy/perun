@@ -29,13 +29,13 @@ class MonitorStatus(enum.Enum):
 
     Attributes
     ----------
-        SETUP: The monitor is being set up.
-        RUNNING: The monitor is running.
-        PROCESSING: The monitor is processing data.
-        SCRIPT_ERROR: An error occurred in the monitor's script.
-        PERUN_ERROR: An error occurred in the Perun system.
-        MPI_ERROR: An error occurred in the MPI system.
-        FILE_NOT_FOUND: The required file was not found.
+    SETUP: The monitor is being set up.
+    RUNNING: The monitor is running.
+    PROCESSING: The monitor is processing data.
+    SCRIPT_ERROR: An error occurred in the monitor's script.
+    PERUN_ERROR: An error occurred in the Perun system.
+    MPI_ERROR: An error occurred in the MPI system.
+    FILE_NOT_FOUND: The required file was not found.
     """
 
     SETUP = enum.auto()

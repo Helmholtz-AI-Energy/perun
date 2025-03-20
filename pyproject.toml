@@ -112,8 +112,12 @@ env = "GIT_COMMIT_AUTHOR"
 default = "semantic-release <semantic-release>"
 
 [tool.mypy]
-packages=["perun"]
 python_version="3.8"
+packages=["perun"]
+exclude=[
+    'tests/',
+    'examples/'
+]
 
 disallow_untyped_defs = true
 disallow_any_unimported = true
@@ -122,12 +126,12 @@ check_untyped_defs=true
 warn_return_any=true
 show_error_codes =true
 warn_unused_ignores=true
+follow_imports = "normal"
 
 [[tool.mypy.overrides]]
 module=["perun.io.hdf5"]
 disallow_any_unimported = false
 warn_unused_ignores=false
-
 
 # Ruff
 [tool.ruff]

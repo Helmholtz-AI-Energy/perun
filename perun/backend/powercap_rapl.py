@@ -7,7 +7,7 @@ from io import IOBase
 from pathlib import Path
 from typing import Callable, Dict, List, Set, Tuple
 
-import cpuinfo  # type: ignore [import-untyped]
+import cpuinfo
 import numpy as np
 
 from perun.backend.backend import Backend
