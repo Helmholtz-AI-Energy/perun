@@ -34,4 +34,8 @@ def importPickle(pickleData: bytes) -> DataNode:
     DataNode
         DataNode
     """
-    return pickle.loads(pickleData)
+    obj = pickle.loads(pickleData)
+    if isinstance(obj, DataNode):
+        return obj
+    else:
+        raise ValueError("Invalid pickle")

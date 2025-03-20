@@ -95,7 +95,11 @@ def processEnergyData(
         t_s, power_W = getInterpolatedValues(t_s, power_W, start, end)
 
     avg_power_W = np.mean(power_W)
-    energy_J = np.trapz(power_W, x=t_s)  # type: ignore
+    if np.__version__[0] == "1":
+        energy_J = np.trapz(power_W, x=t_s)  # noqa: NPY201
+    else:
+        energy_J = np.trapezoid(power_W, x=t_s)  # type: ignore[attr-defined]
+
     return energy_J, avg_power_W
 
 
@@ -236,7 +240,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
 
 
 def processDataNode(
-    dataNode: DataNode, perunConfig: ConfigParser, force_process=False
+    dataNode: DataNode, perunConfig: ConfigParser, force_process: bool = False
 ) -> DataNode:
     """Recursively calculate metrics on the dataNode tree.
 
@@ -318,17 +322,17 @@ def processDataNode(
     # Apply power overhead to each computational node if there is power data available.
     if dataNode.type == NodeType.NODE and MetricType.POWER in dataNode.metrics:
         power_overhead = perunConfig.getfloat("post-processing", "power_overhead")
-        dataNode.metrics[MetricType.POWER].value += power_overhead  # type: ignore
+        dataNode.metrics[MetricType.POWER].value += power_overhead
         runtime = dataNode.metrics[MetricType.RUNTIME].value
-        dataNode.metrics[MetricType.ENERGY].value += runtime * power_overhead  # type: ignore
+        dataNode.metrics[MetricType.ENERGY].value += runtime * power_overhead
 
     # If there is energy data, apply PUE, and convert to currency and CO2 emmisions.
     if dataNode.type == NodeType.RUN and MetricType.ENERGY in dataNode.metrics:
         pue = perunConfig.getfloat("post-processing", "pue")
         emissions_factor = perunConfig.getfloat("post-processing", "emissions_factor")
         price_factor = perunConfig.getfloat("post-processing", "price_factor")
-        total_energy = dataNode.metrics[MetricType.ENERGY].value * pue  # type: ignore
-        dataNode.metrics[MetricType.ENERGY].value = total_energy  # type: ignore
+        total_energy = dataNode.metrics[MetricType.ENERGY].value * pue
+        dataNode.metrics[MetricType.ENERGY].value = total_energy
         e_kWh = total_energy / (3600 * 1e3)
 
         costMetric = Metric(
@@ -365,7 +369,7 @@ def processDataNode(
     return dataNode
 
 
-def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
+def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode) -> None:
     """Complete region information using sensor data found on the data node (in place op).
 
     Parameters
@@ -531,7 +535,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
             )
 
 
-def addRunAndRuntimeInfoToRegion(region: Region):
+def addRunAndRuntimeInfoToRegion(region: Region) -> None:
     """Process run and runtime stats in region objects (in place operation).
 
     Parameters
@@ -608,5 +612,5 @@ def getInterpolatedValues(
         Tuple with the new time steps and values.
     """
     new_t = np.concatenate([[start], t[np.all([t >= start, t <= end], axis=0)], [end]])
-    new_x = np.interp(new_t, t, x)  # type: ignore
+    new_x = np.interp(new_t, t, x)
     return new_t, new_x

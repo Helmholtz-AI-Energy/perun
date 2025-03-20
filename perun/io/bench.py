@@ -109,8 +109,8 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
             values = data[0]
             metadata = data[1]
             if len(values) > 1:
-                mean = np.mean(values)  # type: ignore
-                std = np.std(values)  # type: ignore
+                mean = np.mean(values)
+                std = np.std(values)
                 if metadata.unit.name in bench_units:
                     mag = bench_units[metadata.unit.name]
                     old_mag = metadata.mag

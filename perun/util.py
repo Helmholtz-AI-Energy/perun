@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from perun import config
 
@@ -45,7 +45,7 @@ class Singleton(type):
     _instances: Dict = {}
     __allow_reinitialization: bool = False
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args: Any, **kwargs: Any) -> Any:
         """
         Call method for the singleton class.
 
@@ -56,9 +56,9 @@ class Singleton(type):
         ----------
         cls : class object
             The class object.
-        *args : tuple
+        *args : tuple[Any]
             Variable length argument list.
-        **kwargs : dict
+        **kwargs : dict[str, Any]
             Arbitrary keyword arguments.
 
         Returns

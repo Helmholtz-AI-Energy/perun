@@ -65,7 +65,7 @@ class Magnitude(float, enum.Enum):
     TERA = 1e12
 
     @classmethod
-    def fromSymbol(cls, symbol: str):
+    def fromSymbol(cls, symbol: str) -> "Magnitude":
         """Create a Magniture objet from a magnigure symbol.
 
         Parameters
@@ -118,7 +118,7 @@ class MetricMetaData:
     fill: np.number
 
     @classmethod
-    def fromDict(cls, mdDict: Dict):
+    def fromDict(cls, mdDict: Dict) -> "MetricMetaData":
         """Create MetricMetadata from a dictionary."""
         dtype = np.dtype(mdDict["dtype"])
         return cls(
@@ -130,7 +130,7 @@ class MetricMetaData:
             dtype.type(mdDict["fill"], dtype=dtype),
         )
 
-    def copy(self):
+    def copy(self) -> "MetricMetaData":
         """Copy MetricMetaData object.
 
         Returns

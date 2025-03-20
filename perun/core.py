@@ -62,7 +62,7 @@ class Perun(metaclass=Singleton):
 
         self.config = sanitize_config(self.config)
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Perun object destructor."""
         log.info(f"Rank {self.comm.Get_rank()}: __del__ perun")
         self._close_backends()
@@ -117,7 +117,7 @@ class Perun(metaclass=Singleton):
 
         return self._backends
 
-    def _close_backends(self):
+    def _close_backends(self) -> None:
         """Close available backends."""
         if self._backends:
             for backend in self._backends.values():
@@ -256,7 +256,7 @@ class Perun(metaclass=Singleton):
             )
         return self._l_backend_metadata
 
-    def mark_event(self, region_id: str):
+    def mark_event(self, region_id: str) -> None:
         """
         Mark an event for a specific region.
 
@@ -264,10 +264,6 @@ class Perun(metaclass=Singleton):
         ----------
         region_id : str
             The ID of the region to mark the event for.
-
-        Returns
-        -------
-        None
         """
         if self._monitor:
             self._monitor.local_regions.addEvent(region_id)
@@ -375,7 +371,7 @@ class Perun(metaclass=Singleton):
 
         return last_result
 
-    def _export_multirun(self, multirun_node: DataNode):
+    def _export_multirun(self, multirun_node: DataNode) -> None:
         data_out = Path(self.config.get("output", "data_out"))
         app_name = self.config.get("output", "app_name")
         starttime = self.config.get("output", "starttime")
@@ -460,7 +456,7 @@ class Perun(metaclass=Singleton):
         dataNode: DataNode,
         format: IOFormat,
         mr_id: Optional[str] = None,
-    ):
+    ) -> None:
         """Export data to selected format.
 
         Parameters
@@ -471,10 +467,12 @@ class Perun(metaclass=Singleton):
             Data node to export.
         format : IOFormat
             Format to export data.
+        mr_id: int, optional
+            The id of the multi_run to be exported, the last one if left empty.
         """
         exportTo(dataOut, dataNode, format, mr_id)
 
-    def _run_postprocess_callbacks(self, dataNode: DataNode):
+    def _run_postprocess_callbacks(self, dataNode: DataNode) -> None:
         for name, callback in self.postprocess_callbacks.items():
             log.info(f"Running callback {name}")
             callback(dataNode)

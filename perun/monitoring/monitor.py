@@ -6,6 +6,7 @@ import multiprocessing
 import time
 from configparser import ConfigParser
 from multiprocessing import Event, Process, Queue
+from multiprocessing.synchronize import Event as EventClass
 from subprocess import Popen
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -108,10 +109,10 @@ class PerunMonitor:
                 print(e)
                 log.warning(e)
 
-        self.sp_ready_event = Event()
-        self.start_event = Event()
-        self.stop_event = Event()
-        self.close_event = Event()
+        self.sp_ready_event: EventClass = Event()
+        self.start_event: EventClass = Event()
+        self.stop_event: EventClass = Event()
+        self.close_event: EventClass = Event()
         self.queue: Optional[Queue] = None
         self.perunSP: Optional[Process] = None
 
@@ -123,7 +124,7 @@ class PerunMonitor:
 
         self._check_subprocess_health()
 
-    def close(self):
+    def close(self) -> None:
         """Close the monitor."""
         self._close_subprocess()
         self.status = MonitorStatus.CLOSED
@@ -131,7 +132,7 @@ class PerunMonitor:
     def _reset_subprocess_handlers(self) -> None:
         """Reset subprocess handlers."""
 
-    def _create_subprocess(self):
+    def _create_subprocess(self) -> None:
         self.queue = Queue()
         self.perunSP = Process(
             target=perunSubprocess,
@@ -157,8 +158,8 @@ class PerunMonitor:
         )
         log.info(f"Rank {self._comm.Get_rank()}: Monitoring subprocess started")
 
-    def _check_subprocess_health(self):
-        event_set = self.sp_ready_event.wait(30)  # type: ignore
+    def _check_subprocess_health(self) -> None:
+        event_set = self.sp_ready_event.wait(30)
         if self.perunSP and not event_set:
             log.error(
                 f"Rank {self._comm.Get_rank()}: Children: {multiprocessing.active_children()}"
@@ -259,7 +260,7 @@ class PerunMonitor:
         log.info(f"Rank {self._comm.Get_rank()}: Starting App")
         self.local_regions = LocalRegions()
         self.status = MonitorStatus.RUNNING
-        self.start_event.set()  # type: ignore
+        self.start_event.set()
         starttime_ns = time.time_ns()
         try:
             app_result = self._app.run()
@@ -279,14 +280,14 @@ class PerunMonitor:
             s, r = getattr(e, "message", str(e)), getattr(e, "message", repr(e))
             log.error(f"Rank {self._comm.Get_rank()}: {s}")
             log.error(f"Rank {self._comm.Get_rank()}: {r}")
-            self.stop_event.set()  # type: ignore
+            self.stop_event.set()
             log.error(
                 f"Rank {self._comm.Get_rank()}:  Set start and stop event forcefully"
             )
             recoveredNodes = self._handle_failed_run()
             return self.status, recoveredNodes, None
 
-        self.stop_event.set()  # type: ignore
+        self.stop_event.set()
         self.status = MonitorStatus.PROCESSING
         # run_stoptime = datetime.utcnow()
         log.info(f"Rank {self._comm.Get_rank()}: App Stopped")
@@ -385,11 +386,13 @@ class PerunMonitor:
             The id to use for the data node.
         starttime_ns : int
             Start time of the run.
+        available_ranks: list[int], optional
+            List of available rank. Only relevant if some ranks failed mid run.
 
         Returns
         -------
-        Optional[DataNode]
-            If the rank spawned a subprocess, returns the data node with the data.
+        DataNode or None
+            If the rank spawned a subprocess, returns the data node with the data, else
         """
         if self.queue and self.perunSP:
             log.info(f"Rank {self._comm.Get_rank()}: Collecting queue data.")

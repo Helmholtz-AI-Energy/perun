@@ -1,6 +1,7 @@
 """IO Json module."""
 
 import json
+from typing import Any
 
 import numpy as np
 
@@ -10,7 +11,7 @@ from perun.data_model.data import DataNode
 class NumpyEncoder(json.JSONEncoder):
     """Json Numpy object encoder."""
 
-    def default(self, obj):
+    def default(self, obj: Any) -> Any:
         """Encode obj to json or to a supported format.
 
         :param obj: Object to encode.

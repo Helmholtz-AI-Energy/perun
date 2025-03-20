@@ -7,7 +7,7 @@ from io import IOBase
 from pathlib import Path
 from typing import Callable, Dict, List, Set, Tuple
 
-import cpuinfo
+import cpuinfo  # type: ignore [import-untyped]
 import numpy as np
 
 from perun.backend.backend import Backend
@@ -32,7 +32,7 @@ class PowercapRAPLBackend(Backend):
     name = "Powercap RAPL"
     description = "Reads energy usage from CPUs and DRAM using Powercap RAPL"
 
-    def setup(self):
+    def setup(self) -> None:
         """Check Intel RAPL access."""
         cpuInfo = cpuinfo.get_cpu_info()
         self._metadata = {}
@@ -160,16 +160,18 @@ class PowercapRAPLBackend(Backend):
                                     max_energy,
                                 )
 
-                                energy_path = str(grandchild / "energy_uj")
-                                energy_file = open(energy_path, "r")
-                                log.debug(f"RAPL FILE OPENED: {energy_path}")
+                                grandchild_energy_path = grandchild / "energy_uj"
+                                energy_file = open(grandchild_energy_path, "r")
+                                log.debug(f"RAPL FILE OPENED: {grandchild_energy_path}")
                                 self._files.append(energy_file)
                                 device = Sensor(
                                     f"{devType.value}_{socket}_{device_name}",
                                     devType,
                                     self._metadata,
                                     dataType,
-                                    getCallback(energy_file, energy_path),
+                                    getCallback(
+                                        energy_file, str(grandchild_energy_path)
+                                    ),
                                 )
                                 log.debug(device)
                                 self.devices[device.id] = device

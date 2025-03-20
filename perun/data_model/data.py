@@ -56,15 +56,15 @@ class MetricType(str, enum.Enum):
     MONEY = "money"
     CO2 = "co2"
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return string representation of MetricType."""
         return self.value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return string representation of MetricType."""
         return self.value
 
-    def fromString(self, value: str):
+    def fromString(self, value: str) -> "MetricType":
         """Create MetricType from string.
 
         Parameters
@@ -99,7 +99,7 @@ class Metric:
     agg: AggregateType
 
     @classmethod
-    def fromDict(cls, metricDict: Dict):
+    def fromDict(cls, metricDict: Dict) -> "Metric":
         """Create RawData object from a dictionary."""
         return cls(
             MetricType(metricDict["type"]),
@@ -108,7 +108,7 @@ class Metric:
             AggregateType(metricDict["agg"]),
         )
 
-    def copy(self):
+    def copy(self) -> "Metric":
         """Create copy metric object.
 
         Returns
@@ -137,7 +137,7 @@ class Stats:
     min: np.number
 
     @classmethod
-    def fromMetrics(cls, metrics: List[Metric]):
+    def fromMetrics(cls, metrics: List[Metric]) -> "Stats":
         """Create stats object from list of metrics with the same type.
 
         Parameters
@@ -172,20 +172,24 @@ class Stats:
         return cls(type, metric_md, sum, mean, std, max, min)
 
     @property
-    def value(self):
+    def value(self) -> np.number:
         """Value property (mean).
 
         For compatibility with Metric dataclass.
 
         Returns
         -------
-        _type_
+        np.number
             Return the mean value of the stats object.
         """
         return self.mean
 
+    @value.setter
+    def value(self, n_value: np.number) -> None:
+        self.mean = n_value
+
     @classmethod
-    def fromDict(cls, statsDict: Dict):
+    def fromDict(cls, statsDict: Dict) -> "Stats":
         """Stats constructor from a dictionory."""
         return cls(
             MetricType(statsDict["type"]),
@@ -210,7 +214,7 @@ class RawData:
     alt_v_md: Optional[MetricMetaData] = None
 
     @classmethod
-    def fromDict(cls, rawDataDict: Dict):
+    def fromDict(cls, rawDataDict: Dict) -> "RawData":
         """Create RawData object from a dictionary.
 
         Parameters
@@ -312,13 +316,13 @@ class Region:
         return result
 
     @classmethod
-    def fromDict(cls, regionDictionary: Dict[str, Any]):
+    def fromDict(cls, regionDictionary: Dict[str, Any]) -> "Region":
         """Create Regions object from a dictionary.
 
         Parameters
         ----------
-        regions : Dict[str, Dict[int, np.ndarray]]
-            Regions dictionary.
+        regionDictionary: Dict[str, Dict[int, Any]]
+            Region dictionary.
 
         Returns
         -------
@@ -370,6 +374,8 @@ class DataNode:
             Node device type, only relevant for leaf nodes, by default None
         raw_data : Optional[RawData], optional
             Raw data object, only relevant for leaf nodes, by default None
+        regions: dict[str, Region], optional
+            Dictionary containing region event data, by default None
         processed : bool, optional
             Marks if the node has been processed, by default False
         """
@@ -385,7 +391,7 @@ class DataNode:
         self.regions: Optional[Dict[str, Region]] = regions
         self.processed = processed
 
-    def addRegionData(self, localRegions: List[LocalRegions], start_time: int):
+    def addRegionData(self, localRegions: List[LocalRegions], start_time: int) -> None:
         """Add region information to to data node.
 
         Parameters
@@ -442,7 +448,7 @@ class DataNode:
         return resultsDict
 
     @classmethod
-    def fromDict(cls, resultsDict: Dict):
+    def fromDict(cls, resultsDict: Dict) -> "DataNode":
         """Create dataNode from python dictionary.
 
         Parameters

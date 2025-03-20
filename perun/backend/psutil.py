@@ -20,13 +20,13 @@ class PSUTILBackend(Backend):
     name: str = "PSUTIL"
     description: str = "Obtain hardware data from psutil"
 
-    def setup(self):
+    def setup(self) -> None:
         """Configure psutil backend."""
-        psutil.disk_io_counters.cache_clear()
-        psutil.net_io_counters.cache_clear()
+        psutil.disk_io_counters.cache_clear()  # type: ignore[attr-defined]
+        psutil.net_io_counters.cache_clear()  # type: ignore[attr-defined]
         self._metadata = {"source": f"psutil {psutil.__version__}"}
 
-    def close(self):
+    def close(self) -> None:
         """Close backend."""
         pass
 
@@ -78,12 +78,12 @@ class PSUTILBackend(Backend):
         elif device == "DISK_READ_BYTES":
 
             def func() -> np.number:
-                return np.uint64(psutil.disk_io_counters(nowrap=True).read_bytes)  # type: ignore
+                return np.uint64(psutil.disk_io_counters(nowrap=True).read_bytes)  # type: ignore[union-attr]
 
         elif device == "DISK_WRITE_BYTES":
 
             def func() -> np.number:
-                return np.uint64(psutil.disk_io_counters(nowrap=True).write_bytes)  # type: ignore
+                return np.uint64(psutil.disk_io_counters(nowrap=True).write_bytes)  # type: ignore[union-attr]
 
         elif device == "NET_WRITE_BYTES":
 
@@ -99,7 +99,7 @@ class PSUTILBackend(Backend):
             cpuId = int(device.split("_")[-1])
 
             def func() -> np.number:
-                return np.float32(psutil.cpu_freq(percpu=True)[cpuId].current)  # type: ignore
+                return np.float32(psutil.cpu_freq(percpu=True)[cpuId].current)
 
         else:
             raise ValueError("Invalid device name")
@@ -177,8 +177,8 @@ class PSUTILBackend(Backend):
                             Unit.HZ,
                             Magnitude.MEGA,
                             np.dtype("float32"),
-                            np.float32(psutil.cpu_freq(percpu=True)[id].min),  # type: ignore
-                            np.float32(psutil.cpu_freq(percpu=True)[id].max),  # type: ignore
+                            np.float32(psutil.cpu_freq(percpu=True)[id].min),
+                            np.float32(psutil.cpu_freq(percpu=True)[id].max),
                             np.float32(0),
                         ),
                         self._getCallback(deviceName),

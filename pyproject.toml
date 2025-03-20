@@ -111,13 +111,31 @@ default_bump_level = 0
 env = "GIT_COMMIT_AUTHOR"
 default = "semantic-release <semantic-release>"
 
+[tool.mypy]
+packages=["perun"]
+python_version="3.8"
+
+disallow_untyped_defs = true
+disallow_any_unimported = true
+no_implicit_optional = true
+check_untyped_defs=true
+warn_return_any=true
+show_error_codes =true
+warn_unused_ignores=true
+
+[[tool.mypy.overrides]]
+module=["perun.io.hdf5"]
+disallow_any_unimported = false
+warn_unused_ignores=false
+
+
 # Ruff
 [tool.ruff]
 target-version = "py38"
 exclude = ["docs", "examples"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "D"]
+select = ["E", "F", "I", "D", "D417", "NPY201"]
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]

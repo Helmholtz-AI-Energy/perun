@@ -26,7 +26,7 @@ class Backend(metaclass=Singleton):
         self._metadata: Dict = {}
         log.info(f"Initialized {self.name} backend")
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Backend cleanup method."""
         log.debug("Deleting backend.")
         self.close()
@@ -65,11 +65,11 @@ class Backend(metaclass=Singleton):
         pass
 
     @abstractmethod
-    def close(self):
+    def close(self) -> None:
         """Clean up and close backend related activities."""
         pass
 
     @abstractmethod
-    def setup(self):
+    def setup(self) -> None:
         """Perform backend setup."""
         pass

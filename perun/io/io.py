@@ -37,12 +37,12 @@ class IOFormat(enum.Enum):
     BENCH = "bench"
 
     @property
-    def suffix(self):
+    def suffix(self) -> str:
         """Return file suffix from format."""
         return _suffixes[self.value]
 
     @classmethod
-    def fromSuffix(cls, suffix: str):
+    def fromSuffix(cls, suffix: str) -> "IOFormat":
         """Return format from suffix."""
         for key, value in _suffixes.items():
             if value in suffix:
@@ -52,7 +52,7 @@ class IOFormat(enum.Enum):
 
 def exportTo(
     output_path: Path, dataNode: DataNode, format: IOFormat, mr_id: Optional[str] = None
-):
+) -> None:
     """Export DataNode structure to the selected format.
 
     Parameters

@@ -143,13 +143,15 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
     return report_header + mr_report_str + region_report_str + app_summary_str
 
 
-def sensors_table(sensors: List[Dict[str, Any]], by_rank=True) -> str:
+def sensors_table(sensors: List[Dict[str, Any]], by_rank: bool = True) -> str:
     """Create a text table from a list of sensor readings.
 
     Parameters
     ----------
-    sensors : List[Dict[str, Any]]
+    sensors : list[dict[str, Any]]
         List of sensor readings
+    by_rank: bool, optional
+        If the table should separate available sensors by rank.
 
     Returns
     -------

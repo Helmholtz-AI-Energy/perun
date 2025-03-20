@@ -2,13 +2,14 @@ default_stages:
   - pre-commit
 repos:
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.15.0 # Use the sha / tag you want to point at
+    rev: v1.14.1 # Use the sha / tag you want to point at
     hooks:
       - id: mypy
-        # additional_dependencies: [types-all]
+        args: [--config-file, pyproject.toml]
+        additional_dependencies: [types-psutil, pandas-stubs, numpy, mpi4py, py-cpuinfo, h5py]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.9.6
+    rev: v0.11.0
     hooks:
       # Run the linter.
       - id: ruff
@@ -35,7 +36,7 @@ repos:
         args:
           - "--verbose"
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.2.1
+    rev: v4.4.1
     hooks:
       - id: commitizen
         stages: [commit-msg]

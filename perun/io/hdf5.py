@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Dict, Union
 
-import h5py
+import h5py  # type: ignore[import-untyped]
 import numpy as np
 
 from perun.data_model.data import (
@@ -21,7 +21,7 @@ from perun.data_model.measurement_type import Magnitude, Unit
 from perun.data_model.sensor import DeviceType
 
 
-def exportHDF5(filePath: Path, dataNode: DataNode):
+def exportHDF5(filePath: Path, dataNode: DataNode) -> None:
     """Export perun data nodes to an HDF5 file.
 
     Parameters
@@ -67,7 +67,7 @@ def importHDF5(filePath: Path) -> DataNode:
         raise ValueError("Invalid root level entry.")
 
 
-def _addNode(h5group: h5py.Group, dataNode: DataNode):
+def _addNode(h5group: h5py.Group, dataNode: DataNode) -> None:
     """Write node into hdf5 file."""
     group = h5group.create_group(dataNode.id)
     group.attrs["type"] = dataNode.type.value
@@ -131,7 +131,7 @@ def _readNode(group: h5py.Group) -> DataNode:
     )
 
 
-def _addMetric(h5Group: h5py.Group, metric: Union[Metric, Stats]):
+def _addMetric(h5Group: h5py.Group, metric: Union[Metric, Stats]) -> None:
     """Write metric into hdf5 file."""
     metricGroup = h5Group.create_group(metric.type.name)
 
@@ -174,7 +174,7 @@ def _readMetric(group: h5py.Group) -> Union[Metric, Stats]:
 
 def _addMetricMetadata(
     group: Union[h5py.Group, h5py.Dataset], metadata: MetricMetaData
-):
+) -> None:
     """Write metric metadata into hdf5 file."""
     group.attrs["unit"] = metadata.unit.value
     group.attrs["mag"] = metadata.mag.value
@@ -197,7 +197,7 @@ def _readMetricMetadata(group: Union[h5py.Group, h5py.Dataset]) -> MetricMetaDat
     )
 
 
-def _addRawData(h5Group: h5py.Group, rawData: RawData):
+def _addRawData(h5Group: h5py.Group, rawData: RawData) -> None:
     """Write raw data into hdf5 file."""
     rawDataGroup = h5Group.create_group("raw_data")
 
@@ -235,13 +235,13 @@ def _readRawData(group: h5py.Group) -> RawData:
     )
 
 
-def _addRegions(h5Group: h5py.Group, regions: Dict[str, Region]):
+def _addRegions(h5Group: h5py.Group, regions: Dict[str, Region]) -> None:
     regions_group: h5py.Group = h5Group.create_group("regions")
     for region in regions.values():
         _addRegion(regions_group, region)
 
 
-def _addRegion(h5Group: h5py.Group, region: Region):
+def _addRegion(h5Group: h5py.Group, region: Region) -> None:
     region_group = h5Group.create_group(region.id)
     region_group.attrs["id"] = region.id
     region_group.attrs["processed"] = region.processed

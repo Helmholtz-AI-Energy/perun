@@ -2,7 +2,7 @@
 
 import importlib
 import logging
-from typing import Callable, Dict, List, Set, Tuple
+from typing import Any, Callable, Dict, List, Set, Tuple
 
 import numpy as np
 
@@ -23,7 +23,7 @@ class NVMLBackend(Backend):
     name = "NVIDIA ML"
     description: str = "Access GPU information from NVML python bindings"
 
-    def setup(self):
+    def setup(self) -> None:
         """Init pynvml and gather number of devices."""
         self.pynvml = importlib.import_module("pynvml")
         self.pynvml.nvmlInit()
@@ -42,7 +42,7 @@ class NVMLBackend(Backend):
 
         log.info(f"NVML Device count: {deviceCount}")
 
-    def close(self):
+    def close(self) -> None:
         """Backend shutdown code."""
         if hasattr(self, "pynvml"):
             try:
@@ -160,7 +160,7 @@ class NVMLBackend(Backend):
             self._getPowerCallback(handle),
         )
 
-    def _getPowerCallback(self, handle) -> Callable[[], np.number]:
+    def _getPowerCallback(self, handle: Any) -> Callable[[], np.number]:
         def func() -> np.number:
             try:
                 return np.uint32(self.pynvml.nvmlDeviceGetPowerUsage(handle))
@@ -212,7 +212,7 @@ class NVMLBackend(Backend):
             self._getUsedMemCallback(handle),
         )
 
-    def _getUsedMemCallback(self, handle) -> Callable[[], np.number]:
+    def _getUsedMemCallback(self, handle: Any) -> Callable[[], np.number]:
         def func() -> np.number:
             try:
                 return np.uint64(self.pynvml.nvmlDeviceGetMemoryInfo(handle).used)
@@ -280,7 +280,9 @@ class NVMLBackend(Backend):
             self._getClockCallback(handle, self.clock_types[clock_type]),
         )
 
-    def _getClockCallback(self, handle, clock_type) -> Callable[[], np.number]:
+    def _getClockCallback(
+        self, handle: Any, clock_type: Any
+    ) -> Callable[[], np.number]:
         def func() -> np.number:
             try:
                 return np.uint32(self.pynvml.nvmlDeviceGetClockInfo(handle, clock_type))

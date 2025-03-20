@@ -23,7 +23,7 @@ class ROCMBackend(Backend):
     name = "AMD ROCM"
     description: str = "Access GPU information from amd-smi python bindings."
 
-    def setup(self):
+    def setup(self) -> None:
         """Init rocm object."""
         self.amdsmi = importlib.import_module("amdsmi")
         try:
@@ -42,7 +42,7 @@ class ROCMBackend(Backend):
             log.error("Could not initialize AMD SMI")
             log.exception(e)
 
-    def close(self):
+    def close(self) -> None:
         """Backend cleanup."""
         if hasattr(self, "amdsmi"):
             self.amdsmi.amdsmi_shut_down()
@@ -182,7 +182,7 @@ class ROCMBackend(Backend):
             self._getMemCallback(d_uuid),
         )
 
-    def _getMemCallback(self, d_uuid) -> Callable[[], np.number]:
+    def _getMemCallback(self, d_uuid: str) -> Callable[[], np.number]:
         handle = self._uuid_map[d_uuid]
 
         def func() -> np.number:

@@ -7,7 +7,7 @@ import os
 import subprocess
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Tuple, Union
 
 log = logging.getLogger("perun")
 
@@ -47,8 +47,8 @@ class Application:
         app: Union[Path, Callable, str],
         config: ConfigParser,
         is_binary: bool = False,
-        args: tuple = (),
-        kwargs: Dict = {},
+        args: Tuple[Any, ...] = (),
+        kwargs: Dict[str, Any] = {},
     ):
         self._app = app
         self._name = self._setName(config)
@@ -66,22 +66,22 @@ class Application:
                 exit()
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the application name."""
         return self._name
 
     @property
-    def args(self):
+    def args(self) -> Tuple[Any, ...]:
         """Return the application positional arguments."""
         return self._args
 
     @property
-    def kwargs(self):
+    def kwargs(self) -> Dict[str, Any]:
         """Return the application keyword arguments."""
         return self._kwargs
 
     @property
-    def is_binary(self):
+    def is_binary(self) -> bool:
         """Return the application keyword arguments."""
         return self._is_binary
 
@@ -119,7 +119,7 @@ class Application:
         else:
             raise ValueError("Application name not found")
 
-    def _cleanup(self):
+    def _cleanup(self) -> None:
         for i in range(3):
             gc.collect(i)
 
@@ -147,10 +147,10 @@ class Application:
         else:
             raise ValueError("Application not found")
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Return the application name."""
         return f"{self.name}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Return the application name."""
         return f"Application({self.name})"

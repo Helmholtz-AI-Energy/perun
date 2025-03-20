@@ -5,6 +5,7 @@ import platform
 import time
 from configparser import ConfigParser
 from multiprocessing import Queue
+from multiprocessing.synchronize import Event as EventClass
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np
@@ -67,7 +68,7 @@ def _monitoringLoop(
     timesteps: List[int],
     rawValues: List[List[np.number]],
     stopCondition: Callable[[float], bool],
-):
+) -> None:
     timesteps.append(time.time_ns())
     for idx, device in enumerate(lSensors):
         rawValues[idx].append(device.read())
@@ -165,12 +166,12 @@ def perunSubprocess(
     rank: int,
     l_assigned_sensors: Dict[str, Tuple],
     perunConfig: ConfigParser,
-    sp_ready_event,
-    start_event,
-    stop_event,
-    close_event,
+    sp_ready_event: EventClass,
+    start_event: EventClass,
+    stop_event: EventClass,
+    close_event: EventClass,
     sampling_period: float,
-):
+) -> None:
     """Parallel function that samples energy values from hardware libraries.
 
     Parameters
@@ -179,16 +180,18 @@ def perunSubprocess(
         Multiprocessing Queue object where the results are sent after finish
     rank : int
         Local MPI Rank
-    backends : List[Backend]
-        Available backend list
     l_assigned_sensors : Dict[str, Tuple]
         Local MPI rank sensor configuration
-    sp_ready_event : _type_
+    perunConfig: ConfigParser
+        Global perun configuration
+    sp_ready_event : EventClass
         Indicates monitoring supbrocess is ready, multiprocessing module
-    start_event : _type_
-        Indicates app start, multiprocessing module
-    stop_event : _type_
-        Indicates app stop, multiprocessing module
+    start_event : EventClass
+        Indicates start of the monitored application
+    stop_event : EventClass
+        Indicates the stop of a monitored application
+    close_event : EventClass
+        Indicates that perun is closing, and the subprocess needs to close
     sampling_period : float
         Sampling period in seconds
     """
@@ -261,4 +264,4 @@ def perunSubprocess(
     for backend in backends:
         log.debug(f"Closing backend {backend}")
         del backend
-    return 0
+    return
