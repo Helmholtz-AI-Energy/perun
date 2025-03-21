@@ -12,7 +12,7 @@
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/perun)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![codecov](https://codecov.io/gh/Helmholtz-AI-Energy/perun/graph/badge.svg?token=9O6FSJ6I3G)](https://codecov.io/gh/Helmholtz-AI-Energy/perun)
-[![](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 [![Documentation Status](https://readthedocs.org/projects/perun/badge/?version=latest)](https://perun.readthedocs.io/en/latest/?badge=latest)
 
