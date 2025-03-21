@@ -112,7 +112,7 @@ env = "GIT_COMMIT_AUTHOR"
 default = "semantic-release <semantic-release>"
 
 [tool.mypy]
-python_version="3.8"
+python_version="3.9"
 packages=["perun"]
 exclude=[
     'tests/',
@@ -145,7 +145,7 @@ warn_return_any= false
 
 # Ruff
 [tool.ruff]
-target-version = "py38"
+target-version = "py39"
 exclude = ["docs", "examples"]
 
 [tool.ruff.lint]

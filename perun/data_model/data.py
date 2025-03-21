@@ -206,7 +206,7 @@ class Stats:
 class RawData:
     """Contains timesteps and recorded values from sensors, including information on the values."""
 
-    timesteps: np.ndarray[Any, np.dtype[np.floating]]
+    timesteps: np.ndarray[Any, np.dtype[Union[np.integer, np.floating]]]
     values: np.ndarray[Any, np.dtype[Union[np.integer, np.floating]]]
     t_md: MetricMetaData
     v_md: MetricMetaData
