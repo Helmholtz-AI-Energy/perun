@@ -6,8 +6,6 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-from perun import config
-
 log = logging.getLogger("perun")
 
 
@@ -113,7 +111,7 @@ class Singleton(type):
             )
 
 
-def getRunId(starttime: datetime) -> str:
+def getRunId(starttime: datetime, run_id: Optional[str] = None) -> str:
     """
     Return run id based on the configuration object or the current datetime.
 
@@ -121,6 +119,8 @@ def getRunId(starttime: datetime) -> str:
     ----------
     starttime : datetime
         The datetime object representing the start time of the run.
+    run_id: str, optional
+        A string with the id given by the user in the configuration or the command line.
 
     Returns
     -------
@@ -134,14 +134,9 @@ def getRunId(starttime: datetime) -> str:
     the value of "SLURM_JOB_ID" will be returned.
     Otherwise, the ISO formatted string representation of the start time will be returned.
     """
-    run_id = config.get("output", "run_id")
     if run_id and run_id != "SLURM":
         return run_id
-    elif (
-        run_id
-        and "SLURM_JOB_ID" in os.environ
-        and config.get("output", "run_id") == "SLURM"
-    ):
+    elif run_id and "SLURM_JOB_ID" in os.environ and run_id == "SLURM":
         return os.environ["SLURM_JOB_ID"]
     else:
         return starttime.isoformat()

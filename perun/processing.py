@@ -96,9 +96,9 @@ def processEnergyData(
 
     avg_power_W = np.mean(power_W)
     if np.__version__[0] == "1":
-        energy_J = np.trapz(power_W, x=t_s)  # noqa: NPY201
+        energy_J = np.trapz(power_W, x=t_s)  # type: ignore[attr-defined]
     else:
-        energy_J = np.trapezoid(power_W, x=t_s)
+        energy_J = np.trapezoid(power_W, x=t_s)  # type: ignore[attr-defined]
 
     return energy_J, avg_power_W
 
