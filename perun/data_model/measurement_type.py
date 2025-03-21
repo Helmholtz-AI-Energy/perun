@@ -3,11 +3,13 @@
 import dataclasses
 import enum
 import logging
-from typing import Dict
+from typing import Dict, Union
 
 import numpy as np
 
 log = logging.getLogger("perun")
+
+Number = Union[int, float, np.integer, np.floating]
 
 
 class Unit(str, enum.Enum):
@@ -113,9 +115,9 @@ class MetricMetaData:
     unit: Unit
     mag: Magnitude
     dtype: np.dtype
-    min: np.number
-    max: np.number
-    fill: np.number
+    min: Number
+    max: Number
+    fill: Number
 
     @classmethod
     def fromDict(cls, mdDict: Dict) -> "MetricMetaData":
@@ -142,7 +144,7 @@ class MetricMetaData:
             Unit(self.unit.value),
             Magnitude(self.mag.value),
             self.dtype,
-            self.min.copy(),
-            self.max.copy(),
-            self.fill.copy(),
+            self.min,
+            self.max,
+            self.fill,
         )

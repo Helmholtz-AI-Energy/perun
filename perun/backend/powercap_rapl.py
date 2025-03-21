@@ -11,7 +11,7 @@ import cpuinfo
 import numpy as np
 
 from perun.backend.backend import Backend
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 
 log = logging.getLogger("perun")
@@ -45,8 +45,8 @@ class PowercapRAPLBackend(Backend):
 
         raplPath = Path(RAPL_PATH)
 
-        def getCallback(file: IOBase, file_path: str) -> Callable[[], np.number]:
-            def func() -> np.number:
+        def getCallback(file: IOBase, file_path: str) -> Callable[[], Number]:
+            def func() -> Number:
                 try:
                     file.seek(0)
                     return np.uint64(file.readline().strip())

@@ -12,7 +12,7 @@ import numpy as np
 
 from perun.backend import Backend, available_backends
 from perun.data_model.data import DataNode, NodeType, RawData
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 from perun.processing import processDataNode, processSensorData
 
@@ -34,11 +34,11 @@ def prepSensors(
 
     Returns
     -------
-    Tuple[List[int], MetricMetaData, List[List[np.number]], List[Sensor]]
+    Tuple[List[int], MetricMetaData, List[List[Number]], List[Sensor]]
         A tuple containing the following:
         - timesteps (List[int]): A list of timesteps.
         - t_metadata (MetricMetaData): Metadata for the metrics.
-        - rawValues (List[List[np.number]]): A list of raw sensor values.
+        - rawValues (List[List[Number]]): A list of raw sensor values.
         - lSensors (List[Sensor]): A list of sensors.
     """
     lSensors: List[Sensor] = []
@@ -66,7 +66,7 @@ def prepSensors(
 def _monitoringLoop(
     lSensors: List[Sensor],
     timesteps: List[int],
-    rawValues: List[List[np.number]],
+    rawValues: List[List[Number]],
     stopCondition: Callable[[float], bool],
 ) -> None:
     timesteps.append(time.time_ns())
@@ -89,7 +89,7 @@ def _monitoringLoop(
 def createNode(
     timesteps: List[int],
     t_metadata: MetricMetaData,
-    rawValues: List[List[np.number]],
+    rawValues: List[List[Number]],
     lSensors: List[Sensor],
     perunConfig: ConfigParser,
 ) -> DataNode:
@@ -102,7 +102,7 @@ def createNode(
         A list of timesteps.
     t_metadata : MetricMetaData
         Metadata for the metrics.
-    rawValues : List[List[np.number]]
+    rawValues : List[List[Number]]
         A list of raw sensor values.
     lSensors : List[Sensor]
         A list of sensors.
@@ -215,7 +215,7 @@ def perunSubprocess(
 
     # Reset
     timesteps: List[int] = []
-    rawValues: List[List[np.number]] = []
+    rawValues: List[List[Number]] = []
     for _ in lSensors:
         rawValues.append([])
     log.debug(f"SP: backends -- {backends}")

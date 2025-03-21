@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, List, Set, Tuple
 import numpy as np
 
 from perun.backend.backend import Backend
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 
 log = logging.getLogger("perun")
@@ -135,7 +135,7 @@ class NVMLBackend(Backend):
             **self._metadata,
         }
         try:
-            max_power: np.number = np.uint32(
+            max_power: Number = np.uint32(
                 self.pynvml.nvmlDeviceGetPowerManagementDefaultLimit(handle)
             )
             log.debug(f"Device {uuid} Max Power : {max_power}")
@@ -160,8 +160,8 @@ class NVMLBackend(Backend):
             self._getPowerCallback(handle),
         )
 
-    def _getPowerCallback(self, handle: Any) -> Callable[[], np.number]:
-        def func() -> np.number:
+    def _getPowerCallback(self, handle: Any) -> Callable[[], Number]:
+        def func() -> Number:
             try:
                 return np.uint32(self.pynvml.nvmlDeviceGetPowerUsage(handle))
             except self.pynvml.NVMLError as e:
@@ -187,7 +187,7 @@ class NVMLBackend(Backend):
         }
 
         try:
-            max_memory: np.number = np.uint64(
+            max_memory: Number = np.uint64(
                 self.pynvml.nvmlDeviceGetMemoryInfo(handle).total
             )
             log.debug(f"Device {device_idx} Max Memory : {max_memory}")
@@ -212,8 +212,8 @@ class NVMLBackend(Backend):
             self._getUsedMemCallback(handle),
         )
 
-    def _getUsedMemCallback(self, handle: Any) -> Callable[[], np.number]:
-        def func() -> np.number:
+    def _getUsedMemCallback(self, handle: Any) -> Callable[[], Number]:
+        def func() -> Number:
             try:
                 return np.uint64(self.pynvml.nvmlDeviceGetMemoryInfo(handle).used)
             except self.pynvml.NVMLError as e:
@@ -280,10 +280,8 @@ class NVMLBackend(Backend):
             self._getClockCallback(handle, self.clock_types[clock_type]),
         )
 
-    def _getClockCallback(
-        self, handle: Any, clock_type: Any
-    ) -> Callable[[], np.number]:
-        def func() -> np.number:
+    def _getClockCallback(self, handle: Any, clock_type: Any) -> Callable[[], Number]:
+        def func() -> Number:
             try:
                 return np.uint32(self.pynvml.nvmlDeviceGetClockInfo(handle, clock_type))
             except self.pynvml.NVMLError as e:

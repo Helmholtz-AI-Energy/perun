@@ -4,9 +4,7 @@ import enum
 from dataclasses import asdict, dataclass
 from typing import Any, Callable, Dict
 
-import numpy as np
-
-from perun.data_model.measurement_type import MetricMetaData
+from perun.data_model.measurement_type import MetricMetaData, Number
 
 
 class DeviceType(str, enum.Enum):
@@ -31,9 +29,9 @@ class Sensor:
     type: DeviceType
     metadata: Dict
     dataType: MetricMetaData
-    measureCallback: Callable[[], np.number]
+    measureCallback: Callable[[], Number]
 
-    def read(self) -> np.number:
+    def read(self) -> Number:
         """Read value from sensor."""
         return self.measureCallback()
 

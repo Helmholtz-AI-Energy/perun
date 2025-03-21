@@ -10,11 +10,10 @@ from multiprocessing.synchronize import Event as EventClass
 from subprocess import Popen
 from typing import Any, Dict, List, Optional, Tuple
 
-import numpy as np
-
 from perun.backend.backend import Backend
 from perun.comm import Comm
 from perun.data_model.data import DataNode, LocalRegions, NodeType
+from perun.data_model.measurement_type import Number
 from perun.monitoring.subprocess import createNode, perunSubprocess, prepSensors
 from perun.processing import processDataNode
 
@@ -310,7 +309,7 @@ class PerunMonitor:
         log.debug(f"Rank {self._comm.Get_rank()}: perunSP lSensors: {lSensors}")
 
         timesteps: List[int] = []
-        rawValues: List[List[np.number]] = []
+        rawValues: List[List[Number]] = []
         for _ in lSensors:
             rawValues.append([])
 

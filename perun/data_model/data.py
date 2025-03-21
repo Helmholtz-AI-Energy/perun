@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
 
-from perun.data_model.measurement_type import MetricMetaData
+from perun.data_model.measurement_type import MetricMetaData, Number
 from perun.data_model.sensor import DeviceType
 
 log = logging.getLogger("perun")
@@ -94,7 +94,7 @@ class Metric:
     """Struct with resulting metrics and the metadata."""
 
     type: MetricType
-    value: np.number
+    value: Number
     metric_md: MetricMetaData
     agg: AggregateType
 
@@ -118,7 +118,7 @@ class Metric:
         """
         return Metric(
             MetricType(self.type.value),
-            self.value.copy(),
+            self.value,
             self.metric_md.copy(),
             AggregateType(self.agg.value),
         )
@@ -130,11 +130,11 @@ class Stats:
 
     type: MetricType
     metric_md: MetricMetaData
-    sum: np.number
-    mean: np.number
-    std: np.number
-    max: np.number
-    min: np.number
+    sum: Number
+    mean: Number
+    std: Number
+    max: Number
+    min: Number
 
     @classmethod
     def fromMetrics(cls, metrics: List[Metric]) -> "Stats":
@@ -172,20 +172,20 @@ class Stats:
         return cls(type, metric_md, sum, mean, std, max, min)
 
     @property
-    def value(self) -> np.number:
+    def value(self) -> Number:
         """Value property (mean).
 
         For compatibility with Metric dataclass.
 
         Returns
         -------
-        np.number
+        Number
             Return the mean value of the stats object.
         """
         return self.mean
 
     @value.setter
-    def value(self, n_value: np.number) -> None:
+    def value(self, n_value: Number) -> None:
         self.mean = n_value
 
     @classmethod
@@ -206,8 +206,8 @@ class Stats:
 class RawData:
     """Contains timesteps and recorded values from sensors, including information on the values."""
 
-    timesteps: np.ndarray
-    values: np.ndarray
+    timesteps: np.ndarray[Any, np.dtype[np.floating]]
+    values: np.ndarray[Any, np.dtype[Union[np.integer, np.floating]]]
     t_md: MetricMetaData
     v_md: MetricMetaData
     alt_values: Optional[np.ndarray] = None
@@ -291,7 +291,9 @@ class Region:
     """
 
     id: str = ""
-    raw_data: Dict[int, np.ndarray] = dataclasses.field(default_factory=dict)
+    raw_data: Dict[int, np.ndarray[Any, np.dtype[np.floating]]] = dataclasses.field(
+        default_factory=dict
+    )
     runs_per_rank: Optional[Stats] = None
     metrics: Dict[MetricType, Stats] = dataclasses.field(default_factory=dict)
     processed: bool = False

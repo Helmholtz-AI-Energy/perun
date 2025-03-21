@@ -119,6 +119,8 @@ exclude=[
     'examples/'
 ]
 
+plugins = ['numpy.typing.mypy_plugin']
+
 disallow_untyped_defs = true
 disallow_any_unimported = true
 no_implicit_optional = true
@@ -130,9 +132,15 @@ follow_imports = "normal"
 follow_untyped_imports = true
 
 [[tool.mypy.overrides]]
-module=["perun.comm"]
+module=[
+    "perun.comm",
+    "perun.backend.rocmsmi",
+    "perun.backend.psutil",
+    "perun.backend.powercap_rapl",
+    "perun.backend.nvml"
+]
 warn_return_any= false
-ignore_missing_imports = true
+# ignore_missing_imports = true
 
 
 # Ruff

@@ -7,7 +7,7 @@ import numpy as np
 import psutil
 
 from perun.backend.backend import Backend
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 
 log = logging.getLogger("perun")
@@ -63,42 +63,42 @@ class PSUTILBackend(Backend):
                 sensors[f"CPU_FREQ_{cpu_id}"] = (self.id, DeviceType.CPU, Unit.HZ)
         return sensors
 
-    def _getCallback(self, device: str) -> Callable[[], np.number]:
+    def _getCallback(self, device: str) -> Callable[[], Number]:
         """Return measuring function for each device."""
         if device == "RAM_USAGE":
 
-            def func() -> np.number:
+            def func() -> Number:
                 return np.uint64(psutil.virtual_memory().used)
 
         elif device == "CPU_USAGE":
 
-            def func() -> np.number:
+            def func() -> Number:
                 return np.float32(psutil.cpu_percent())
 
         elif device == "DISK_READ_BYTES":
 
-            def func() -> np.number:
+            def func() -> Number:
                 return np.uint64(psutil.disk_io_counters(nowrap=True).read_bytes)  # type: ignore[union-attr]
 
         elif device == "DISK_WRITE_BYTES":
 
-            def func() -> np.number:
+            def func() -> Number:
                 return np.uint64(psutil.disk_io_counters(nowrap=True).write_bytes)  # type: ignore[union-attr]
 
         elif device == "NET_WRITE_BYTES":
 
-            def func() -> np.number:
+            def func() -> Number:
                 return np.uint64(psutil.net_io_counters(nowrap=True).bytes_sent)
 
         elif device == "NET_READ_BYTES":
 
-            def func() -> np.number:
+            def func() -> Number:
                 return np.uint64(psutil.net_io_counters(nowrap=True).bytes_recv)
 
         elif device.startswith("CPU_FREQ_"):
             cpuId = int(device.split("_")[-1])
 
-            def func() -> np.number:
+            def func() -> Number:
                 return np.float32(psutil.cpu_freq(percpu=True)[cpuId].current)
 
         else:
