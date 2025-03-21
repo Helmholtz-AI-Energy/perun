@@ -19,7 +19,7 @@ from perun.data_model.data import (
     Region,
     Stats,
 )
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType
 
 log = logging.getLogger("perun")
@@ -27,8 +27,8 @@ log = logging.getLogger("perun")
 
 def processEnergyData(
     raw_data: RawData,
-    start: Optional[np.number] = None,
-    end: Optional[np.number] = None,
+    start: Optional[Number] = None,
+    end: Optional[Number] = None,
 ) -> Tuple[Any, Any]:
     """Calculate total energy and average power from an energy or power time series.
 
@@ -38,9 +38,9 @@ def processEnergyData(
     ----------
     raw_data : RawData
         Raw Data from sensor
-    start : Optional[np.number], optional
+    start : Optional[Number], optional
         Start time of region, by default None
-    end : Optional[np.number], optional
+    end : Optional[Number], optional
         End time of region, by default None
 
     Returns
@@ -48,7 +48,7 @@ def processEnergyData(
     _type_
        Tuple with total energy in joules and avg power in watts.
     """
-    t_s = raw_data.timesteps.astype("float32")
+    t_s: np.ndarray = raw_data.timesteps.astype("float32")
     t_s *= raw_data.t_md.mag.value / Magnitude.ONE.value
     magFactor = raw_data.v_md.mag.value / Magnitude.ONE.value
 
@@ -95,7 +95,11 @@ def processEnergyData(
         t_s, power_W = getInterpolatedValues(t_s, power_W, start, end)
 
     avg_power_W = np.mean(power_W)
-    energy_J = np.trapz(power_W, x=t_s)  # type: ignore
+    if np.__version__[0] == "1":
+        energy_J = np.trapz(power_W, x=t_s)  # type: ignore[attr-defined]
+    else:
+        energy_J = np.trapezoid(power_W, x=t_s)  # type: ignore[attr-defined]
+
     return energy_J, avg_power_W
 
 
@@ -115,7 +119,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
     if sensorData.type == NodeType.SENSOR and sensorData.raw_data:
         rawData = sensorData.raw_data
 
-        runtime = rawData.timesteps[-1]
+        runtime: float = rawData.timesteps[-1].item()
         sensorData.metrics[MetricType.RUNTIME] = Metric(
             MetricType.RUNTIME, runtime, rawData.t_md, AggregateType.MAX
         )
@@ -236,7 +240,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
 
 
 def processDataNode(
-    dataNode: DataNode, perunConfig: ConfigParser, force_process=False
+    dataNode: DataNode, perunConfig: ConfigParser, force_process: bool = False
 ) -> DataNode:
     """Recursively calculate metrics on the dataNode tree.
 
@@ -318,17 +322,17 @@ def processDataNode(
     # Apply power overhead to each computational node if there is power data available.
     if dataNode.type == NodeType.NODE and MetricType.POWER in dataNode.metrics:
         power_overhead = perunConfig.getfloat("post-processing", "power_overhead")
-        dataNode.metrics[MetricType.POWER].value += power_overhead  # type: ignore
+        dataNode.metrics[MetricType.POWER].value += power_overhead
         runtime = dataNode.metrics[MetricType.RUNTIME].value
-        dataNode.metrics[MetricType.ENERGY].value += runtime * power_overhead  # type: ignore
+        dataNode.metrics[MetricType.ENERGY].value += runtime * power_overhead
 
     # If there is energy data, apply PUE, and convert to currency and CO2 emmisions.
     if dataNode.type == NodeType.RUN and MetricType.ENERGY in dataNode.metrics:
         pue = perunConfig.getfloat("post-processing", "pue")
         emissions_factor = perunConfig.getfloat("post-processing", "emissions_factor")
         price_factor = perunConfig.getfloat("post-processing", "price_factor")
-        total_energy = dataNode.metrics[MetricType.ENERGY].value * pue  # type: ignore
-        dataNode.metrics[MetricType.ENERGY].value = total_energy  # type: ignore
+        total_energy = dataNode.metrics[MetricType.ENERGY].value * pue
+        dataNode.metrics[MetricType.ENERGY].value = total_energy
         e_kWh = total_energy / (3600 * 1e3)
 
         costMetric = Metric(
@@ -365,7 +369,7 @@ def processDataNode(
     return dataNode
 
 
-def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
+def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode) -> None:
     """Complete region information using sensor data found on the data node (in place op).
 
     Parameters
@@ -413,8 +417,8 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                         ):
                                             _, power_W = processEnergyData(
                                                 raw_data,
-                                                events[i * 2],
-                                                events[i * 2 + 1],
+                                                events[i * 2].item(),
+                                                events[i * 2 + 1].item(),
                                             )
                                             power[region_idx][rank][i] += power_W
                                         elif (
@@ -424,8 +428,8 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                             _, values = getInterpolatedValues(
                                                 raw_data.timesteps.astype("float32"),
                                                 raw_data.values,
-                                                events[i * 2],
-                                                events[i * 2 + 1],
+                                                events[i * 2].item(),
+                                                events[i * 2 + 1].item(),
                                             )
                                             cpu_util[region_idx][rank][i] += np.mean(
                                                 values, dtype="float32"
@@ -437,8 +441,8 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                             _, values = getInterpolatedValues(
                                                 raw_data.timesteps.astype("float32"),
                                                 raw_data.values,
-                                                events[i * 2],
-                                                events[i * 2 + 1],
+                                                events[i * 2].item(),
+                                                events[i * 2 + 1].item(),
                                             )
                                             dram_mem[region_idx][rank][i] += (
                                                 np.mean(values)
@@ -451,8 +455,8 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                                             _, values = getInterpolatedValues(
                                                 raw_data.timesteps.astype("float32"),
                                                 raw_data.values,
-                                                events[i * 2],
-                                                events[i * 2 + 1],
+                                                events[i * 2].item(),
+                                                events[i * 2 + 1].item(),
                                             )
                                             gpu_mem[region_idx][rank][i] += (
                                                 np.mean(values)
@@ -487,7 +491,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                 Magnitude.ONE,
                 np.dtype("uint64"),
                 np.uint64(0),
-                np.iinfo("uint64").max,  # type: ignore
+                np.uint64(np.iinfo("uint64").max),
                 np.uint64(0),
             ),
             r_dram_mem.sum(),
@@ -503,7 +507,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                 Magnitude.ONE,
                 np.dtype("float32"),
                 np.float32(0),
-                np.finfo("float32").max,
+                np.float32(np.finfo("float32").max),
                 np.float32(-1),
             ),
             r_power.sum(),
@@ -520,7 +524,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
                     Magnitude.ONE,
                     np.dtype("uint64"),
                     np.uint64(0),
-                    np.iinfo("uint64").max,  # type: ignore
+                    np.uint64(np.iinfo("uint64").max),
                     np.uint64(0),
                 ),
                 r_gpu_mem.sum(),
@@ -531,7 +535,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode):
             )
 
 
-def addRunAndRuntimeInfoToRegion(region: Region):
+def addRunAndRuntimeInfoToRegion(region: Region) -> None:
     """Process run and runtime stats in region objects (in place operation).
 
     Parameters
@@ -587,7 +591,7 @@ def addRunAndRuntimeInfoToRegion(region: Region):
 
 
 def getInterpolatedValues(
-    t: np.ndarray, x: np.ndarray, start: np.number, end: np.number
+    t: np.ndarray, x: np.ndarray, start: Number, end: Number
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Extract a time range out of a time series, and interpolate the values at the edges.
 
@@ -597,9 +601,9 @@ def getInterpolatedValues(
         Original time steps
     x : np.ndarray
         Original values
-    start : np.number
+    start : Number
         Start of the roi
-    end : np.number
+    end : Number
         End of the roi
 
     Returns
@@ -608,5 +612,5 @@ def getInterpolatedValues(
         Tuple with the new time steps and values.
     """
     new_t = np.concatenate([[start], t[np.all([t >= start, t <= end], axis=0)], [end]])
-    new_x = np.interp(new_t, t, x)  # type: ignore
+    new_x = np.interp(new_t, t, x)
     return new_t, new_x

@@ -22,7 +22,6 @@
    configuration
    data
 
-
 .. Links
 .. _github page: https://github.com/Helmholtz-AI-Energy/perun
 

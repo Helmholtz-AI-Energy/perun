@@ -7,7 +7,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 
 from perun.data_model.data import DataNode, MetricType, Stats
-from perun.data_model.measurement_type import Magnitude, MetricMetaData
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number
 from perun.io.util import getTFactorMag
 
 log = logging.getLogger("perun")
@@ -74,7 +74,7 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
                     }
                 )
 
-    region_data: Dict[str, Dict[str, Tuple[List[np.number], MetricMetaData]]] = {}
+    region_data: Dict[str, Dict[str, Tuple[List[Number], MetricMetaData]]] = {}
     if len(mrNode.nodes) > 1:
         log.info(
             "When generating benchmarks for regions, it is preferable to if each function only runs a single time."
@@ -109,8 +109,8 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
             values = data[0]
             metadata = data[1]
             if len(values) > 1:
-                mean = np.mean(values)  # type: ignore
-                std = np.std(values)  # type: ignore
+                mean = np.mean(values)
+                std = np.std(values)
                 if metadata.unit.name in bench_units:
                     mag = bench_units[metadata.unit.name]
                     old_mag = metadata.mag

@@ -7,4 +7,8 @@ from perun.logging import init_logging
 
 log = init_logging(config.get("debug", "log_lvl"))
 
-from perun.api.decorator import monitor, register_callback, perun
+# isort: split
+
+from perun.api.decorator import monitor, perun, register_callback
+
+__all__ = ["monitor", "register_callback", "perun"]

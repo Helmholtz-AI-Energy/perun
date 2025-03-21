@@ -67,7 +67,7 @@ GPU
 Supported backends:
 
  - NVIDIA GPU power draw: `NVIDIA NVML <https://developer.nvidia.com/nvidia-management-library-nvml>`_ using nvidia-ml-py.
- - AMD GPU power draw: `ROCM SMI <https://github.com/RadeonOpenCompute/pyrsmi>`_ using pyrsmi.
+ - AMD GPU power draw: `AMD SMI <https://github.com/ROCm/amdsmi`_ using `amdsmi`.
 
 DRAM
 ~~~~

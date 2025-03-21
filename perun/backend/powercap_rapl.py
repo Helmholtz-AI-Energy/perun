@@ -11,7 +11,7 @@ import cpuinfo
 import numpy as np
 
 from perun.backend.backend import Backend
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 
 log = logging.getLogger("perun")
@@ -32,7 +32,7 @@ class PowercapRAPLBackend(Backend):
     name = "Powercap RAPL"
     description = "Reads energy usage from CPUs and DRAM using Powercap RAPL"
 
-    def setup(self):
+    def setup(self) -> None:
         """Check Intel RAPL access."""
         cpuInfo = cpuinfo.get_cpu_info()
         self._metadata = {}
@@ -45,8 +45,8 @@ class PowercapRAPLBackend(Backend):
 
         raplPath = Path(RAPL_PATH)
 
-        def getCallback(file: IOBase, file_path: str) -> Callable[[], np.number]:
-            def func() -> np.number:
+        def getCallback(file: IOBase, file_path: str) -> Callable[[], Number]:
+            def func() -> Number:
                 try:
                     file.seek(0)
                     return np.uint64(file.readline().strip())
@@ -160,16 +160,18 @@ class PowercapRAPLBackend(Backend):
                                     max_energy,
                                 )
 
-                                energy_path = str(grandchild / "energy_uj")
-                                energy_file = open(energy_path, "r")
-                                log.debug(f"RAPL FILE OPENED: {energy_path}")
+                                grandchild_energy_path = grandchild / "energy_uj"
+                                energy_file = open(grandchild_energy_path, "r")
+                                log.debug(f"RAPL FILE OPENED: {grandchild_energy_path}")
                                 self._files.append(energy_file)
                                 device = Sensor(
                                     f"{devType.value}_{socket}_{device_name}",
                                     devType,
                                     self._metadata,
                                     dataType,
-                                    getCallback(energy_file, energy_path),
+                                    getCallback(
+                                        energy_file, str(grandchild_energy_path)
+                                    ),
                                 )
                                 log.debug(device)
                                 self.devices[device.id] = device

@@ -5,13 +5,14 @@ import platform
 import time
 from configparser import ConfigParser
 from multiprocessing import Queue
+from multiprocessing.synchronize import Event as EventClass
 from typing import Callable, Dict, List, Tuple
 
 import numpy as np
 
 from perun.backend import Backend, available_backends
 from perun.data_model.data import DataNode, NodeType, RawData
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 from perun.processing import processDataNode, processSensorData
 
@@ -33,11 +34,11 @@ def prepSensors(
 
     Returns
     -------
-    Tuple[List[int], MetricMetaData, List[List[np.number]], List[Sensor]]
+    Tuple[List[int], MetricMetaData, List[List[Number]], List[Sensor]]
         A tuple containing the following:
         - timesteps (List[int]): A list of timesteps.
         - t_metadata (MetricMetaData): Metadata for the metrics.
-        - rawValues (List[List[np.number]]): A list of raw sensor values.
+        - rawValues (List[List[Number]]): A list of raw sensor values.
         - lSensors (List[Sensor]): A list of sensors.
     """
     lSensors: List[Sensor] = []
@@ -65,9 +66,9 @@ def prepSensors(
 def _monitoringLoop(
     lSensors: List[Sensor],
     timesteps: List[int],
-    rawValues: List[List[np.number]],
+    rawValues: List[List[Number]],
     stopCondition: Callable[[float], bool],
-):
+) -> None:
     timesteps.append(time.time_ns())
     for idx, device in enumerate(lSensors):
         rawValues[idx].append(device.read())
@@ -88,7 +89,7 @@ def _monitoringLoop(
 def createNode(
     timesteps: List[int],
     t_metadata: MetricMetaData,
-    rawValues: List[List[np.number]],
+    rawValues: List[List[Number]],
     lSensors: List[Sensor],
     perunConfig: ConfigParser,
 ) -> DataNode:
@@ -101,7 +102,7 @@ def createNode(
         A list of timesteps.
     t_metadata : MetricMetaData
         Metadata for the metrics.
-    rawValues : List[List[np.number]]
+    rawValues : List[List[Number]]
         A list of raw sensor values.
     lSensors : List[Sensor]
         A list of sensors.
@@ -165,12 +166,12 @@ def perunSubprocess(
     rank: int,
     l_assigned_sensors: Dict[str, Tuple],
     perunConfig: ConfigParser,
-    sp_ready_event,
-    start_event,
-    stop_event,
-    close_event,
+    sp_ready_event: EventClass,
+    start_event: EventClass,
+    stop_event: EventClass,
+    close_event: EventClass,
     sampling_period: float,
-):
+) -> None:
     """Parallel function that samples energy values from hardware libraries.
 
     Parameters
@@ -179,16 +180,18 @@ def perunSubprocess(
         Multiprocessing Queue object where the results are sent after finish
     rank : int
         Local MPI Rank
-    backends : List[Backend]
-        Available backend list
     l_assigned_sensors : Dict[str, Tuple]
         Local MPI rank sensor configuration
-    sp_ready_event : _type_
+    perunConfig: ConfigParser
+        Global perun configuration
+    sp_ready_event : EventClass
         Indicates monitoring supbrocess is ready, multiprocessing module
-    start_event : _type_
-        Indicates app start, multiprocessing module
-    stop_event : _type_
-        Indicates app stop, multiprocessing module
+    start_event : EventClass
+        Indicates start of the monitored application
+    stop_event : EventClass
+        Indicates the stop of a monitored application
+    close_event : EventClass
+        Indicates that perun is closing, and the subprocess needs to close
     sampling_period : float
         Sampling period in seconds
     """
@@ -212,7 +215,7 @@ def perunSubprocess(
 
     # Reset
     timesteps: List[int] = []
-    rawValues: List[List[np.number]] = []
+    rawValues: List[List[Number]] = []
     for _ in lSensors:
         rawValues.append([])
     log.debug(f"SP: backends -- {backends}")
@@ -261,4 +264,4 @@ def perunSubprocess(
     for backend in backends:
         log.debug(f"Closing backend {backend}")
         del backend
-    return 0
+    return

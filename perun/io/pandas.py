@@ -8,7 +8,7 @@ import pandas as pd
 from perun.data_model.data import DataNode
 
 
-def exportCSV(outputPath: Path, dataNode: DataNode, mr_id: str):
+def exportCSV(outputPath: Path, dataNode: DataNode, mr_id: str) -> None:
     """Export data node to csv format.
 
     Parameters

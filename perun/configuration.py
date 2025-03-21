@@ -77,7 +77,7 @@ def read_custom_config(
         config.read(configPath)
 
 
-def save_to_config(key: str, value: Any):
+def save_to_config(key: str, value: Any) -> None:
     """Save key and value to configuration.
 
     Parameters
@@ -92,7 +92,7 @@ def save_to_config(key: str, value: Any):
             config.set(section, key, str(value))
 
 
-def read_environ():
+def read_environ() -> None:
     """Read perun environmental variables."""
     for section, subconf in _default_config.items():
         for option in subconf.keys():
@@ -101,7 +101,7 @@ def read_environ():
                 config.set(section, option, os.environ[envvar])
 
 
-def sanitize_config(config) -> configparser.ConfigParser:
+def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigParser:
     """Sanitize configuration values.
 
     Parameters

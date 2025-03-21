@@ -203,7 +203,7 @@ def _get_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def cli():
+def cli() -> None:
     """Command line entrypoint."""
     parser = _get_arg_parser()
 
@@ -236,7 +236,7 @@ def cli():
         args.func(args)
 
 
-def showconf(args: argparse.Namespace):
+def showconf(args: argparse.Namespace) -> None:
     """Print current perun configuration in INI format."""
     from perun.configuration import _default_config
 
@@ -247,7 +247,7 @@ def showconf(args: argparse.Namespace):
         config.write(sys.stdout)
 
 
-def sensors(args: argparse.Namespace):
+def sensors(args: argparse.Namespace) -> None:
     """Print available sensors."""
     perun = Perun(config)
     log.debug("Initialized perun object.")
@@ -274,7 +274,7 @@ def sensors(args: argparse.Namespace):
             print(sensors_table([available_sensors], by_rank=False))
 
 
-def metadata(args: argparse.Namespace):
+def metadata(args: argparse.Namespace) -> None:
     """Print global metadata dictionaries in json format."""
     perun = Perun(config)
 
@@ -290,12 +290,12 @@ def metadata(args: argparse.Namespace):
         json.dump(metadataDict, sys.stdout, indent=4)
 
 
-def export(args: argparse.Namespace):
+def export(args: argparse.Namespace) -> None:
     """Export existing perun output file to another format."""
     in_file = Path(args.input_file)
     if not in_file.exists():
         log.error("File does not exist.")
-        return -1
+        return
 
     perun = Perun(config)
 
@@ -310,7 +310,7 @@ def export(args: argparse.Namespace):
         perun.export_to(out_path, dataNode, out_format)
 
 
-def monitor(args: argparse.Namespace):
+def monitor(args: argparse.Namespace) -> None:
     """
     Gather power consumption from hardware devices while SCRIPT [SCRIPT_ARGS] is running.
 

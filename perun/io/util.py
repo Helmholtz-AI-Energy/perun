@@ -2,20 +2,16 @@
 
 from typing import Tuple
 
-import numpy as np
-
 from perun.data_model.data import Stats
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 
 
-def getTFactorMag(
-    value: np.number, metric_md: MetricMetaData
-) -> Tuple[float, Magnitude]:
+def getTFactorMag(value: Number, metric_md: MetricMetaData) -> Tuple[float, Magnitude]:
     """Get transformation factor and magnitude to improve string formating.
 
     Parameters
     ----------
-    value : np.number
+    value : Number
         Reference value
     metric_md : MetricMetaData
         Value description
@@ -47,12 +43,12 @@ def getTFactorMag(
         return 1.0, metric_md.mag
 
 
-def value2ValueUnitStr(value: np.number, metric_md: MetricMetaData) -> str:
+def value2ValueUnitStr(value: Number, metric_md: MetricMetaData) -> str:
     """Return a printable representation as [Value:.3f][mag][unit] (e.g. 3.05mV) of the value based on its metric metadata.
 
     Parameters
     ----------
-    value : np.number
+    value : Number
         Value to apply formating to.
     metric_md : MetricMetaData
         Value metadata.

@@ -41,9 +41,9 @@ def getBackendMetadata(
 
     Parameters
     ----------
-    backends : List[Backend]
-        List with available backends.
-    backendConfig : Dict[str, Set[str]]
+    backends : dict[str, Backend]
+        Dictionary with available backends
+    sensors : Dict[str, Tuple[str]]
         Sensor backend configuration to include in the metadata object.
 
     Returns

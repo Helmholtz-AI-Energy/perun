@@ -11,7 +11,7 @@ log = logging.getLogger("perun")
 class Comm:
     """Wrapper around MPI COMM_WORLD. Does nothing if MPI is not initialized."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize MPI Communicator if availablel."""
         self._enabled = False
         self._initialized = False
@@ -32,7 +32,7 @@ class Comm:
             log.info("Missing mpi4py, multi-node monitoring disabled")
             log.info(e)
 
-    def _mpi_init(self):
+    def _mpi_init(self) -> None:
         log.debug("Initializing MPI")
         if not self._MPI.Is_initialized():
             self._MPI.Init()
@@ -138,14 +138,14 @@ class Comm:
         else:
             return obj
 
-    def barrier(self):
+    def barrier(self) -> None:
         """MPI barrier operation."""
         if self._enabled:
             if not self._initialized:
                 self._mpi_init()
             self._comm.barrier()
 
-    def Abort(self, errorcode: int):
+    def Abort(self, errorcode: int) -> None:
         """MPI Abort operation."""
         if self._enabled:
             if not self._initialized:

@@ -4,7 +4,7 @@ import enum
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from perun.data_model.data import DataNode
 from perun.io.bench import exportBench
@@ -37,12 +37,12 @@ class IOFormat(enum.Enum):
     BENCH = "bench"
 
     @property
-    def suffix(self):
+    def suffix(self) -> str:
         """Return file suffix from format."""
         return _suffixes[self.value]
 
     @classmethod
-    def fromSuffix(cls, suffix: str):
+    def fromSuffix(cls, suffix: str) -> "IOFormat":
         """Return format from suffix."""
         for key, value in _suffixes.items():
             if value in suffix:
@@ -51,8 +51,8 @@ class IOFormat(enum.Enum):
 
 
 def exportTo(
-    output_path: Path, dataNode: DataNode, format: IOFormat, mr_id: Optional[str] = None
-):
+    output_path: Path, dataNode: DataNode, format: IOFormat, mr_id: str = ""
+) -> None:
     """Export DataNode structure to the selected format.
 
     Parameters
@@ -79,7 +79,7 @@ def exportTo(
         log.warning("Output directory does not exist. Creating it.")
         output_path.mkdir(parents=True)
 
-    if not mr_id and (
+    if mr_id == "" and (
         format == IOFormat.BENCH or format == IOFormat.TEXT or format == IOFormat.CSV
     ):
         log.info("No run ID provided, using last executed run to generate output")
@@ -127,7 +127,7 @@ def exportTo(
         if output_path.exists() and output_path.is_file():
             log.info(f"Overwriting existing file {output_path}")
 
-        exportCSV(output_path, dataNode, mr_id)  # type: ignore
+        exportCSV(output_path, dataNode, mr_id)
     elif format == IOFormat.BENCH:
         fileType = "w"
         output_path = output_path / f"{dataNode.id}_{mr_id}.{format.suffix}"
@@ -135,7 +135,7 @@ def exportTo(
         if output_path.exists() and output_path.is_file():
             log.info(f"Overwriting existing file {output_path}")
 
-        reportStr = exportBench(dataNode, mr_id)  # type: ignore
+        reportStr = exportBench(dataNode, mr_id)
         with open(output_path, fileType) as file:
             file.write(reportStr)
 
@@ -146,7 +146,7 @@ def exportTo(
         if output_path.exists() and output_path.is_file():
             log.info(f"Overwriting existing file {output_path}")
 
-        reportStr = textReport(dataNode, mr_id)  # type: ignore
+        reportStr = textReport(dataNode, mr_id)
         with open(output_path, fileType, encoding="utf-8") as file:
             file.write(reportStr)
 

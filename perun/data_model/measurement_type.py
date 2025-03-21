@@ -3,11 +3,13 @@
 import dataclasses
 import enum
 import logging
-from typing import Dict
+from typing import Dict, Union
 
 import numpy as np
 
 log = logging.getLogger("perun")
+
+Number = Union[int, float, np.integer, np.floating]
 
 
 class Unit(str, enum.Enum):
@@ -65,7 +67,7 @@ class Magnitude(float, enum.Enum):
     TERA = 1e12
 
     @classmethod
-    def fromSymbol(cls, symbol: str):
+    def fromSymbol(cls, symbol: str) -> "Magnitude":
         """Create a Magniture objet from a magnigure symbol.
 
         Parameters
@@ -113,12 +115,12 @@ class MetricMetaData:
     unit: Unit
     mag: Magnitude
     dtype: np.dtype
-    min: np.number
-    max: np.number
-    fill: np.number
+    min: Number
+    max: Number
+    fill: Number
 
     @classmethod
-    def fromDict(cls, mdDict: Dict):
+    def fromDict(cls, mdDict: Dict) -> "MetricMetaData":
         """Create MetricMetadata from a dictionary."""
         dtype = np.dtype(mdDict["dtype"])
         return cls(
@@ -130,7 +132,7 @@ class MetricMetaData:
             dtype.type(mdDict["fill"], dtype=dtype),
         )
 
-    def copy(self):
+    def copy(self) -> "MetricMetaData":
         """Copy MetricMetaData object.
 
         Returns
@@ -142,7 +144,7 @@ class MetricMetaData:
             Unit(self.unit.value),
             Magnitude(self.mag.value),
             self.dtype,
-            self.min.copy(),
-            self.max.copy(),
-            self.fill.copy(),
+            self.min,
+            self.max,
+            self.fill,
         )

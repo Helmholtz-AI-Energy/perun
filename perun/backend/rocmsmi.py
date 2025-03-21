@@ -7,7 +7,7 @@ from typing import Callable, Dict, List, Set, Tuple
 import numpy as np
 
 from perun.backend.backend import Backend
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
+from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 
 log = logging.getLogger("perun")
@@ -23,7 +23,7 @@ class ROCMBackend(Backend):
     name = "AMD ROCM"
     description: str = "Access GPU information from amd-smi python bindings."
 
-    def setup(self):
+    def setup(self) -> None:
         """Init rocm object."""
         self.amdsmi = importlib.import_module("amdsmi")
         try:
@@ -42,7 +42,7 @@ class ROCMBackend(Backend):
             log.error("Could not initialize AMD SMI")
             log.exception(e)
 
-    def close(self):
+    def close(self) -> None:
         """Backend cleanup."""
         if hasattr(self, "amdsmi"):
             self.amdsmi.amdsmi_shut_down()
@@ -134,10 +134,10 @@ class ROCMBackend(Backend):
             self._getPowerCallback(d_uuid),
         )
 
-    def _getPowerCallback(self, d_uuid: str) -> Callable[[], np.number]:
+    def _getPowerCallback(self, d_uuid: str) -> Callable[[], Number]:
         handle = self._uuid_map[d_uuid]
 
-        def func() -> np.number:
+        def func() -> Number:
             try:
                 power_info = self.amdsmi.amdsmi_get_power_info(handle)
                 return np.uint32(power_info["average_socket_power"])
@@ -182,10 +182,10 @@ class ROCMBackend(Backend):
             self._getMemCallback(d_uuid),
         )
 
-    def _getMemCallback(self, d_uuid) -> Callable[[], np.number]:
+    def _getMemCallback(self, d_uuid: str) -> Callable[[], Number]:
         handle = self._uuid_map[d_uuid]
 
-        def func() -> np.number:
+        def func() -> Number:
             try:
                 vram = self.amdsmi.amdsmi_get_gpu_memory_usage(
                     handle, self.amdsmi.AmdSmiMemoryType.VRAM

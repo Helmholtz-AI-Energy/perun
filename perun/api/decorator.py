@@ -2,7 +2,7 @@
 
 import functools
 import logging
-from typing import Callable, Optional
+from typing import Any, Callable, Optional
 
 from perun.configuration import config, read_custom_config, read_environ, save_to_config
 from perun.core import Perun
@@ -12,12 +12,12 @@ from perun.monitoring.application import Application
 log = logging.getLogger("perun")
 
 
-def monitor(region_name: Optional[str] = None):
+def monitor(region_name: Optional[str] = None) -> Callable:
     """Decorate function to monitor its energy usage."""
 
-    def inner_function(func):
+    def inner_function(func: Callable) -> Callable:
         @functools.wraps(func)
-        def func_wrapper(*args, **kwargs):
+        def func_wrapper(*args: Any, **kwargs: Any) -> Any:
             # Get custom config and kwargs
             region_id = region_name if region_name else func.__name__
 
@@ -26,9 +26,9 @@ def monitor(region_name: Optional[str] = None):
                 func_result = func(*args, **kwargs)
             else:
                 log.info(f"Rank {perun.comm.Get_rank()}: Entering '{region_id}'")
-                perun.mark_event(region_id)  # type: ignore
+                perun.mark_event(region_id)
                 func_result = func(*args, **kwargs)
-                perun.mark_event(region_id)  # type: ignore
+                perun.mark_event(region_id)
                 log.info(f"Rank {perun.comm.Get_rank()}: Leaving '{region_id}'")
 
             return func_result
@@ -38,12 +38,12 @@ def monitor(region_name: Optional[str] = None):
     return inner_function
 
 
-def perun(configuration_file: str = "./.perun.ini", **conf_kwargs):
+def perun(configuration_file: str = "./.perun.ini", **conf_kwargs: Any) -> Callable:
     """Decorate function to monitor its energy usage."""
 
-    def inner_function(func):
+    def inner_function(func: Callable) -> Callable:
         @functools.wraps(func)
-        def func_wrapper(*args, **kwargs):
+        def func_wrapper(*args: Any, **kwargs: Any) -> Any:
             # 1) Read custom config
             read_custom_config(configuration_file)
 
@@ -66,7 +66,7 @@ def perun(configuration_file: str = "./.perun.ini", **conf_kwargs):
     return inner_function
 
 
-def register_callback(func: Callable[[DataNode], None]):
+def register_callback(func: Callable[[DataNode], None]) -> None:
     """Register a function to run after perun has finished collection data.
 
     Parameters
@@ -74,7 +74,7 @@ def register_callback(func: Callable[[DataNode], None]):
     func : Callable[[DataNode], None]
         Function to be called.
     """
-    perun = Perun()  # type: ignore
+    perun = Perun.getInstance()
     if func.__name__ not in perun.postprocess_callbacks:
         log.info(f"Rank {perun.comm.Get_rank()}: Registering callback {func.__name__}")
         perun.postprocess_callbacks[func.__name__] = func
