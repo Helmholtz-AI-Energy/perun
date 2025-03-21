@@ -74,7 +74,7 @@ def register_callback(func: Callable[[DataNode], None]) -> None:
     func : Callable[[DataNode], None]
         Function to be called.
     """
-    perun = Perun()  # type: ignore
+    perun = Perun.getInstance()
     if func.__name__ not in perun.postprocess_callbacks:
         log.info(f"Rank {perun.comm.Get_rank()}: Registering callback {func.__name__}")
         perun.postprocess_callbacks[func.__name__] = func

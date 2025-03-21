@@ -491,7 +491,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode) -> N
                 Magnitude.ONE,
                 np.dtype("uint64"),
                 np.uint64(0),
-                np.iinfo("uint64").max,  # type: ignore
+                np.uint64(np.iinfo("uint64").max),
                 np.uint64(0),
             ),
             r_dram_mem.sum(),
@@ -507,7 +507,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode) -> N
                 Magnitude.ONE,
                 np.dtype("float32"),
                 np.float32(0),
-                np.finfo("float32").max,
+                np.float32(np.finfo("float32").max),
                 np.float32(-1),
             ),
             r_power.sum(),
@@ -524,7 +524,7 @@ def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode) -> N
                     Magnitude.ONE,
                     np.dtype("uint64"),
                     np.uint64(0),
-                    np.iinfo("uint64").max,  # type: ignore
+                    np.uint64(np.iinfo("uint64").max),
                     np.uint64(0),
                 ),
                 r_gpu_mem.sum(),

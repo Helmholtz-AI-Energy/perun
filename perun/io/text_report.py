@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 
-from perun.data_model.data import DataNode, MetricType
+from perun.data_model.data import DataNode, MetricType, Stats
 from perun.io.util import value2MeanStdStr, value2ValueUnitStr
 
 log = logging.getLogger("perun")
@@ -128,12 +128,16 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
         region_report_str = ""
 
     n_runs = len(dataNode.nodes)
-    if MetricType.ENERGY in dataNode.metrics:
+    if MetricType.ENERGY in dataNode.metrics and isinstance(
+        dataNode.metrics[MetricType.ENERGY], Stats
+    ):
+        stats: Stats = dataNode.metrics[MetricType.ENERGY]  # type: ignore[assignment]
+
         # Application Summary
-        total_energy = dataNode.metrics[MetricType.ENERGY].sum  # type: ignore
+        total_energy = stats.sum
         e_kWh = total_energy / (3600 * 1e3)
-        kgCO2 = dataNode.metrics[MetricType.CO2].sum  # type: ignore
-        money = dataNode.metrics[MetricType.MONEY].sum  # type: ignore
+        kgCO2 = stats.sum
+        money = stats.sum
         money_icon = mr_node.metadata["post-processing.price_unit"]
 
         app_summary_str = f"Application Summary\n\nThe application has been run {n_runs} times. In total, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it."

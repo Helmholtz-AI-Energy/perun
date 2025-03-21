@@ -91,6 +91,27 @@ class Singleton(type):
         )
         return instance
 
+    def getInstance(cls) -> Any:
+        """
+        Return an instance of a singleton class if it has already been created.
+
+        Return
+        ------
+        ClassInstance
+            Existing instance of the class.
+
+        Raises
+        ------
+        ValueError
+            If no instance has been created before.
+        """
+        if cls._instances[cls]:
+            return cls._instances[cls]
+        else:
+            raise ValueError(
+                f"No instance of {cls.__name__} has been instanciated yet."
+            )
+
 
 def getRunId(starttime: datetime) -> str:
     """
@@ -142,9 +163,9 @@ def increaseIdCounter(existing: List[str], newId: str) -> str:
         newId with an added counter if any matches were found.
     """
     exp = re.compile(r"^" + newId + r"(_\d+)?$")
-    matches: List[re.Match] = list(
-        filter(lambda m: isinstance(m, re.Match), map(lambda x: exp.match(x), existing))  # type: ignore
-    )
+    matches: List[re.Match[str]] = [
+        m for m in map(exp.match, existing) if m is not None
+    ]
     if len(matches) > 0:
         existing_idxs = list(
             sorted(map(lambda m: int(m.group(1)[1:]) if m.group(1) else 0, matches))

@@ -451,11 +451,7 @@ class Perun(metaclass=Singleton):
         return importFrom(filePath, format)
 
     def export_to(
-        self,
-        dataOut: Path,
-        dataNode: DataNode,
-        format: IOFormat,
-        mr_id: Optional[str] = None,
+        self, dataOut: Path, dataNode: DataNode, format: IOFormat, mr_id: str = ""
     ) -> None:
         """Export data to selected format.
 
@@ -467,7 +463,7 @@ class Perun(metaclass=Singleton):
             Data node to export.
         format : IOFormat
             Format to export data.
-        mr_id: int, optional
+        mr_id: str, optional
             The id of the multi_run to be exported, the last one if left empty.
         """
         exportTo(dataOut, dataNode, format, mr_id)

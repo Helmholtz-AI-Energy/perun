@@ -127,11 +127,13 @@ warn_return_any=true
 show_error_codes =true
 warn_unused_ignores=true
 follow_imports = "normal"
+follow_untyped_imports = true
 
 [[tool.mypy.overrides]]
-module=["perun.io.hdf5"]
-disallow_any_unimported = false
-warn_unused_ignores=false
+module=["perun.comm"]
+warn_return_any= false
+ignore_missing_imports = true
+
 
 # Ruff
 [tool.ruff]

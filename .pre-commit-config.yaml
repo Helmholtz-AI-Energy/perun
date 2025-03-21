@@ -5,8 +5,9 @@ repos:
     rev: v1.14.1 # Use the sha / tag you want to point at
     hooks:
       - id: mypy
-        args: [--config-file, pyproject.toml, --ignore-missing-import, --follow-untyped-imports]
-        additional_dependencies: [types-psutil, pandas-stubs, numpy, py-cpuinfo, h5py]
+        args: [--config-file, pyproject.toml, --ignore-missing-imports]
+        additional_dependencies: [types-psutil, pandas-stubs, numpy, py-cpuinfo, h5py,amdsmi, nvidia-ml-py]
+        pass_filenames: false
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
     rev: v0.11.0

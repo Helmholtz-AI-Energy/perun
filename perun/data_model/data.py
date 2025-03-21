@@ -147,7 +147,7 @@ class Stats:
 
         Returns
         -------
-        _type_
+        Stats
             Stats object.
 
         Raises
@@ -234,11 +234,12 @@ class RawData:
             if "alt_v_md" in rawDataDict
             else None
         )
+        alt_v_dtype = alt_v_md.dtype if alt_v_md else None
         return cls(
             timesteps=np.array(rawDataDict["timesteps"], dtype=t_md.dtype),
             values=np.array(rawDataDict["values"], dtype=t_md.dtype),
             alt_values=(
-                np.array(rawDataDict["alt_values"], dtype=alt_v_md.dtype)  # type: ignore
+                np.array(rawDataDict["alt_values"], dtype=alt_v_dtype)
                 if "alt_values" in rawDataDict
                 else None
             ),
