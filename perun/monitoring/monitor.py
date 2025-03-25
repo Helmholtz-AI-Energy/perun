@@ -7,6 +7,7 @@ import time
 from configparser import ConfigParser
 from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as EventClass
+from queue import Empty
 from subprocess import Popen
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -99,14 +100,6 @@ class PerunMonitor:
         self._l_assigned_sensors = l_assigned_sensors
         self._config = config
         self.status = MonitorStatus.SETUP
-
-        log.debug(f"MP Start methods: {multiprocessing.get_start_method()}")
-        if multiprocessing.get_start_method() != PERUN_MP_START_METHOD:
-            try:
-                multiprocessing.set_start_method(PERUN_MP_START_METHOD)
-            except Exception as e:
-                print(e)
-                log.warning(e)
 
         self.sp_ready_event: EventClass = Event()
         self.start_event: EventClass = Event()
@@ -357,10 +350,18 @@ class PerunMonitor:
             recoverdNodes = self._process_single_run(
                 str("failed"), time.time_ns(), available_ranks=availableRanks
             )
+        except Empty:
+            log.error(
+                "Non of the available ranks have any monitoring data. Closing without generating a report."
+            )
+            self._close_subprocess()
+            return None
+
         except ValueError:
             log.error(
                 "Non of the available ranks have any monitoring data. Closing without generating a report."
             )
+            self._close_subprocess()
             return None
         else:
             if recoverdNodes:
@@ -368,7 +369,9 @@ class PerunMonitor:
                 app_name = "failed_" + self._config.get("output", "app_name")
                 self._config.set("output", "app_name", app_name)
                 # self.config.set("output", "run_id", "failed_" + self.config.get("output", "run_id"))
+                self._close_subprocess()
                 return recoverdNodes
+        self._close_subprocess()
         return None
 
     def _process_single_run(
@@ -395,8 +398,7 @@ class PerunMonitor:
         """
         if self.queue and self.perunSP:
             log.info(f"Rank {self._comm.Get_rank()}: Collecting queue data.")
-            nodeData = self.queue.get(block=True)
-            log.info(f"Rank {self._comm.Get_rank()}: Closing subprocess.")
+            nodeData = self.queue.get(block=True, timeout=10)
         else:
             nodeData = None
 
@@ -437,7 +439,7 @@ class PerunMonitor:
         """Close the subprocess."""
         self.close_event.set()
         if self.perunSP and self.queue:
-            self.perunSP.join(30)
+            self.perunSP.join(10)
             log.debug("SP exit code {self.perunSP.exitcode}")
             if self.perunSP.exitcode is None:
                 log.warning(

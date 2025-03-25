@@ -15,7 +15,7 @@ settings.register_profile("no_db", database=None)
 settings.load_profile("no_db")
 
 
-@pytest.fixture()
+@pytest.fixture(scope="function")
 def defaultConfig():
     defaultConfig = configparser.ConfigParser(allow_no_value=True)
     defaultConfig.read_dict(_default_config)
@@ -24,7 +24,11 @@ def defaultConfig():
 
 @pytest.fixture(scope="function")
 def perun(defaultConfig):
-    return Perun(defaultConfig)
+    perun = Perun(defaultConfig)
+
+    yield perun
+
+    del perun
 
 
 @pytest.fixture(scope="function")
