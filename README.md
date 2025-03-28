@@ -58,7 +58,7 @@ To use perun as a command-line tool, run the monitor subcommand followed by the 
 $ perun monitor path/to/your/script.py [args]
 ```
 
-perun will output two files, and HDF5 style containing all the raw data that was gathered, and a text file with a summary of the results.
+perun will output two files, an HDF5 style containing all the raw data that was gathered, and a text file with a summary of the results.
 
 
 ```text
@@ -118,7 +118,7 @@ Monitored Functions
 
 ### MPI
 
-Perun is compatible with MPI applications that make use of ```mpi4py```, and requires changes in the code or in the perun configuration. Simply replace the ```python``` command with ```perun monitor```.
+Perun is compatible with MPI applications that make use of ```mpi4py```, and requires no changes in the code or in the perun configuration. Simply replace the ```python``` command with ```perun monitor```.
 
 ```console
 mpirun -n 8 perun monitor path/to/your/script.py
