@@ -288,7 +288,7 @@ class Perun(metaclass=Singleton):
 
         starttime = datetime.now()
         app_name = app.name
-        multirun_id = getRunId(starttime)
+        multirun_id = getRunId(starttime, self.config.get("output", "run_id"))
 
         # Store relevant info in config.
         self.config.set("output", "app_name", app_name)
@@ -339,7 +339,6 @@ class Perun(metaclass=Singleton):
                     )
                     self._export_multirun(failedRun)
 
-                    log.info(f"Rank {self.comm.Get_rank()}: Aborting mpi context.")
                 return
             elif status == MonitorStatus.FILE_NOT_FOUND:
                 log.error(f"Rank {self.comm.Get_rank()}: App not found")
