@@ -136,8 +136,8 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
         # Application Summary
         total_energy = stats.sum
         e_kWh = total_energy / (3600 * 1e3)
-        kgCO2 = stats.sum
-        money = stats.sum
+        kgCO2 = dataNode.metrics[MetricType.CO2].sum / 1e3  # type: ignore[union-attr]
+        money = dataNode.metrics[MetricType.MONEY].sum  # type: ignore[union-attr]
         money_icon = mr_node.metadata["post-processing.price_unit"]
 
         app_summary_str = f"Application Summary\n\nThe application has been run {n_runs} times. In total, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it."
