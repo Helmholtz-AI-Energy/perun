@@ -45,7 +45,10 @@ class ROCMBackend(Backend):
     def close(self) -> None:
         """Backend cleanup."""
         if hasattr(self, "amdsmi"):
-            self.amdsmi.amdsmi_shut_down()
+            try:
+                self.amdsmi.amdsmi_shut_down()
+            except Exception as e:
+                log.info(e)
 
     def availableSensors(self) -> Dict[str, Tuple]:
         """Return string ids of visible devices.

@@ -44,9 +44,11 @@ class NVMLBackend(Backend):
 
     def close(self) -> None:
         """Backend shutdown code."""
-        if hasattr(self, "pynvml"):
+        if hasattr(self, "pynvml") and self.pynvml:
             try:
                 self.pynvml.nvmlShutdown()
+            except self.pynvml.NVMLError_Uninitialized as e:
+                log.info(e)
             except Exception as e:
                 log.warning(e)
 
