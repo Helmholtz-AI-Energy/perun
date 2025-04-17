@@ -88,12 +88,16 @@ class PSUTILBackend(Backend):
         elif device == "NET_WRITE_BYTES":
 
             def func() -> Number:
-                return np.uint64(psutil.net_io_counters(nowrap=True).bytes_sent)
+                return np.uint64(
+                    psutil.net_io_counters(pernic=True, nowrap=True)["ib0"].bytes_sent
+                )
 
         elif device == "NET_READ_BYTES":
 
             def func() -> Number:
-                return np.uint64(psutil.net_io_counters(nowrap=True).bytes_recv)
+                return np.uint64(
+                    psutil.net_io_counters(pernic=True, nowrap=True)["ib0"].bytes_recv
+                )
 
         elif device.startswith("CPU_FREQ_"):
             cpuId = int(device.split("_")[-1])
