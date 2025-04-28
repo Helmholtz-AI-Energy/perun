@@ -1,34 +1,9 @@
 """IO Json module."""
 
 import json
-from typing import Any
-
-import numpy as np
 
 from perun.data_model.data import DataNode
-
-
-class NumpyEncoder(json.JSONEncoder):
-    """Json Numpy object encoder."""
-
-    def default(self, obj: Any) -> Any:
-        """Encode obj to json or to a supported format.
-
-        :param obj: Object to encode.
-        :type obj: _type_
-        :return: Encoded obj.
-        :rtype: _type_
-        """
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif isinstance(obj, np.dtype):
-            return str(obj)
-        else:
-            return super(NumpyEncoder, self).default(obj)
+from perun.io.util import NumpyEncoder
 
 
 def exportJson(dataNode: DataNode) -> str:

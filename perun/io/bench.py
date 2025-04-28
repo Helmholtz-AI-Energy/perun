@@ -2,13 +2,14 @@
 
 import json
 import logging
+import pprint as pp
 from typing import Dict, List, Tuple
 
 import numpy as np
 
 from perun.data_model.data import DataNode, MetricType, Stats
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number
-from perun.io.util import getTFactorMag
+from perun.io.util import NumpyEncoder, getTFactorMag
 
 log = logging.getLogger("perun")
 
@@ -45,6 +46,8 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
         "PERCENT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.percent"]),
         "BYTE": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.byte"]),
     }
+
+    log.debug(pp.pformat(bench_units))
 
     for metricType, metric in mrNode.metrics.items():
         if metricType in scriptMetrics:
@@ -133,6 +136,7 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
                     tfactor = mag.value / old_mag.value
                 else:
                     tfactor, mag = getTFactorMag(value, metadata)
+
                 metricDict.append(
                     {
                         "name": f"{region_name}_{mr_id} - {metric_name}",
@@ -141,4 +145,6 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
                     }
                 )
 
-    return json.dumps(metricDict, indent=4)
+    log.debug(pp.pformat(metricDict))
+
+    return json.dumps(metricDict, indent=4, cls=NumpyEncoder)
