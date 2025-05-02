@@ -9,7 +9,7 @@ from configparser import ConfigParser
 from pathlib import Path
 from typing import Any, Callable, Dict, Tuple, Union
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 class Application:

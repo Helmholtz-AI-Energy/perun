@@ -6,7 +6,7 @@ from typing import Any, Dict, Tuple
 
 from perun.backend.backend import Backend
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 def getHostMetadata() -> Dict[str, Any]:

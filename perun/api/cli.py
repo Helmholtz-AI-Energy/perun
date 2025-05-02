@@ -18,9 +18,10 @@ from perun.configuration import (
 from perun.core import Perun
 from perun.io.io import IOFormat
 from perun.io.text_report import sensors_table
+from perun.logging import set_logger_config
 from perun.monitoring.application import Application
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 def _get_arg_parser() -> argparse.ArgumentParser:
@@ -32,6 +33,11 @@ def _get_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("-c", "--configuration", default="./.perun.ini")
     parser.add_argument(
         "-l", "--log_lvl", choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
+    )
+    parser.add_argument(
+        "--log_file",
+        default=None,
+        help="Path to the log file. None by default. Writting to a file disables logging in stdout.",
     )
     parser.add_argument(
         "--version", action="version", version=f"perun {perun.__version__}"
@@ -227,9 +233,7 @@ def cli() -> None:
             save_to_config(key, value)
 
     sanitize_config(config)
-
-    # set logging
-    log.setLevel(config.get("debug", "log_lvl"))
+    set_logger_config(config)
 
     # start function
     if hasattr(args, "func"):

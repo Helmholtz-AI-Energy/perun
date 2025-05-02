@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 class Singleton(type):

@@ -22,7 +22,7 @@ from perun.data_model.data import (
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 def processEnergyData(

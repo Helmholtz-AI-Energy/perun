@@ -16,7 +16,7 @@ from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number,
 from perun.data_model.sensor import DeviceType, Sensor
 from perun.processing import processDataNode, processSensorData
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 def prepSensors(

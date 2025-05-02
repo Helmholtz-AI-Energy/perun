@@ -14,7 +14,7 @@ from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 RAPL_PATH = "/sys/class/powercap/"
 

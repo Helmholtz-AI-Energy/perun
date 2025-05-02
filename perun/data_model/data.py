@@ -12,7 +12,7 @@ import numpy as np
 from perun.data_model.measurement_type import MetricMetaData, Number
 from perun.data_model.sensor import DeviceType
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 class NodeType(enum.Enum):

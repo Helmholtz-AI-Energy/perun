@@ -20,7 +20,7 @@ from perun.processing import processDataNode
 
 from .application import Application
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 class MonitorStatus(enum.Enum):

@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple
 
 from perun.comm import Comm
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 def getHostRankDict(comm: Comm, hostname: str) -> Dict[str, List[int]]:

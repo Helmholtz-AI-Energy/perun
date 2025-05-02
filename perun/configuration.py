@@ -11,7 +11,7 @@ from typing import Any, Mapping
 
 from perun.io.io import IOFormat
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 _default_config: Mapping[str, Mapping[str, Any]] = {
     "post-processing": {
@@ -47,7 +47,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "watt": "",
         "byte": "G",
     },
-    "debug": {"log_lvl": "WARNING"},
+    "debug": {"log_lvl": "WARNING", "log_file": None},
 }
 
 config: configparser.ConfigParser = configparser.ConfigParser(allow_no_value=True)

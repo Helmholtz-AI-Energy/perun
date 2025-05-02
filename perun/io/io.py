@@ -14,7 +14,7 @@ from perun.io.pandas import exportCSV
 from perun.io.pickle import exportPickle, importPickle
 from perun.io.text_report import textReport
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 _suffixes = {
     "text": "txt",
