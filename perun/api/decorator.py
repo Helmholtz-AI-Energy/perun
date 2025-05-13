@@ -4,12 +4,19 @@ import functools
 import logging
 from typing import Any, Callable, Optional
 
-from perun.configuration import config, read_custom_config, read_environ, save_to_config
+from perun.configuration import (
+    config,
+    read_custom_config,
+    read_environ,
+    sanitize_config,
+    save_to_config,
+)
 from perun.core import Perun
 from perun.data_model.data import DataNode
+from perun.logging import set_logger_config
 from perun.monitoring.application import Application
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 def monitor(region_name: Optional[str] = None) -> Callable:
@@ -53,6 +60,9 @@ def perun(configuration_file: str = "./.perun.ini", **conf_kwargs: Any) -> Calla
             # 3) Parse remaining arguments
             for key, value in conf_kwargs.items():
                 save_to_config(key, value)
+
+            sanitize_config(config)
+            set_logger_config(config)
 
             app = Application(func, config, args=args, kwargs=kwargs)
             perun = Perun(config)

@@ -5,7 +5,7 @@ import sys
 import time
 from typing import Any, List, Optional
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 class Comm:

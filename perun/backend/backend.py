@@ -8,7 +8,7 @@ from perun.util import Singleton
 
 from ..data_model.sensor import Sensor
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 class Backend(metaclass=Singleton):

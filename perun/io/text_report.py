@@ -8,7 +8,7 @@ import pandas as pd
 from perun.data_model.data import DataNode, MetricType, Stats
 from perun.io.util import value2MeanStdStr, value2ValueUnitStr
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 tableMetrics = [
     MetricType.RUNTIME,

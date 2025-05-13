@@ -11,7 +11,7 @@ from perun.data_model.data import DataNode, MetricType, Stats
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number
 from perun.io.util import NumpyEncoder, getTFactorMag
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 def exportBench(dataNode: DataNode, mr_id: str) -> str:

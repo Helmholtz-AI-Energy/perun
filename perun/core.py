@@ -19,7 +19,6 @@ from perun.backend import (
     getHostMetadata,
 )
 from perun.comm import Comm
-from perun.configuration import sanitize_config
 from perun.coordination import assignSensors, getHostRankDict
 from perun.data_model.data import DataNode, NodeType
 from perun.io.io import IOFormat, exportTo, importFrom
@@ -28,7 +27,7 @@ from perun.monitoring.monitor import MonitorStatus, PerunMonitor
 from perun.processing import processDataNode
 from perun.util import Singleton, filter_sensors, getRunId, increaseIdCounter
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 
 class Perun(metaclass=Singleton):
@@ -59,8 +58,6 @@ class Perun(metaclass=Singleton):
         self.postprocess_callbacks: Dict[str, Callable[[DataNode], None]] = {}
 
         self.warmup_round: bool = False
-
-        self.config = sanitize_config(self.config)
 
     def __del__(self) -> None:
         """Perun object destructor."""

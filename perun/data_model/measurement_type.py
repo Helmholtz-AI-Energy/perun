@@ -7,7 +7,7 @@ from typing import Dict, Union
 
 import numpy as np
 
-log = logging.getLogger("perun")
+log = logging.getLogger(__name__)
 
 Number = Union[int, float, np.integer, np.floating]
 
