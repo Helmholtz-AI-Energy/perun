@@ -34,6 +34,8 @@ class PowercapRAPLBackend(Backend):
 
     def setup(self) -> None:
         """Check Intel RAPL access."""
+        self._files = []
+
         cpuInfo = cpuinfo.get_cpu_info()
         self._metadata = {}
         for key, value in cpuInfo.items():
@@ -60,7 +62,6 @@ class PowercapRAPLBackend(Backend):
         if not raplPath.exists():
             raise ImportWarning("No powercap interface")
 
-        self._files = []
         packageDevices = []
         packageFiles = []
         foundPsys = False

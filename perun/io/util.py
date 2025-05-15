@@ -88,12 +88,29 @@ class NumpyEncoder(json.JSONEncoder):
     """Json Numpy object encoder."""
 
     def default(self, obj: Any) -> Any:
-        """Encode obj to json or to a supported format.
+        """
+        Encode an object to a JSON-serializable format, handling NumPy types.
 
-        :param obj: Object to encode.
-        :type obj: _type_
-        :return: Encoded obj.
-        :rtype: _type_
+        Parameters
+        ----------
+        obj : Any
+            The object to encode.
+
+        Returns
+        -------
+        Any
+            The JSON-serializable representation of the input object.
+
+        Raises
+        ------
+        TypeError
+            If the object cannot be encoded to a supported format.
+
+        Notes
+        -----
+        This method specifically handles NumPy integer, floating, ndarray, and dtype objects,
+        converting them to standard Python types or string representations. For other types,
+        the superclass's default method is called.
         """
         if isinstance(obj, np.integer):
             return int(obj)
