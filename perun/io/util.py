@@ -1,6 +1,9 @@
 """IO Util."""
 
-from typing import Tuple
+import json
+from typing import Any, Tuple
+
+import numpy as np
 
 from perun.data_model.data import Stats
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
@@ -79,3 +82,43 @@ def value2MeanStdStr(stats: Stats) -> str:
     """
     tfactor, new_mag = getTFactorMag(stats.mean, stats.metric_md)
     return f"{stats.mean / tfactor:.2f} ± {stats.std / tfactor:.2f} {new_mag.symbol}{stats.metric_md.unit.value}"
+
+
+class NumpyEncoder(json.JSONEncoder):
+    """Json Numpy object encoder."""
+
+    def default(self, obj: Any) -> Any:
+        """
+        Encode an object to a JSON-serializable format, handling NumPy types.
+
+        Parameters
+        ----------
+        obj : Any
+            The object to encode.
+
+        Returns
+        -------
+        Any
+            The JSON-serializable representation of the input object.
+
+        Raises
+        ------
+        TypeError
+            If the object cannot be encoded to a supported format.
+
+        Notes
+        -----
+        This method specifically handles NumPy integer, floating, ndarray, and dtype objects,
+        converting them to standard Python types or string representations. For other types,
+        the superclass's default method is called.
+        """
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        elif isinstance(obj, np.dtype):
+            return str(obj)
+        else:
+            return super(NumpyEncoder, self).default(obj)

@@ -108,14 +108,6 @@ class PerunMonitor:
         self.queue: Optional[Queue] = None
         self.perunSP: Optional[Process] = None
 
-        self._reset_subprocess_handlers()
-        if len(self._l_assigned_sensors.keys()) > 0:
-            self._create_subprocess()
-        else:
-            self.sp_ready_event.set()  #
-
-        self._check_subprocess_health()
-
     def close(self) -> None:
         """Close the monitor."""
         self._close_subprocess()
@@ -215,8 +207,6 @@ class PerunMonitor:
 
         """
         log.info(f"Rank {self._comm.Get_rank()}: _run_application")
-        if self.status != MonitorStatus.READY:
-            raise SystemError("Not ready for monitoring, exiting!")
 
         if record:
             if self._app.is_binary:
@@ -250,6 +240,21 @@ class PerunMonitor:
     ) -> Tuple[MonitorStatus, Optional[DataNode], Any]:
         # 3) Start application
         log.info(f"Rank {self._comm.Get_rank()}: Starting App")
+
+        self._reset_subprocess_handlers()
+        if (
+            len(self._l_assigned_sensors.keys()) > 0
+            and self.status != MonitorStatus.READY
+        ):
+            self._create_subprocess()
+        else:
+            self.sp_ready_event.set()  #
+
+        self._check_subprocess_health()
+
+        if self.status != MonitorStatus.READY:
+            raise SystemError("Not ready for monitoring, exiting!")
+
         self.local_regions = LocalRegions()
         self.status = MonitorStatus.RUNNING
         self.start_event.set()
@@ -440,7 +445,7 @@ class PerunMonitor:
         self.close_event.set()
         if self.perunSP and self.queue:
             self.perunSP.join(10)
-            log.debug("SP exit code {self.perunSP.exitcode}")
+            log.debug(f"SP exit code {self.perunSP.exitcode}")
             if self.perunSP.exitcode is None:
                 log.warning(
                     f"Rank {self._comm.Get_rank()}: Monitoring subprocess did not close in time, terminating."
