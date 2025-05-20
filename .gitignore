@@ -136,3 +136,4 @@ poetry.lock
 examples/data
 examples/**/perun_results
 perun_results
+docs/autoapi

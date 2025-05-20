@@ -30,9 +30,17 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         description="Distributed performance and energy monitoring tool",
         allow_abbrev=False,
     )
-    parser.add_argument("-c", "--configuration", default="./.perun.ini")
     parser.add_argument(
-        "-l", "--log_lvl", choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"]
+        "-c",
+        "--configuration",
+        default="./.perun.ini",
+        help="Path to perun configuration file.",
+    )
+    parser.add_argument(
+        "-l",
+        "--log_lvl",
+        choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"],
+        help="Logging level.",
     )
     parser.add_argument(
         "--log_file",
