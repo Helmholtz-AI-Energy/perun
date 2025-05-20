@@ -1,25 +1,25 @@
 .. image:: https://raw.githubusercontent.com/Helmholtz-AI-Energy/perun/main/docs/images/full_logo.svg
-   :align: left
 
-|
+| |fair-software| |openssf| |zenodo| |license| |docs|
+| |pypi-version| |python-version| |pypi-downloads| |black| |codecov| 
 
-.. image:: https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F-green
+.. |fair-software| image:: https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F-green
    :target: https://fair-software.eu
-.. image:: https://bestpractices.coreinfrastructure.org/projects/7253/badge
+.. |openssf| image:: https://bestpractices.coreinfrastructure.org/projects/7253/badge
    :target: https://bestpractices.coreinfrastructure.org/projects/7253
-.. image:: https://zenodo.org/badge/523363424.svg
+.. |zenodo| image:: https://zenodo.org/badge/523363424.svg
    :target: https://zenodo.org/badge/latestdoi/523363424
-.. image:: https://img.shields.io/pypi/v/perun
-.. image:: https://img.shields.io/pypi/dm/perun
-.. image:: https://img.shields.io/badge/code%20style-black-000000.svg
+.. |pypi-version| image:: https://img.shields.io/pypi/v/perun
+.. |pypi-downloads| image:: https://img.shields.io/pypi/dm/perun
+.. |black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
-.. image:: https://codecov.io/gh/Helmholtz-AI-Energy/perun/graph/badge.svg?token=9O6FSJ6I3G
+.. |codecov| image:: https://codecov.io/gh/Helmholtz-AI-Energy/perun/graph/badge.svg?token=9O6FSJ6I3G
    :target: https://codecov.io/gh/Helmholtz-AI-Energy/perun
-.. image:: https://img.shields.io/badge/Python-3.9+-blue.svg
+.. |python-version| image:: https://img.shields.io/badge/Python-3.9+-blue.svg
    :target: https://www.python.org/downloads/
-.. image:: https://img.shields.io/badge/License-BSD_3--Clause-blue.svg
+.. |license| image:: https://img.shields.io/badge/License-BSD_3--Clause-blue.svg
    :target: https://opensource.org/licenses/BSD-3-Clause
-.. image:: https://readthedocs.org/projects/perun/badge/?version=latest
+.. |docs| image:: https://readthedocs.org/projects/perun/badge/?version=latest
    :target: https://perun.readthedocs.io/en/latest/?badge=latest
 
 ===============================================================
