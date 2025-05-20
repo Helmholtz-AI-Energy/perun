@@ -12,7 +12,7 @@ authors = [
 maintainers = [
     {name = "Gutiérrez Hermosillo Muriedas, Juan Pedro", email="juan.muriedas@kit.edu"}
 ]
-readme = "README.md"
+readme = "README.rst"
 license = {file = "LICENSE"}
 keywords = ["energy", "monitoring", "mpi", "python", "hpc", "command-line", "benchmarking"]
 classifiers = [
