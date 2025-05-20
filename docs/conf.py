@@ -15,12 +15,9 @@ release = "0.8.10"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    # "sphinx.ext.duration",
-    # "sphinx.ext.doctest",
     "autoapi.extension",
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
-    # "sphinx_gallery.gen_gallery"
 ]
 
 templates_path = ["_templates"]
@@ -31,14 +28,20 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "furo"
-html_title = "perun"
+# html_title = ""
 html_static_path = ["_static"]
-html_logo = "images/logo.svg"
+html_logo = "images/full_logo_vertical.svg"
 
-# html_theme_options = {
-#     "logo_only": False,
-#     "style_nav_header_background": "#2980B9"
-#
+html_theme_options = {
+    "sidebar_hide_name": True,
+    "navigation_with_keys": True,
+    "light_css_variables": {
+        "color-brand-primary": "#00599f",
+        "color-brand-content": "#8bb31f",
+    },
+
+}
+
 
 # AUTOAPI
 autoapi_type = "python"

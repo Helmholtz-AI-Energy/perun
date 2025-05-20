@@ -5,33 +5,45 @@ Usage
 
 The `perun` command contains other subcommands that provide extra functionality. The command itself supports a couple of options, like setting a custom configuration or changing the logging level of the application. The information can be reviewd using the `--help` command flag.
 
-.. code-block:: console
+.. code:: console
 
-    Usage: perun [OPTIONS] COMMAND [ARGS]...
+    $ perun
+    usage: perun [-h] [-c CONFIGURATION] [-l {DEBUG,INFO,WARN,ERROR,CRITICAL}] [--log_file LOG_FILE] [--version]
+                {showconf,sensors,metadata,export,monitor} ...
 
-      Perun: Energy measuring and reporting tool.
+    Distributed performance and energy monitoring tool
 
-    Options:
-      --version                       Show the version and exit.
-      -c, --configuration FILE        Path to configuration file
-      -l, --log_lvl [DEBUG|INFO|WARN|ERROR|CRITICAL]
-                                      Loggging level
-      --help                          Show this message and exit.
+    positional arguments:
+    {showconf,sensors,metadata,export,monitor}
+        showconf            Print perun configuration in INI format.
+        sensors             Print available sensors by host and rank.
+        metadata            Print available metadata.
+        export              Export existing output file to another format.
+        monitor             Gather power consumption from hardware devices while SCRIPT [SCRIPT_ARGS] is running. SCRIPT is a path to the
+                            python script to monitor, run with arguments SCRIPT_ARGS.
+
+    options:
+    -h, --help            show this help message and exit
+    -c CONFIGURATION, --configuration CONFIGURATION
+                            Path to perun configuration file.
+    -l {DEBUG,INFO,WARN,ERROR,CRITICAL}, --log_lvl {DEBUG,INFO,WARN,ERROR,CRITICAL}
+                            Logging level.
+    --log_file LOG_FILE   Path to the log file. None by default. Writting to a file disables logging in stdout.
+    --version             show program's version number and exit
 
 
-
-Monitor
------------
+monitor
+-------
 
 To start monitoring your python applications, simply use
 
-.. code-block:: console
+.. code:: bash
 
     $ perun monitor your_app.py
 
 This also applies MPI applications
 
-.. code-block:: console
+.. code:: bash
 
     $ mpirun -N 4 perun monitor your_app.py
 
@@ -39,13 +51,13 @@ perun will not disrupt your applications usage of MPI, and will collect hardware
 
 To modify the peruns behaviour, the subcommand accepts options many configuration options that alter the monitoring or post processing process behaviour.
 
-.. code-block:: console
+.. code:: bash
 
     $ perun monitor --format json --sampling_period 5 your_app.py
 
 The options can also be set as environmental variables.
 
-.. code-block:: console
+.. code:: bash
 
     $ PERUN_FORMAT=json perun monitor your_app.py
 
@@ -102,7 +114,7 @@ perun has a special option `--rounds` which will run the application for multipl
 
 .. code-block:: console
 
-    $ perun monitor your_app.py
+    $ perun monitor --rounds 5 your_app.py
 
 
 Additionaly, there is a `--warmup-rounds` option if you want the application to execute without monitoring before the *real* rounds.
@@ -261,12 +273,12 @@ Similar to the `sensors` command, metadata will print a json object with some in
 .. code-block:: json
 
     {
-        "juan-20w000p2ge": {
+        "my-machine": {
             "libc_ver": "glibc 2.38",
-            "_node": "juan-20w000p2ge",
+            "_node": "my_machine",
             "architecture": "64bit ELF",
             "system": "Linux",
-            "node": "juan-20w000p2ge",
+            "node": "my_machine",
             "release": "6.1.44-1-MANJARO",
             "version": "#1 SMP PREEMPT_DYNAMIC Wed Aug  9 09:02:26 UTC 2023",
             "machine": "x86_64",

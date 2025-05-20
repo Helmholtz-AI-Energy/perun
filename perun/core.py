@@ -11,7 +11,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from perun import __version__
 from perun.backend import (
     Backend,
     available_backends,
@@ -26,6 +25,7 @@ from perun.monitoring.application import Application
 from perun.monitoring.monitor import MonitorStatus, PerunMonitor
 from perun.processing import processDataNode
 from perun.util import Singleton, filter_sensors, getRunId, increaseIdCounter
+from perun.version import __version__
 
 log = logging.getLogger(__name__)
 
@@ -109,8 +109,8 @@ class Perun(metaclass=Singleton):
                     log.info(f"Missing dependencies for backend {name}")
                     log.info(ie)
                 except Exception as e:
-                    log.info(f"Unknown error loading dependecy {name}")
-                    log.info(e)
+                    log.error(f"Unknown error loading dependecy {name}")
+                    log.error(e)
 
         return self._backends
 
