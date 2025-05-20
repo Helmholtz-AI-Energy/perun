@@ -182,5 +182,3 @@ If you found *perun* useful, please cite the conference paper:
      pages="17--31",
      isbn="978-3-031-39698-4"
    }
-
-===========================================
