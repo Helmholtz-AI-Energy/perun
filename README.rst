@@ -1,7 +1,7 @@
 .. image:: https://raw.githubusercontent.com/Helmholtz-AI-Energy/perun/main/docs/images/full_logo.svg
 
 | |fair-software| |openssf| |zenodo| |license| |docs|
-| |pypi-version| |python-version| |pypi-downloads| |black| |codecov| 
+| |pypi-version| |python-version| |pypi-downloads| |black| |codecov|
 
 .. |fair-software| image:: https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F-green
    :target: https://fair-software.eu
