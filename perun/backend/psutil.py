@@ -25,12 +25,13 @@ class PSUTILBackend(Backend):
         psutil.disk_io_counters.cache_clear()  # type: ignore[attr-defined]
         psutil.net_io_counters.cache_clear()  # type: ignore[attr-defined]
         self._metadata = {"source": f"psutil {psutil.__version__}"}
+        self._sensors = self._findSensors()
 
     def close(self) -> None:
         """Close backend."""
         pass
 
-    def availableSensors(self) -> Dict[str, Tuple]:
+    def _findSensors(self) -> Dict[str, Tuple]:
         """Return list of visible devices.
 
         Returns
@@ -41,7 +42,10 @@ class PSUTILBackend(Backend):
         sensors = {}
 
         if psutil.virtual_memory().used is not None:
+            mem = psutil.virtual_memory()
             sensors["RAM_USAGE"] = (self.id, DeviceType.RAM, Unit.BYTE)
+            self._metadata["total_ram_byte"] = str(mem.total)
+            self._metadata["available_ram_byte"] = str(mem.available)
         else:
             log.info("RAM_USAGE not available")
 
@@ -62,6 +66,16 @@ class PSUTILBackend(Backend):
             for cpu_id, _ in enumerate(psutil.cpu_freq(percpu=True)):
                 sensors[f"CPU_FREQ_{cpu_id}"] = (self.id, DeviceType.CPU, Unit.HZ)
         return sensors
+
+    def availableSensors(self) -> Dict[str, Tuple]:
+        """Return a dictionary with all available sensors.
+
+        Returns
+        -------
+        Dict[str, Tuple]
+            Dictionary with device ids and measurement unit.
+        """
+        return self._sensors
 
     def _getCallback(self, device: str) -> Callable[[], Number]:
         """Return measuring function for each device."""

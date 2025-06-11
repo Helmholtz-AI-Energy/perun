@@ -22,7 +22,7 @@ class Backend(metaclass=Singleton):
         """Import and setup backend."""
         super().__init__()
         self.devices: Dict = {}
-        self._metadata: Dict = {"This is a metadata key": "This is a metadata value"}
+        self._metadata: Dict = {}
         self.setup()
         log.info(f"Initialized {self.name} backend")
 
