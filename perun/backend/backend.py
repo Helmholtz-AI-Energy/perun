@@ -22,8 +22,8 @@ class Backend(metaclass=Singleton):
         """Import and setup backend."""
         super().__init__()
         self.devices: Dict = {}
+        self._metadata: Dict = {"This is a metadata key": "This is a metadata value"}
         self.setup()
-        self._metadata: Dict = {}
         log.info(f"Initialized {self.name} backend")
 
     def __del__(self) -> None:
@@ -34,6 +34,7 @@ class Backend(metaclass=Singleton):
     @property
     def metadata(self) -> Dict:
         """Return backend metadata."""
+        log.info(f"Metadata for {self.name} backend: {self._metadata}")
         return self._metadata
 
     @abstractmethod

@@ -29,8 +29,11 @@ class ROCMBackend(Backend):
         try:
             self.amdsmi.amdsmi_init(self.amdsmi.AmdSmiInitFlags.INIT_AMD_GPUS)
             self._metadata = {
-                "amdsmi_version": self.amdsmi.amdsmi_get_lib_version(),
-                "source": "AMDSMI",
+                "amdsmi_version": ".".join(
+                    [str(x) for x in self.amdsmi.amdsmi_get_lib_version().values()]
+                ),
+                "n_devices": len(self.amdsmi.amdsmi_get_processor_handles()),
+                "devices": [],
             }
 
             device_handles = self.amdsmi.amdsmi_get_processor_handles()
@@ -38,6 +41,7 @@ class ROCMBackend(Backend):
                 self.amdsmi.amdsmi_get_gpu_device_uuid(handle): handle
                 for handle in device_handles
             }
+            self.devices = self._findSensors()
         except self.amdsmi.AmdSmiException as e:
             log.error("Could not initialize AMD SMI")
             log.exception(e)
@@ -50,7 +54,7 @@ class ROCMBackend(Backend):
             except Exception as e:
                 log.info(e)
 
-    def availableSensors(self) -> Dict[str, Tuple]:
+    def _findSensors(self) -> Dict[str, Tuple]:
         """Return string ids of visible devices.
 
         Returns
@@ -64,6 +68,14 @@ class ROCMBackend(Backend):
                 power_info = self.amdsmi.amdsmi_get_power_info(handle)
                 if int(power_info["average_socket_power"]) > 0:
                     devices[f"ROCM:{uuid}_POWER"] = (self.id, DeviceType.GPU, Unit.WATT)
+                self._metadata["devices"].append(
+                    {
+                        "uuid": uuid,
+                        "name": self.amdsmi.amdsmi_get_gpu_board_info(handle)[
+                            "product_name"
+                        ],
+                    }
+                )
             except Exception as e:
                 log.info(e)
                 log.info(f"Could not get power usage for device rocm:{i} {uuid}")
@@ -79,6 +91,19 @@ class ROCMBackend(Backend):
                 log.info(f"Could not get memory usage for device rocm:{i} {uuid}")
 
         return devices
+
+    def availableSensors(self) -> Dict[str, Tuple]:
+        """Return a dictionary with all available sensors.
+
+        Each entry contains the backend id and type of sensor.
+
+        Returns
+        -------
+        Dict[str, Tuple]
+            Dictionary with device ids and measurement unit.
+        """
+        log.debug(f"Available sensors for {self.name} backend: {self.devices}")
+        return self.devices
 
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
         """Gather sensor object based on a set of device ids.

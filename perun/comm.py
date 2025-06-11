@@ -44,6 +44,21 @@ class Comm:
         if self._size == 1:
             log.info("Single node monitoring mode")
 
+    def get_mpi_version(self) -> str:
+        """Get MPI version.
+
+        Returns
+        -------
+        Optional[Tuple[int, int]]
+            Tuple with MPI version and subversion, or None if not available.
+        """
+        if self._enabled:
+            if not self._initialized:
+                self._mpi_init()
+            return self._MPI.Get_library_version().split(",")[0]
+        else:
+            return "None"
+
     def Get_rank(self) -> int:
         """Get local MPI rank.
 

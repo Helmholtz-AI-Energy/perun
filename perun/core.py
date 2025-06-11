@@ -4,6 +4,7 @@ import logging
 import os
 import platform
 import pprint as pp
+import sys
 
 # import sys
 from configparser import ConfigParser
@@ -11,11 +12,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import cpuinfo
+import psutil
+
 from perun.backend import (
     Backend,
     available_backends,
-    getBackendMetadata,
-    getHostMetadata,
 )
 from perun.comm import Comm
 from perun.coordination import assignSensors, getHostRankDict
@@ -235,7 +237,17 @@ class Perun(metaclass=Singleton):
             Metadata dictionary
         """
         if not self._l_host_metadata:
-            self._l_host_metadata = getHostMetadata()
+            cpuInfo = cpuinfo.get_cpu_info()
+
+            self._l_host_metadata = {
+                "perun_version": __version__,
+                "platform": platform.platform(),
+                "hostname": self.hostname,
+                "python": sys.version,
+                "processor": cpuInfo["brand_raw"],
+                "core_count": psutil.cpu_count(logical=False),
+                "mpi_version": self.comm.get_mpi_version(),
+            }
         return self._l_host_metadata
 
     @property
@@ -248,9 +260,13 @@ class Perun(metaclass=Singleton):
             Metadata dictionary
         """
         if not self._l_backend_metadata:
-            self._l_backend_metadata = getBackendMetadata(
-                self.backends, self.l_assigned_sensors
-            )
+            log.info("Getting backend metadata")
+            self._l_backend_metadata = {}
+            for backend in self.backends.values():
+                b_md = backend.metadata
+                log.debug(f"Backend {backend.name} metadata: {b_md}")
+                if backend.name not in self._l_backend_metadata:
+                    self._l_backend_metadata[backend.name] = b_md
         return self._l_backend_metadata
 
     def mark_event(self, region_id: str) -> None:

@@ -41,6 +41,7 @@ class NVMLBackend(Backend):
         }
 
         log.info(f"NVML Device count: {deviceCount}")
+        self.devices = self._findSensors()
 
     def close(self) -> None:
         """Backend shutdown code."""
@@ -52,7 +53,7 @@ class NVMLBackend(Backend):
             except Exception as e:
                 log.warning(e)
 
-    def availableSensors(self) -> Dict[str, Tuple]:
+    def _findSensors(self) -> Dict[str, Tuple]:
         """Return string ids of visible devices.
 
         Returns
@@ -93,6 +94,18 @@ class NVMLBackend(Backend):
                     log.info(f"Could not get {clock_name} usage for device {handle}")
 
         return devices
+
+    def availableSensors(self) -> Dict[str, Tuple]:
+        """Return a dictionary with all available sensors.
+
+        Each entry contains the backend id and type of sensor.
+
+        Returns
+        -------
+        Dict[str, Tuple]
+            Dictionary with device ids and measurement unit.
+        """
+        return self.devices
 
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
         """Gather sensor object based on a set of device ids.
