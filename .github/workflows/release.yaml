@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*.*.*'
       - 'v*.*.*-rc.*'
+permissions:
+  contents: read
+
 jobs:
   Pypi-publish:
       name: Upload release to PyPI
@@ -17,11 +20,16 @@ jobs:
         contents: write
         id-token: write
       steps:
-      - uses: actions/checkout@v4
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863 # v2.12.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         # Checkout the tag that triggered the workflow
         with:
           ref: ${{ github.ref }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c # v4.9.1
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -32,11 +40,11 @@ jobs:
       - name: Publish package distributions to PyPI
         # Only run if the tag is a release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'rc')
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # release/v1
       - name: Publish package to Test PyPI
         # Only run if the tag is a release candidate
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'rc')
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
       - name: Extract tag name
