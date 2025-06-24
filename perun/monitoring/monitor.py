@@ -397,7 +397,7 @@ class PerunMonitor:
         """
         if self.queue and self.perunSP:
             log.info(f"Rank {self._comm.Get_rank()}: Collecting queue data.")
-            nodeData = self.queue.get(block=True, timeout=10)
+            nodeData = self.queue.get(block=True, timeout=600)
         else:
             nodeData = None
 
