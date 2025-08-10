@@ -10,7 +10,7 @@ import sys
 from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import cpuinfo
 import psutil
@@ -45,19 +45,20 @@ class Perun(metaclass=Singleton):
         """
         self.config = config
         self._comm: Optional[Comm] = None
-        self._backends: Optional[Dict[str, Backend]] = None
+        self._backends: Optional[dict[str, Backend]] = None
 
-        self._g_available_sensors: List[Dict[str, Tuple]] = []
-        self._l_available_sensors: Dict[str, Tuple] = {}
-        self._g_assigned_sensors: List[Dict[str, Tuple]] = []
-        self._l_assigned_sensors: Dict[str, Tuple] = {}
-        self._host_rank: Optional[Dict[str, List[int]]] = None
+        self._g_available_sensors: list[dict[str, tuple]] = []
+        self._l_available_sensors: dict[str, tuple] = {}
+        self._g_assigned_sensors: list[dict[str, tuple]] = []
+        self._l_assigned_sensors: dict[str, tuple] = {}
+        self._host_rank: Optional[dict[str, list[int]]] = None
 
         self._hostname: Optional[str] = None
-        self._l_host_metadata: Optional[Dict[str, Any]] = None
-        self._l_backend_metadata: Optional[Dict[str, Any]] = None
+        self._l_host_metadata: Optional[dict[str, Any]] = None
+        self._l_backend_metadata: Optional[dict[str, Any]] = None
         self._monitor: Optional[PerunMonitor] = None
-        self.postprocess_callbacks: Dict[str, Callable[[DataNode], None]] = {}
+        self.postprocess_callbacks: dict[str, Callable[[DataNode], None]] = {}
+        self.live_callbacks: dict[str, Callable[[str, Union[int, float]], None]] = {}
 
         self.warmup_round: bool = False
 

@@ -6,7 +6,7 @@ import time
 from configparser import ConfigParser
 from multiprocessing import Queue
 from multiprocessing.synchronize import Event as EventClass
-from typing import Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 import numpy as np
 
@@ -171,6 +171,7 @@ def perunSubprocess(
     stop_event: EventClass,
     close_event: EventClass,
     sampling_period: float,
+    live_callback_inits: list[Callable[[], Callable[[str, Union[int, float]], None]]],
 ) -> None:
     """Parallel function that samples energy values from hardware libraries.
 
@@ -213,6 +214,11 @@ def perunSubprocess(
         lSensors,
     ) = prepSensors(backends, l_assigned_sensors)
 
+    # Initializing live callbacks:
+    callbacks = []
+    for init_func in live_callback_inits:
+        callbacks.append(init_func())
+
     # Reset
     timesteps: List[int] = []
     rawValues: List[List[Number]] = []
@@ -234,6 +240,7 @@ def perunSubprocess(
                 timesteps,
                 rawValues,
                 lambda delta: stop_event.wait(sampling_period - delta),
+                callbacks,
             )
             stop_event.clear()
 
