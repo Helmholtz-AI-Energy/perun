@@ -3,12 +3,12 @@
 import json
 import logging
 import pprint as pp
-from typing import Dict, List, Tuple
+from typing import Dict, Union
 
 import numpy as np
 
 from perun.data_model.data import DataNode, MetricType, Stats
-from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number
+from perun.data_model.measurement_type import Magnitude, MetricMetaData
 from perun.io.util import NumpyEncoder, getTFactorMag
 
 log = logging.getLogger(__name__)
@@ -77,7 +77,9 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
                     }
                 )
 
-    region_data: Dict[str, Dict[str, Tuple[List[Number], MetricMetaData]]] = {}
+    region_data: dict[
+        str, dict[str, tuple[list[Union[int, float]], MetricMetaData]]
+    ] = {}
     if len(mrNode.nodes) > 1:
         log.info(
             "When generating benchmarks for regions, it is preferable to if each function only runs a single time."

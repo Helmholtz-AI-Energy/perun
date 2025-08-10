@@ -241,9 +241,10 @@ def perunSubprocess(
             hostNode = createNode(
                 timesteps, t_metadata, rawValues, lSensors, perunConfig
             )
+            log.info(f"Rank {rank}: Subprocess: Created data node: {hostNode}")
 
             processDataNode(hostNode, perunConfig)
-
+            log.info(f"Rank {rank}: Subprocess: Processed data node: {hostNode}")
             # This should send a single processed node for the current computational node
             queue.put(hostNode, block=True)
             log.info(f"Rank {rank}: Subprocess: Sent data")

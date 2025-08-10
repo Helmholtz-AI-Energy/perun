@@ -113,9 +113,6 @@ class PerunMonitor:
         self._close_subprocess()
         self.status = MonitorStatus.CLOSED
 
-    def _reset_subprocess_handlers(self) -> None:
-        """Reset subprocess handlers."""
-
     def _create_subprocess(self) -> None:
         self.queue = Queue()
         self.perunSP = Process(
@@ -216,9 +213,7 @@ class PerunMonitor:
                 return self._run_python_app(run_id)
         else:
             try:
-                self.status = MonitorStatus.RUNNING
                 result = self._app.run()
-                self.status = MonitorStatus.READY
             except SystemExit:
                 self.status = MonitorStatus.SCRIPT_ERROR
                 log.warning(
@@ -241,7 +236,6 @@ class PerunMonitor:
         # 3) Start application
         log.info(f"Rank {self._comm.Get_rank()}: Starting App")
 
-        self._reset_subprocess_handlers()
         if (
             len(self._l_assigned_sensors.keys()) > 0
             and self.status != MonitorStatus.READY
@@ -403,7 +397,7 @@ class PerunMonitor:
         """
         if self.queue and self.perunSP:
             log.info(f"Rank {self._comm.Get_rank()}: Collecting queue data.")
-            nodeData = self.queue.get(block=True, timeout=10)
+            nodeData = self.queue.get(block=True, timeout=600)
         else:
             nodeData = None
 

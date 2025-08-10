@@ -1,5 +1,6 @@
 """HDF5 IO module."""
 
+import logging
 from pathlib import Path
 from typing import Dict, Optional, Union
 
@@ -19,6 +20,8 @@ from perun.data_model.data import (
 )
 from perun.data_model.measurement_type import Magnitude, Unit
 from perun.data_model.sensor import DeviceType
+
+log = logging.getLogger(__name__)
 
 
 def exportHDF5(filePath: Path, dataNode: DataNode) -> None:
@@ -73,7 +76,8 @@ def _addNode(h5group: h5py.Group, dataNode: DataNode) -> None:
     group.attrs["type"] = dataNode.type.value
 
     for key, value in dataNode.metadata.items():
-        group.attrs[key] = value
+        log.debug(f"Adding metadata {key}={value} to node {dataNode.id}")
+        group.attrs[key] = str(value)
 
     if dataNode.deviceType is not None:
         group.attrs["device_type"] = dataNode.deviceType.value
