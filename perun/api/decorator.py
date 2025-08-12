@@ -98,6 +98,7 @@ def register_live_callback(
 ) -> None:
     """
     Register a function that initializes a live callback function that will be run after each datapoint is collected on the monitoring subprocess.
+
     This is useful for live monitoring of metrics in real-time.
 
     The function passed should return a callable that accepts the metric identifier and the metric value.
@@ -109,6 +110,8 @@ def register_live_callback(
     obj : Callable[[], Callable[[str, Union[int, float]], None]]
         Function that initializes the live callback.
         It should return a callable that accepts the metric identifier and the metric value. It should take no arguments.
+    id : str
+        Identifier for the live callback, used to register it in the Perun instance.
     """
     perun: Union[Perun, None] = Perun.getInstance()
     if perun and id not in perun._live_callbacks:

@@ -59,7 +59,9 @@ class Perun(metaclass=Singleton):
         self._l_backend_metadata: Optional[dict[str, Any]] = None
         self._monitor: Optional[PerunMonitor] = None
         self._postprocess_callbacks: dict[str, Callable[[DataNode], None]] = {}
-        self._live_callbacks: dict[str, Callable[[str, Number], None]] = {}
+        self._live_callbacks: dict[
+            str, Callable[[], Callable[[dict[str, Number]], None]]
+        ] = {}
 
         self.warmup_round: bool = False
 

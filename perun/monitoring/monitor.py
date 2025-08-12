@@ -92,7 +92,9 @@ class PerunMonitor:
         comm: Comm,
         backends: Dict[str, Backend],
         l_assigned_sensors: Dict[str, Tuple],
-        live_callback_inits: dict[str, Callable[[], Callable[[str, Number], None]]],
+        live_callback_inits: dict[
+            str, Callable[[], Callable[[dict[str, Number]], None]]
+        ],
         config: ConfigParser,
     ) -> None:
         self._app = app

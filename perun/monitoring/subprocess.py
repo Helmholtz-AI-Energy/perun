@@ -64,11 +64,11 @@ def prepSensors(
 
 
 def _monitoringLoop(
-    lSensors: List[Sensor],
-    timesteps: List[int],
-    rawValues: List[List[Number]],
+    lSensors: list[Sensor],
+    timesteps: list[int],
+    rawValues: list[list[Number]],
     stopCondition: Callable[[float], bool],
-    callbacks: List[Callable[[dict[str, Number]], None]] = [],
+    callbacks: list[Callable[[dict[str, Number]], None]] = [],
 ) -> None:
     timesteps.append(time.time_ns())
     values: dict[str, Number] = {}
@@ -190,7 +190,7 @@ def perunSubprocess(
     stop_event: EventClass,
     close_event: EventClass,
     sampling_period: float,
-    live_callback_inits: dict[str, Callable[[], Callable[[str, Number], None]]],
+    live_callback_inits: dict[str, Callable[[], Callable[[dict[str, Number]], None]]],
 ) -> None:
     """Parallel function that samples energy values from hardware libraries.
 
