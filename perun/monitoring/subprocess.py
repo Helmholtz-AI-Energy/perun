@@ -217,7 +217,6 @@ def perunSubprocess(
     live_callback_inits : dict[str, Callable[[], Callable[[str, Number], None]]]
         Dictionary of live callback initializers, where the key is the name of the callback and the value is a function that returns a callable that accepts metric identifier and value.
     """
-
     log.info(f"Rank {rank}: Subprocess: Starting perunSubprocess")
     backends: Dict[str, Backend] = {}
     for name, backend_class in available_backends.items():

@@ -93,7 +93,8 @@ def register_callback(func: Callable[[DataNode], None]) -> None:
 
 
 def register_live_callback(
-    obj: Callable[[], Callable[[dict[str, Number]], None]], id: str,
+    obj: Callable[[], Callable[[dict[str, Number]], None]],
+    id: str,
 ) -> None:
     """
     Register a function that initializes a live callback function that will be run after each datapoint is collected on the monitoring subprocess.
@@ -111,7 +112,5 @@ def register_live_callback(
     """
     perun: Union[Perun, None] = Perun.getInstance()
     if perun and id not in perun._live_callbacks:
-        log.info(
-            f"Rank {perun.comm.Get_rank()}: Registering live callback {id}"
-        )
+        log.info(f"Rank {perun.comm.Get_rank()}: Registering live callback {id}")
         perun._live_callbacks[id] = obj
