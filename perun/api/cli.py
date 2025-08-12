@@ -211,6 +211,14 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Indicate if the monitored application is a binary. Otherwise treat it as a python script.",
     )
+    monitor_parser.add_argument(
+        "--live_callback_files",
+        nargs="+",
+        default=[],
+        dest="live_callback_files",
+        type=argparse.FileType("r", encoding="utf-8"),
+        help="Path to file that contains the live callbacks to use.",
+    )
     monitor_parser.add_argument("cmd", type=str)
     monitor_parser.add_argument("cmd_args", nargs=argparse.REMAINDER)
     monitor_parser.set_defaults(func=monitor)
@@ -351,5 +359,19 @@ def monitor(args: argparse.Namespace) -> None:
         app = Application(cmd, config, is_binary=True, args=tuple(sys.argv[1:]))
 
     perun = Perun(config)
+    for live_callback_file in args.live_callback_files:
+        log.info(f"Loading live callback from file: {live_callback_file.name}")
+        try:
+            # Load the files using importlib
+            live_callback_code = live_callback_file.read()
+            exec(live_callback_code, globals(), locals())
+            log.info("Live callback loaded successfully.")
+        except Exception as e:
+            log.error(
+                f"Error loading live callback from file {live_callback_file.name}: {e}"
+            )
+            continue
+
+    log.info("Starting perun monitoring application.")
 
     perun.monitor_application(app)

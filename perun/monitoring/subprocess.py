@@ -64,25 +64,44 @@ def prepSensors(
 
 
 def _monitoringLoop(
-    lSensors: List[Sensor],
-    timesteps: List[int],
-    rawValues: List[List[Number]],
+    lSensors: list[Sensor],
+    timesteps: list[int],
+    rawValues: list[list[Number]],
     stopCondition: Callable[[float], bool],
+    callbacks: list[Callable[[dict[str, Number]], None]] = [],
 ) -> None:
     timesteps.append(time.time_ns())
+    values: dict[str, Number] = {}
+    hostname = platform.node()
     for idx, device in enumerate(lSensors):
-        rawValues[idx].append(device.read())
+        value = device.read()
+        rawValues[idx].append(value)
+        values[f"{hostname}_{device.id}"] = value
+
+    for callback in callbacks:
+        callback(values)
 
     delta = (time.time_ns() - timesteps[-1]) * 1e-9
     while not stopCondition(delta):
         timesteps.append(time.time_ns())
         for idx, device in enumerate(lSensors):
-            rawValues[idx].append(device.read())
+            value = device.read()
+            rawValues[idx].append(value)
+            values[f"{hostname}_{device.id}"] = value
+
+        for callback in callbacks:
+            callback(values)
         delta = (time.time_ns() - timesteps[-1]) * 1e-9
 
     timesteps.append(time.time_ns())
     for idx, device in enumerate(lSensors):
-        rawValues[idx].append(device.read())
+        value = device.read()
+        rawValues[idx].append(value)
+        values[f"{hostname}_{device.id}"] = value
+
+    for callback in callbacks:
+        callback(values)
+
     return
 
 
@@ -171,6 +190,7 @@ def perunSubprocess(
     stop_event: EventClass,
     close_event: EventClass,
     sampling_period: float,
+    live_callback_inits: dict[str, Callable[[], Callable[[dict[str, Number]], None]]],
 ) -> None:
     """Parallel function that samples energy values from hardware libraries.
 
@@ -194,8 +214,10 @@ def perunSubprocess(
         Indicates that perun is closing, and the subprocess needs to close
     sampling_period : float
         Sampling period in seconds
+    live_callback_inits : dict[str, Callable[[], Callable[[str, Number], None]]]
+        Dictionary of live callback initializers, where the key is the name of the callback and the value is a function that returns a callable that accepts metric identifier and value.
     """
-    log.debug(f"Rank {rank}: Subprocess: Entered perunSubprocess")
+    log.info(f"Rank {rank}: Subprocess: Starting perunSubprocess")
     backends: Dict[str, Backend] = {}
     for name, backend_class in available_backends.items():
         try:
@@ -207,11 +229,17 @@ def perunSubprocess(
         except Exception as e:
             log.info(f"Unknown error loading dependecy {name}")
             log.info(e)
-    log.debug("Initialized backends.")
+    log.info("Subprocess: Initialized backends.")
     (
         t_metadata,
         lSensors,
     ) = prepSensors(backends, l_assigned_sensors)
+
+    # Initializing live callbacks:
+    callbacks = []
+    for init_func in live_callback_inits.values():
+        callbacks.append(init_func())
+    log.info(f"Subprocess: Initialized {len(callbacks)} live callbacks.")
 
     # Reset
     timesteps: List[int] = []
@@ -234,6 +262,7 @@ def perunSubprocess(
                 timesteps,
                 rawValues,
                 lambda delta: stop_event.wait(sampling_period - delta),
+                callbacks,
             )
             stop_event.clear()
 
@@ -265,4 +294,9 @@ def perunSubprocess(
     for backend in backends:
         log.debug(f"Closing backend {backend}")
         del backend
+
+    # Close live callbacks
+    for callback in live_callback_inits.values():
+        log.debug(f"Closing callback {callback}")
+        del callback
     return
