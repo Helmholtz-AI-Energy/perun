@@ -1,6 +1,5 @@
 """Decorator module."""
 
-from ast import Call
 import functools
 import logging
 from typing import Any, Callable, Optional, Union
@@ -16,6 +15,7 @@ from perun.core import Perun
 from perun.data_model.data import DataNode
 from perun.logging import set_logger_config
 from perun.monitoring.application import Application
+from perun.processing import Number
 
 log = logging.getLogger(__name__)
 
@@ -85,12 +85,16 @@ def register_callback(func: Callable[[DataNode], None]) -> None:
     func : Callable[[DataNode], None]
         Function to be called.
     """
-    perun = Perun.getInstance()
-    if func.__name__ not in perun.postprocess_callbacks:
-        log.info(f"Rank {perun.comm.Get_rank()}: Registering callback {func.__name__}")
-        perun.postprocess_callbacks[func.__name__] = func
+    perun: Union[Perun, None] = Perun.getInstance()
 
-def register_live_callback(func: Callable[[], Callable[[str, Union[int, float]], None]]) -> None:
+    if perun and func.__name__ not in perun._postprocess_callbacks:
+        log.info(f"Rank {perun.comm.Get_rank()}: Registering callback {func.__name__}")
+        perun._postprocess_callbacks[func.__name__] = func
+
+
+def register_live_callback(
+    obj: Callable[[], Callable[[dict[str, Number]], None]], id: str,
+) -> None:
     """
     Register a function that initializes a live callback function that will be run after each datapoint is collected on the monitoring subprocess.
     This is useful for live monitoring of metrics in real-time.
@@ -101,11 +105,13 @@ def register_live_callback(func: Callable[[], Callable[[str, Union[int, float]],
 
     Parameters
     ----------
-    func : Callable[[], Callable[[str, Union[int, float]], None]]
+    obj : Callable[[], Callable[[str, Union[int, float]], None]]
         Function that initializes the live callback.
         It should return a callable that accepts the metric identifier and the metric value. It should take no arguments.
     """
-    perun = Perun.getInstance()
-    if func.__name__ not in perun.live_callbacks:
-        log.info(f"Rank {perun.comm.Get_rank()}: Registering live callback {func.__name__}")
-        perun.live_callback[func.__name__] = func
+    perun: Union[Perun, None] = Perun.getInstance()
+    if perun and id not in perun._live_callbacks:
+        log.info(
+            f"Rank {perun.comm.Get_rank()}: Registering live callback {id}"
+        )
+        perun._live_callbacks[id] = obj

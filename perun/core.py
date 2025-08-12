@@ -10,7 +10,7 @@ import sys
 from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import cpuinfo
 import psutil
@@ -22,6 +22,7 @@ from perun.backend import (
 from perun.comm import Comm
 from perun.coordination import assignSensors, getHostRankDict
 from perun.data_model.data import DataNode, NodeType
+from perun.data_model.measurement_type import Number
 from perun.io.io import IOFormat, exportTo, importFrom
 from perun.monitoring.application import Application
 from perun.monitoring.monitor import MonitorStatus, PerunMonitor
@@ -57,8 +58,8 @@ class Perun(metaclass=Singleton):
         self._l_host_metadata: Optional[dict[str, Any]] = None
         self._l_backend_metadata: Optional[dict[str, Any]] = None
         self._monitor: Optional[PerunMonitor] = None
-        self.postprocess_callbacks: dict[str, Callable[[DataNode], None]] = {}
-        self.live_callbacks: dict[str, Callable[[str, Union[int, float]], None]] = {}
+        self._postprocess_callbacks: dict[str, Callable[[DataNode], None]] = {}
+        self._live_callbacks: dict[str, Callable[[str, Number], None]] = {}
 
         self.warmup_round: bool = False
 
@@ -313,7 +314,12 @@ class Perun(metaclass=Singleton):
 
         backends = self.backends
         self._monitor = PerunMonitor(
-            app, self.comm, backends, self.l_assigned_sensors, self.config
+            app,
+            self.comm,
+            backends,
+            self.l_assigned_sensors,
+            self._live_callbacks,
+            self.config,
         )
 
         warmup_rounds = self.config.getint("benchmarking", "warmup_rounds")
@@ -482,6 +488,6 @@ class Perun(metaclass=Singleton):
         exportTo(dataOut, dataNode, format, mr_id)
 
     def _run_postprocess_callbacks(self, dataNode: DataNode) -> None:
-        for name, callback in self.postprocess_callbacks.items():
+        for name, callback in self._postprocess_callbacks.items():
             log.info(f"Running callback {name}")
             callback(dataNode)

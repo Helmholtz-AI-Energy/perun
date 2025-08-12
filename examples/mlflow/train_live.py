@@ -1,5 +1,7 @@
 import logging
+import time
 import sys
+from typing import Any
 import warnings
 from urllib.parse import urlparse
 
@@ -10,14 +12,15 @@ import pandas as pd
 from sklearn.linear_model import ElasticNet
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
+import os
 
-from perun import monitor, register_callback
+import perun
 
 logging.basicConfig(level=logging.WARN)
 logger = logging.getLogger(__name__)
 
 
-@monitor()
+@perun.monitor()
 def eval_metrics(actual, pred):
     rmse = np.sqrt(mean_squared_error(actual, pred))
     mae = mean_absolute_error(actual, pred)
@@ -25,7 +28,7 @@ def eval_metrics(actual, pred):
     return rmse, mae, r2
 
 
-@monitor()
+@perun.monitor()
 def train(data):
     train, test = train_test_split(data)
 
@@ -38,46 +41,27 @@ def train(data):
     alpha = float(sys.argv[1]) if len(sys.argv) > 1 else 0.5
     l1_ratio = float(sys.argv[2]) if len(sys.argv) > 2 else 0.5
 
-    with mlflow.start_run() as active_run:
 
-        @register_callback
-        def perun2mlflow(node):
-            mlflow.start_run(active_run.info.run_id)
-            for metricType, metric in node.metrics.items():
-                name = f"{metric.type.value}"
-                mlflow.log_metric(name, metric.value)
 
-        lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
-        lr.fit(train_x, train_y)
+    lr = ElasticNet(alpha=alpha, l1_ratio=l1_ratio, random_state=42)
+    lr.fit(train_x, train_y)
 
-        predicted_qualities = lr.predict(test_x)
+    predicted_qualities = lr.predict(test_x)
 
-        (rmse, mae, r2) = eval_metrics(test_y, predicted_qualities)
+    (rmse, mae, r2) = eval_metrics(test_y, predicted_qualities)
 
-        print("Elasticnet model (alpha=%f, l1_ratio=%f):" % (alpha, l1_ratio))
-        print("  RMSE: %s" % rmse)
-        print("  MAE: %s" % mae)
-        print("  R2: %s" % r2)
+    print("Elasticnet model (alpha=%f, l1_ratio=%f):" % (alpha, l1_ratio))
+    print("  RMSE: %s" % rmse)
+    print("  MAE: %s" % mae)
+    print("  R2: %s" % r2)
 
-        mlflow.log_param("alpha", alpha)
-        mlflow.log_param("l1_ratio", l1_ratio)
-        mlflow.log_metric("rmse", rmse)
-        mlflow.log_metric("r2", r2)
-        mlflow.log_metric("mae", mae)
+    mlflow.log_param("alpha", alpha)
+    mlflow.log_param("l1_ratio", l1_ratio)
+    mlflow.log_metric("rmse", rmse)
+    mlflow.log_metric("r2", r2)
+    mlflow.log_metric("mae", mae)
 
-        tracking_url_type_store = urlparse(mlflow.get_tracking_uri()).scheme
-
-        # Model registry does not work with file store
-        if tracking_url_type_store != "file":
-            # Register the model
-            # There are other ways to use the Model Registry, which depends on the use case,
-            # please refer to the doc for more information:
-            # https://mlflow.org/docs/latest/model-registry.html#api-workflow
-            mlflow.sklearn.log_model(
-                lr, "model", registered_model_name="ElasticnetWineModel"
-            )
-        else:
-            mlflow.sklearn.log_model(lr, "model")
+    time.sleep(10)  # Simulate some processing time
 
 
 if __name__ == "__main__":
@@ -93,4 +77,11 @@ if __name__ == "__main__":
             "Unable to download training & test CSV, check your internet connection. Error: %s",
             e,
         )
-    train(data)
+
+    mlflow_uri = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
+    mlflow.set_tracking_uri(mlflow_uri)
+    mlflow.set_experiment("perun-live-monitoring")
+
+
+    with mlflow.start_run(nested=True) as run:
+        train(data)
