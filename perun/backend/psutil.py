@@ -49,8 +49,9 @@ class PSUTILBackend(Backend):
         else:
             log.info("RAM_USAGE not available")
 
-        if psutil.cpu_percent() is not None:
-            sensors["CPU_USAGE"] = (self.id, DeviceType.CPU, Unit.PERCENT)
+        if psutil.cpu_percent(percpu=True) is not None:
+            for cpu_id, _ in enumerate(psutil.cpu_percent(percpu=True)):
+                sensors[f"CPU_USAGE_{cpu_id}"] = (self.id, DeviceType.CPU, Unit.PERCENT)
         else:
             log.info("CPU_USAGE not available")
 
@@ -84,10 +85,11 @@ class PSUTILBackend(Backend):
             def func() -> Number:
                 return np.uint64(psutil.virtual_memory().used)
 
-        elif device == "CPU_USAGE":
+        elif device.startswith("CPU_USAGE_"):
+            cpuId = int(device.split("_")[-1])
 
             def func() -> Number:
-                return np.float32(psutil.cpu_percent())
+                return np.float32(psutil.cpu_percent(percpu=True)[cpuId])
 
         elif device == "DISK_READ_BYTES":
 
