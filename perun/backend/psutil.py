@@ -148,7 +148,7 @@ class PSUTILBackend(Backend):
                         self._getCallback(deviceName),
                     )
                 )
-            elif deviceName == "CPU_USAGE":
+            elif "CPU_USAGE" in deviceName:
                 devices.append(
                     Sensor(
                         deviceName,
