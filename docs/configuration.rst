@@ -23,8 +23,8 @@ Options
     "monitor", "sampling_period", 1, "Seconds between measurements"
     "monitor", "include_backends", "", "Space separated list of backends to include during monitoring. If empty, all backends will be included. Cannot be used together with `exclude_backends`."
     "monitor", "exclude_backends", "", "Space separated list of backends to exclude during monitoring. If empty, all backends will be included. Cannot be used together with `include_backends`."
-    "monitor", "include_sensors", "", "Space separated list of sensors to include during monitoring. If empty, all sensors will be included. Cannot be used together with `exclude_sensors`."
-    "monitor", "exclude_sensors", "", "Space separated list of sensors to exclude during monitoring. If empty, all sensors will be included. Cannot be used together with `include_sensors`."
+    "monitor", "include_sensors", "", "Space separated list of sensors to include during monitoring. Allows partial matches (for an exact match write e.g. '^GPU_FREQ_1$'). If empty, all sensors will be included. Cannot be used together with `exclude_sensors`."
+    "monitor", "exclude_sensors", "", "Space separated list of sensors to exclude during monitoring. Allows partial matches (for an exact match write e.g. '^GPU_FREQ_1$'). If empty, all sensors will be included. Cannot be used together with `include_sensors`."
 
     "output", "app_name", None, "Name to identify the app. If **None**, name will be based on the file or function name."
     "output", "run_id", None, "ID of the current run. If **None**, the current date and time will be used. If **SLURM**, perun will look for the environmental variable **SLURM_JOB_ID** and use that."
