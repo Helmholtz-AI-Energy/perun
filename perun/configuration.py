@@ -10,7 +10,7 @@ import pprint as pp
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Dict, Optional
 
 from perun.io.io import IOFormat
 
@@ -104,7 +104,7 @@ def read_environ() -> None:
                 config.set(section, option, os.environ[envvar])
 
 
-def _fetch_json_from_url(url: str, timeout: int = 2) -> Optional[dict]:
+def _fetch_json_from_url(url: str, timeout: int = 2) -> Optional[Dict[str, Any]]:
     """Fetch JSON from a URL with a short timeout and return parsed dict on success.
 
     Returns None on any failure to avoid crashing the application.
@@ -115,13 +115,11 @@ def _fetch_json_from_url(url: str, timeout: int = 2) -> Optional[dict]:
             if resp.status != 200:
                 return None
             data = resp.read()
-            return json.loads(data.decode("utf-8"))
-    except (
-        urllib.error.URLError,
-        urllib.error.HTTPError,
-        json.JSONDecodeError,
-        ValueError,
-    ):
+            parsed = json.loads(data.decode("utf-8"))
+            if isinstance(parsed, dict):
+                return parsed
+            return None
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, ValueError):
         return None
 
 
