@@ -10,7 +10,7 @@ import pprint as pp
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Mapping, Dict, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from perun.io.io import IOFormat
 
@@ -119,7 +119,12 @@ def _fetch_json_from_url(url: str, timeout: int = 2) -> Optional[Dict[str, Any]]
             if isinstance(parsed, dict):
                 return parsed
             return None
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, ValueError):
+    except (
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        json.JSONDecodeError,
+        ValueError,
+    ):
         return None
 
 
