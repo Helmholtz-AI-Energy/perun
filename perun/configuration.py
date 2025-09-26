@@ -6,6 +6,10 @@ import configparser
 import logging
 import os
 import pprint as pp
+import json
+import urllib.request
+import urllib.error
+from typing import Optional
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -101,6 +105,79 @@ def read_environ() -> None:
                 config.set(section, option, os.environ[envvar])
 
 
+def _fetch_json_from_url(url: str, timeout: int = 2) -> Optional[dict]:
+    """Fetch JSON from a URL with a short timeout and return parsed dict on success.
+
+    Returns None on any failure to avoid crashing the application.
+    """
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "perun/1.0"})
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            if resp.status != 200:
+                return None
+            data = resp.read()
+            return json.loads(data.decode("utf-8"))
+    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, ValueError):
+        return None
+
+
+def _apply_remote_postprocessing_config() -> None:
+    """If environment variables point to remote JSON with post-processing values, apply them.
+
+    Expected JSON structure (example):
+    {"emissions_factor": 230.0, "price_factor": 0.2678, "price_unit": "€"}
+
+    Any missing or invalid values are ignored. All failures are silent to preserve
+    backwards compatibility and avoid crashes when APIs are unavailable.
+    """
+    # Primary combined URL
+    url = os.environ.get("PERUN_POSTPROCESSING_URL")
+    # Fallback individual URLs
+    emissions_url = os.environ.get("PERUN_EMISSIONS_URL")
+    price_url = os.environ.get("PERUN_PRICE_URL")
+
+    data = None
+    if url:
+        data = _fetch_json_from_url(url)
+    # If no combined url or fetch failed, try emissions/price separately
+    if data is None:
+        data = {}
+        if emissions_url:
+            d = _fetch_json_from_url(emissions_url)
+            if isinstance(d, dict):
+                data.update(d)
+        if price_url:
+            d = _fetch_json_from_url(price_url)
+            if isinstance(d, dict):
+                data.update(d)
+
+    if not data:
+        return
+
+    # Apply numeric values if valid
+    try:
+        ef = data.get("emissions_factor")
+        if ef is not None:
+            ef_val = float(ef)
+            if ef_val >= 0:
+                config.set("post-processing", "emissions_factor", str(ef_val))
+    except (TypeError, ValueError):
+        pass
+
+    try:
+        pf = data.get("price_factor")
+        if pf is not None:
+            pf_val = float(pf)
+            if pf_val >= 0:
+                config.set("post-processing", "price_factor", str(pf_val))
+    except (TypeError, ValueError):
+        pass
+
+    pu = data.get("price_unit")
+    if isinstance(pu, str) and pu:
+        config.set("post-processing", "price_unit", pu)
+
+
 def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigParser:
     """Sanitize configuration values.
 
@@ -115,6 +192,12 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
         Sanitized configuration object.
     """
     # Ensure post processing variables are valid
+    # Attempt to fetch remote post-processing configuration (non-fatal)
+    try:
+        _apply_remote_postprocessing_config()
+    except Exception:
+        # Any unforeseen error shouldn't break perun execution
+        log.debug("Remote post-processing config fetch failed or not configured.")
     try:
         power_overhead = config.getfloat("post-processing", "power_overhead")
         if power_overhead < 0:
