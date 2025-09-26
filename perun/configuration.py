@@ -3,15 +3,14 @@
 # gCO2eq/kWh - source: https://ourworldindata.org/grapher/carbon-intensity-electricity Global Average
 # Currency/kWh (Euro) - source: https://www.stromauskunft.de/strompreise/ 03.05.2023
 import configparser
+import json
 import logging
 import os
 import pprint as pp
-import json
-import urllib.request
 import urllib.error
-from typing import Optional
+import urllib.request
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Optional
 
 from perun.io.io import IOFormat
 
@@ -117,7 +116,12 @@ def _fetch_json_from_url(url: str, timeout: int = 2) -> Optional[dict]:
                 return None
             data = resp.read()
             return json.loads(data.decode("utf-8"))
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, ValueError):
+    except (
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        json.JSONDecodeError,
+        ValueError,
+    ):
         return None
 
 
