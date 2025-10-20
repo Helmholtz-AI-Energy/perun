@@ -182,7 +182,14 @@ To get a quick overview of which interfaces and information perun has access to,
     |       CPU_FREQ_5 |   psutil |  DeviceType.CPU |     Hz |
     |       CPU_FREQ_6 |   psutil |  DeviceType.CPU |     Hz |
     |       CPU_FREQ_7 |   psutil |  DeviceType.CPU |     Hz |
-    |        CPU_USAGE |   psutil |  DeviceType.CPU |      % |
+    |      CPU_USAGE_0 |   psutil |  DeviceType.CPU |      % |
+    |      CPU_USAGE_1 |   psutil |  DeviceType.CPU |      % |
+    |      CPU_USAGE_2 |   psutil |  DeviceType.CPU |      % |
+    |      CPU_USAGE_3 |   psutil |  DeviceType.CPU |      % |
+    |      CPU_USAGE_4 |   psutil |  DeviceType.CPU |      % |
+    |      CPU_USAGE_5 |   psutil |  DeviceType.CPU |      % |
+    |      CPU_USAGE_6 |   psutil |  DeviceType.CPU |      % |
+    |      CPU_USAGE_7 |   psutil |  DeviceType.CPU |      % |
     |  DISK_READ_BYTES |   psutil | DeviceType.DISK |      B |
     | DISK_WRITE_BYTES |   psutil | DeviceType.DISK |      B |
     |   NET_READ_BYTES |   psutil |  DeviceType.NET |      B |
