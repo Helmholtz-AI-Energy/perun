@@ -22,7 +22,6 @@ from perun.backend import (
 from perun.comm import Comm
 from perun.coordination import assignSensors, getHostRankDict
 from perun.data_model.data import DataNode, NodeType
-from perun.data_model.measurement_type import Number
 from perun.io.io import IOFormat, exportTo, importFrom
 from perun.monitoring.application import Application
 from perun.monitoring.monitor import MonitorStatus, PerunMonitor
