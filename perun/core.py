@@ -10,7 +10,7 @@ import sys
 from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable
 
 import cpuinfo
 import psutil
@@ -45,23 +45,20 @@ class Perun(metaclass=Singleton):
             Global configuration object
         """
         self.config = config
-        self._comm: Optional[Comm] = None
-        self._backends: Optional[dict[str, Backend]] = None
+        self._comm: Comm | None = None
+        self._backends: dict[str, Backend] | None = None
 
         self._g_available_sensors: list[dict[str, tuple]] = []
         self._l_available_sensors: dict[str, tuple] = {}
         self._g_assigned_sensors: list[dict[str, tuple]] = []
         self._l_assigned_sensors: dict[str, tuple] = {}
-        self._host_rank: Optional[dict[str, list[int]]] = None
+        self._host_rank: dict[str, list[int]] | None = None
 
-        self._hostname: Optional[str] = None
-        self._l_host_metadata: Optional[dict[str, Any]] = None
-        self._l_backend_metadata: Optional[dict[str, Any]] = None
-        self._monitor: Optional[PerunMonitor] = None
-        self._postprocess_callbacks: dict[str, Callable[[DataNode], None]] = {}
-        self._live_callbacks: dict[
-            str, Callable[[], Callable[[dict[str, Number]], None]]
-        ] = {}
+        self._hostname: str | None = None
+        self._l_host_metadata: dict[str, Any] | None = None
+        self._l_backend_metadata: dict[str, Any] | None = None
+        self._monitor: PerunMonitor | None = None
+        self.postprocess_callbacks: dict[str, Callable[[DataNode], None]] = {}
 
         self.warmup_round: bool = False
 
@@ -97,12 +94,12 @@ class Perun(metaclass=Singleton):
         return self._hostname
 
     @property
-    def backends(self) -> Dict[str, Backend]:
+    def backends(self) -> dict[str, Backend]:
         """Lazy initialization of backends dictionary.
 
         Returns
         -------
-        Dict[str, Backend]
+        dict[str, Backend]
             Dictionary of available backends.
         """
         if not self._backends:
@@ -127,12 +124,12 @@ class Perun(metaclass=Singleton):
                 backend.close()
 
     @property
-    def host_rank(self) -> Dict[str, List[int]]:
+    def host_rank(self) -> dict[str, list[int]]:
         """Lazy initialization of host_rank dictionary.
 
         Returns
         -------
-        Dict[str, List[int]]
+        dict[str, list[int]]
             Dictionary with key (hostname) and values (list of ranks in host)
         """
         if not self._host_rank:
@@ -141,12 +138,12 @@ class Perun(metaclass=Singleton):
         return self._host_rank
 
     @property
-    def l_available_sensors(self) -> Dict[str, Tuple]:
+    def l_available_sensors(self) -> dict[str, tuple]:
         """Lazy initialization of local available sensors.
 
         Returns
         -------
-        Dict[str, Tuple[str]]
+        dict[str, tuple[str]]
             Local available sensor.
         """
         if not self._l_available_sensors:
@@ -155,12 +152,12 @@ class Perun(metaclass=Singleton):
         return self._l_available_sensors
 
     @property
-    def g_available_sensors(self) -> List[Dict[str, Tuple]]:
+    def g_available_sensors(self) -> list[dict[str, tuple]]:
         """Lazy initialization of global available sensors.
 
         Returns
         -------
-        List[Dict[str, Tuple[str]]]
+        list[dict[str, tuple[str]]]
             Global available sensor.
         """
         if not self._g_available_sensors:
@@ -169,12 +166,12 @@ class Perun(metaclass=Singleton):
         return self._g_available_sensors
 
     @property
-    def g_assigned_sensors(self) -> List[Dict[str, Tuple]]:
+    def g_assigned_sensors(self) -> list[dict[str, tuple]]:
         """Lazy initialization of global sensors assignment.
 
         Returns
         -------
-        List[Dict[str, Tuple[str]]]
+        list[dict[str, tuple[str]]]
             Local assigned sensors.
         """
         if not self._g_assigned_sensors:
@@ -221,23 +218,23 @@ class Perun(metaclass=Singleton):
         return self._g_assigned_sensors
 
     @property
-    def l_assigned_sensors(self) -> Dict[str, Tuple]:
+    def l_assigned_sensors(self) -> dict[str, tuple]:
         """Lazy initialization of local assigned sensors.
 
         Returns
         -------
-        Dict[str, Tuple[str]]
+        dict[str, tuple[str]]
             Local assigned sensors.
         """
         return self.g_assigned_sensors[self.comm.Get_rank()]
 
     @property
-    def l_host_metadata(self) -> Dict[str, Any]:
+    def l_host_metadata(self) -> dict[str, Any]:
         """Lazy initialization of local metadata dictionary.
 
         Returns
         -------
-        Dict[str, Any]
+        dict[str, Any]
             Metadata dictionary
         """
         if not self._l_host_metadata:
@@ -255,12 +252,12 @@ class Perun(metaclass=Singleton):
         return self._l_host_metadata
 
     @property
-    def l_backend_metadata(self) -> Dict[str, Any]:
+    def l_backend_metadata(self) -> dict[str, Any]:
         """Lazy initialization of local metadata dictionary.
 
         Returns
         -------
-        Dict[str, Any]
+        dict[str, Any]
             Metadata dictionary
         """
         if not self._l_backend_metadata:
@@ -341,7 +338,7 @@ class Perun(metaclass=Singleton):
                     return
 
         log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
-        multirun_nodes: Dict[str, DataNode] = {}
+        multirun_nodes: dict[str, DataNode] = {}
         self.warmup_round = False
         i = 0
         rounds = self.config.getint("benchmarking", "rounds")
@@ -428,7 +425,7 @@ class Perun(metaclass=Singleton):
         if out_format != IOFormat.HDF5:
             self.export_to(data_out, app_data, out_format, multirun_id)
 
-    def _process_multirun(self, multirun_nodes: Dict[str, DataNode]) -> DataNode:
+    def _process_multirun(self, multirun_nodes: dict[str, DataNode]) -> DataNode:
         app_name = self.config.get("output", "app_name")
         starttime = self.config.get("output", "starttime")
         multirun_id = self.config.get("output", "run_id")

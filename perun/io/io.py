@@ -4,7 +4,6 @@ import enum
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Union
 
 from perun.data_model.data import DataNode
 from perun.io.bench import exportBench
@@ -90,7 +89,7 @@ def exportTo(
                 last_dt = exec_dt
                 mr_id = node.id
 
-    reportStr: Union[str, bytes]
+    reportStr: str | bytes
     if format == IOFormat.JSON:
         fileType = "w"
         output_path = output_path / f"{dataNode.id}.{format.suffix}"

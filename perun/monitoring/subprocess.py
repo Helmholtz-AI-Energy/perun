@@ -6,7 +6,7 @@ import time
 from configparser import ConfigParser
 from multiprocessing import Queue
 from multiprocessing.synchronize import Event as EventClass
-from typing import Callable, Dict, List, Tuple
+from typing import Callable
 
 import numpy as np
 
@@ -20,28 +20,28 @@ log = logging.getLogger(__name__)
 
 
 def prepSensors(
-    backends: Dict[str, Backend], l_assigned_sensors: Dict[str, Tuple]
-) -> Tuple[MetricMetaData, List[Sensor]]:
+    backends: dict[str, Backend], l_assigned_sensors: dict[str, tuple]
+) -> tuple[MetricMetaData, list[Sensor]]:
     """
     Prepare sensors for monitoring.
 
     Parameters
     ----------
-    backends : Dict[str, Backend]
+    backends : dict[str, Backend]
         A dictionary of backends.
-    l_assigned_sensors : Dict[str, Tuple]
+    l_assigned_sensors : dict[str, tuple]
         A dictionary of sensor configurations.
 
     Returns
     -------
-    Tuple[List[int], MetricMetaData, List[List[Number]], List[Sensor]]
+    tuple[list[int], MetricMetaData, list[list[Number]], list[Sensor]]
         A tuple containing the following:
-        - timesteps (List[int]): A list of timesteps.
+        - timesteps (list[int]): A list of timesteps.
         - t_metadata (MetricMetaData): Metadata for the metrics.
-        - rawValues (List[List[Number]]): A list of raw sensor values.
-        - lSensors (List[Sensor]): A list of sensors.
+        - rawValues (list[list[Number]]): A list of raw sensor values.
+        - lSensors (list[Sensor]): A list of sensors.
     """
-    lSensors: List[Sensor] = []
+    lSensors: list[Sensor] = []
     for backend in backends.values():
         sensor_ids = {
             sensor_id
@@ -106,10 +106,10 @@ def _monitoringLoop(
 
 
 def createNode(
-    timesteps: List[int],
+    timesteps: list[int],
     t_metadata: MetricMetaData,
-    rawValues: List[List[Number]],
-    lSensors: List[Sensor],
+    rawValues: list[list[Number]],
+    lSensors: list[Sensor],
     perunConfig: ConfigParser,
 ) -> DataNode:
     """
@@ -117,13 +117,13 @@ def createNode(
 
     Parameters
     ----------
-    timesteps : List[int]
-        A list of timesteps.
+    timesteps : list[int]
+        List of timesteps.
     t_metadata : MetricMetaData
         Metadata for the metrics.
-    rawValues : List[List[Number]]
-        A list of raw sensor values.
-    lSensors : List[Sensor]
+    rawValues : list[list[Number]]
+        List of raw sensor values.
+    lSensors : list[Sensor]
         A list of sensors.
     perunConfig : ConfigParser
         The perun configuration.
@@ -133,7 +133,7 @@ def createNode(
     DataNode
         A data node.
     """
-    sensorNodes: Dict = {}
+    sensorNodes: dict[DeviceType, list[DataNode]] = {}
 
     t_s = np.array(timesteps)
     t_s -= t_s[0]
@@ -156,20 +156,20 @@ def createNode(
         sensorNodes[sensor.type].append(dn)
 
     deviceGroupNodes = []
-    for deviceType, sensorNodes in sensorNodes.items():
+    for deviceType, sensors in sensorNodes.items():
         if deviceType != DeviceType.NODE:
             dn = DataNode(
                 id=deviceType.value,
                 type=NodeType.DEVICE_GROUP,
                 metadata={},
-                nodes={sensor.id: sensor for sensor in sensorNodes},
+                nodes={sensor.id: sensor for sensor in sensors},
                 deviceType=deviceType,
             )
 
             dn = processDataNode(dn, perunConfig)
             deviceGroupNodes.append(dn)
         else:
-            deviceGroupNodes.extend(sensorNodes)
+            deviceGroupNodes.extend(sensors)
 
     hostNode = DataNode(
         id=platform.node(),
@@ -183,7 +183,7 @@ def createNode(
 def perunSubprocess(
     queue: Queue,
     rank: int,
-    l_assigned_sensors: Dict[str, Tuple],
+    l_assigned_sensors: dict[str, tuple],
     perunConfig: ConfigParser,
     sp_ready_event: EventClass,
     start_event: EventClass,
@@ -217,8 +217,8 @@ def perunSubprocess(
     live_callback_inits : dict[str, Callable[[], Callable[[str, Number], None]]]
         Dictionary of live callback initializers, where the key is the name of the callback and the value is a function that returns a callable that accepts metric identifier and value.
     """
-    log.info(f"Rank {rank}: Subprocess: Starting perunSubprocess")
-    backends: Dict[str, Backend] = {}
+    log.debug(f"Rank {rank}: Subprocess: Entered perunSubprocess")
+    backends: dict[str, Backend] = {}
     for name, backend_class in available_backends.items():
         try:
             backend_instance = backend_class()
@@ -242,8 +242,8 @@ def perunSubprocess(
     log.info(f"Subprocess: Initialized {len(callbacks)} live callbacks.")
 
     # Reset
-    timesteps: List[int] = []
-    rawValues: List[List[Number]] = []
+    timesteps: list[int] = []
+    rawValues: list[list[Number]] = []
     for _ in lSensors:
         rawValues.append([])
     log.debug(f"SP: backends -- {backends}")

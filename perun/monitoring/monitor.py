@@ -9,7 +9,7 @@ from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as EventClass
 from queue import Empty
 from subprocess import Popen
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 from perun.backend.backend import Backend
 from perun.comm import Comm
@@ -63,9 +63,9 @@ class PerunMonitor:
         The application to be monitored.
     comm : Comm
         The communication object for inter-process communication.
-    l_sensors_config : Dict[str, Set[str]]
+    l_sensors_config : dict[str, set[str]]
         The configuration for local sensors.
-    backends : Dict[str, Backend]
+    _backends : dict[str, Backend]
         The backends for data collection.
     config : ConfigParser
         The configuration parser object.
@@ -76,9 +76,9 @@ class PerunMonitor:
         The application to be monitored.
     _comm : Comm
         The communication object for inter-process communication.
-    _l_sensors_config : Dict[str, Tuple]
+    _l_sensors_config : dict[str, tuple]
         The configuration for local sensors.
-    _backends : Dict[str, Backend]
+    _backends : dict[str, Backend]
         The backends for data collection.
     _config : ConfigParser
         The configuration parser object.
@@ -90,8 +90,8 @@ class PerunMonitor:
         self,
         app: Application,
         comm: Comm,
-        backends: Dict[str, Backend],
-        l_assigned_sensors: Dict[str, Tuple],
+        backends: dict[str, Backend],
+        l_assigned_sensors: dict[str, tuple],
         live_callback_inits: dict[
             str, Callable[[], Callable[[dict[str, Number]], None]]
         ],
@@ -110,8 +110,8 @@ class PerunMonitor:
         self.start_event: EventClass = Event()
         self.stop_event: EventClass = Event()
         self.close_event: EventClass = Event()
-        self.queue: Optional[Queue] = None
-        self.perunSP: Optional[Process] = None
+        self.queue: Queue | None = None
+        self.perunSP: Process | None = None
 
     def close(self) -> None:
         """Close the monitor."""
@@ -175,7 +175,7 @@ class PerunMonitor:
         self,
         run_id: str,
         record: bool = True,
-    ) -> Tuple[MonitorStatus, Optional[DataNode], Any]:
+    ) -> tuple[MonitorStatus, DataNode | None, Any]:
         """
         Run the application and returns the monitor status and data node.
 
@@ -188,7 +188,7 @@ class PerunMonitor:
 
         Returns
         -------
-        Tuple[MonitorStatus, Optional[DataNode], Any]
+        tuple[MonitorStatus, DataNode | None, Any]
             A tuple containing the monitor status and the data node, and the application result.
 
         Raises
@@ -238,7 +238,7 @@ class PerunMonitor:
 
     def _run_python_app(
         self, run_id: str
-    ) -> Tuple[MonitorStatus, Optional[DataNode], Any]:
+    ) -> tuple[MonitorStatus, DataNode | None, Any]:
         # 3) Start application
         log.info(f"Rank {self._comm.Get_rank()}: Starting App")
 
@@ -297,7 +297,7 @@ class PerunMonitor:
 
     def _run_binary_app(
         self, run_id: str
-    ) -> Tuple[MonitorStatus, Optional[DataNode], Any]:
+    ) -> tuple[MonitorStatus, DataNode | None, Any]:
         # 1) Prepare sensors
         (
             t_metadata,
@@ -307,8 +307,8 @@ class PerunMonitor:
         log.debug(f"SP: l_sensor_config -- {self._l_assigned_sensors}")
         log.debug(f"Rank {self._comm.Get_rank()}: perunSP lSensors: {lSensors}")
 
-        timesteps: List[int] = []
-        rawValues: List[List[Number]] = []
+        timesteps: list[int] = []
+        rawValues: list[list[Number]] = []
         for _ in lSensors:
             rawValues.append([])
 
@@ -348,7 +348,7 @@ class PerunMonitor:
 
         return MonitorStatus.READY, runNode, None
 
-    def _handle_failed_run(self) -> Optional[DataNode]:
+    def _handle_failed_run(self) -> DataNode | None:
         availableRanks = self._comm.check_available_ranks()
 
         log.error(f"Rank {self._comm.Get_rank()}: Available ranks {availableRanks}")
@@ -384,8 +384,8 @@ class PerunMonitor:
         self,
         run_id: str,
         starttime_ns: int,
-        available_ranks: Optional[List[int]] = None,
-    ) -> Optional[DataNode]:
+        available_ranks: list[int] | None = None,
+    ) -> DataNode | None:
         """Collect data from subprocess and pack it in a data node.
 
         Parameters
@@ -411,8 +411,8 @@ class PerunMonitor:
         log.info(f"Rank {self._comm.Get_rank()}: Gathering data.")
 
         # 5) Collect data from everyone on the first rank
-        dataNodes: Optional[List[DataNode]] = None
-        globalRegions: Optional[List[LocalRegions]] = None
+        dataNodes: list[DataNode] | None = None
+        globalRegions: list[LocalRegions] | None = None
         if not available_ranks:
             dataNodes = self._comm.gather(nodeData, root=0)
             globalRegions = self._comm.gather(self.local_regions, root=0)

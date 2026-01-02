@@ -2,7 +2,7 @@
 
 import importlib
 import logging
-from typing import Callable, Dict, List, Set, Tuple
+from typing import Callable
 
 import numpy as np
 
@@ -54,12 +54,12 @@ class ROCMBackend(Backend):
             except Exception as e:
                 log.info(e)
 
-    def _findSensors(self) -> Dict[str, Tuple]:
+    def _findSensors(self) -> dict[str, tuple]:
         """Return string ids of visible devices.
 
         Returns
         -------
-        Set[str]
+        set[str]
             Set with sensor ids.
         """
         devices = {}
@@ -92,30 +92,30 @@ class ROCMBackend(Backend):
 
         return devices
 
-    def availableSensors(self) -> Dict[str, Tuple]:
+    def availableSensors(self) -> dict[str, tuple]:
         """Return a dictionary with all available sensors.
 
         Each entry contains the backend id and type of sensor.
 
         Returns
         -------
-        Dict[str, Tuple]
+        dict[str, tuple]
             Dictionary with device ids and measurement unit.
         """
         log.debug(f"Available sensors for {self.name} backend: {self.devices}")
         return self.devices
 
-    def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
+    def getSensors(self, deviceList: set[str]) -> list[Sensor]:
         """Gather sensor object based on a set of device ids.
 
         Parameters
         ----------
-        deviceList : Set[str]
+        deviceList : set[str]
             Set containing divice ids.
 
         Returns
         -------
-        List[Sensor]
+        list[Sensor]
             List with Sensor objects.
         """
         devices = []

@@ -2,7 +2,7 @@
 
 import functools
 import logging
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable
 
 from perun.configuration import (
     config,
@@ -20,7 +20,7 @@ from perun.processing import Number
 log = logging.getLogger(__name__)
 
 
-def monitor(region_name: Optional[str] = None) -> Callable:
+def monitor(region_name: str | None = None) -> Callable:
     """Decorate function to monitor its energy usage."""
 
     def inner_function(func: Callable) -> Callable:

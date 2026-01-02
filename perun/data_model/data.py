@@ -5,9 +5,10 @@ import enum
 import logging
 import time
 from dataclasses import asdict
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 from perun.data_model.measurement_type import MetricMetaData, Number
 from perun.data_model.sensor import DeviceType
@@ -99,7 +100,7 @@ class Metric:
     agg: AggregateType
 
     @classmethod
-    def fromDict(cls, metricDict: Dict) -> "Metric":
+    def fromDict(cls, metricDict: dict[str, Any]) -> "Metric":
         """Create RawData object from a dictionary."""
         return cls(
             MetricType(metricDict["type"]),
@@ -137,12 +138,12 @@ class Stats:
     min: Number
 
     @classmethod
-    def fromMetrics(cls, metrics: List[Metric]) -> "Stats":
+    def fromMetrics(cls, metrics: list[Metric]) -> "Stats":
         """Create stats object from list of metrics with the same type.
 
         Parameters
         ----------
-        metrics : List[Metric]
+        metrics : list[Metric]
             List of metrics with  the same type.
 
         Returns
@@ -189,7 +190,7 @@ class Stats:
         self.mean = n_value
 
     @classmethod
-    def fromDict(cls, statsDict: Dict) -> "Stats":
+    def fromDict(cls, statsDict: dict[str, Any]) -> "Stats":
         """Stats constructor from a dictionory."""
         return cls(
             MetricType(statsDict["type"]),
@@ -206,15 +207,15 @@ class Stats:
 class RawData:
     """Contains timesteps and recorded values from sensors, including information on the values."""
 
-    timesteps: np.ndarray[Any, np.dtype[np.floating]]
-    values: np.ndarray[Any, np.dtype[Union[np.integer, np.floating]]]
+    timesteps: npt.NDArray[np.floating]
+    values: npt.NDArray[np.floating | np.integer]
     t_md: MetricMetaData
     v_md: MetricMetaData
-    alt_values: Optional[np.ndarray] = None
-    alt_v_md: Optional[MetricMetaData] = None
+    alt_values: npt.NDArray[np.floating | np.integer] | None = None
+    alt_v_md: MetricMetaData | None = None
 
     @classmethod
-    def fromDict(cls, rawDataDict: Dict) -> "RawData":
+    def fromDict(cls, rawDataDict: dict[str, Any]) -> "RawData":
         """Create RawData object from a dictionary.
 
         Parameters
@@ -253,7 +254,7 @@ class LocalRegions:
     """Stores local region data while an application is being monitored."""
 
     def __init__(self) -> None:
-        self._regions: Dict[str, List[int]] = {}
+        self._regions: dict[str, list[int]] = {}
 
     def addEvent(self, region_name: str) -> None:
         """Mark a new event for the named region.
@@ -291,22 +292,22 @@ class Region:
     """
 
     id: str = ""
-    raw_data: Dict[int, np.ndarray[Any, np.dtype[np.floating]]] = dataclasses.field(
+    raw_data: dict[int, npt.NDArray[np.floating]] = dataclasses.field(
         default_factory=dict
     )
-    runs_per_rank: Optional[Stats] = None
-    metrics: Dict[MetricType, Stats] = dataclasses.field(default_factory=dict)
+    runs_per_rank: Stats | None = None
+    metrics: dict[MetricType, Stats] = dataclasses.field(default_factory=dict)
     processed: bool = False
 
-    def toDict(self) -> Dict[str, Any]:
+    def toDict(self) -> dict[str, Any]:
         """Convert regions to a python dictionary.
 
         Returns
         -------
-        Dict[str, Dict[int, np.ndarray]]
+        dict[str, dict[int, npt.NDArray[np.floating]]]
             Dictionary with region data.
         """
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "id": self.id,
             "raw_data": self.raw_data,
         }
@@ -319,12 +320,12 @@ class Region:
         return result
 
     @classmethod
-    def fromDict(cls, regionDictionary: Dict[str, Any]) -> "Region":
+    def fromDict(cls, regionDictionary: dict[str, Any]) -> "Region":
         """Create Regions object from a dictionary.
 
         Parameters
         ----------
-        regionDictionary: Dict[str, Dict[int, Any]]
+        regionDictionary: dict[str, dict[int, Any]]
             Region dictionary.
 
         Returns
@@ -351,12 +352,12 @@ class DataNode:
         self,
         id: str,
         type: NodeType,
-        metadata: Dict = {},
-        nodes: Optional[Dict[str, Any]] = None,
-        metrics: Optional[Dict[MetricType, Union[Metric, Stats]]] = None,
-        deviceType: Optional[DeviceType] = None,
-        raw_data: Optional[RawData] = None,
-        regions: Optional[Dict[str, Region]] = None,
+        metadata: dict[str, Any] = {},
+        nodes: dict[str, Any] | None = None,
+        metrics: dict[MetricType, Metric | Stats] | None = None,
+        deviceType: DeviceType | None = None,
+        raw_data: RawData | None = None,
+        regions: dict[str, Region] | None = None,
         processed: bool = False,
     ) -> None:
         """Perun DataNode.
@@ -369,13 +370,13 @@ class DataNode:
             Node type.
         metadata : Dict
             Node metadata.
-        nodes : Optional[Dict[str, Any]], optional
+        nodes : dict[str, Any] | None, optional
             Children nodes, by default None
-        metrics : Optional[Dict[MetricType, Union[Metric, Stats]]], optional
+        metrics : dict[MetricType, Metric | Stats] | None, optional
             Node metrics, by default None
-        deviceType : Optional[DeviceType], optional
+        deviceType : DeviceType | None, optional
             Node device type, only relevant for leaf nodes, by default None
-        raw_data : Optional[RawData], optional
+        raw_data : RawData | None, optional
             Raw data object, only relevant for leaf nodes, by default None
         regions: dict[str, Region], optional
             Dictionary containing region event data, by default None
@@ -384,22 +385,20 @@ class DataNode:
         """
         self.id = id
         self.type = type
-        self.metadata: Dict[str, Any] = metadata
-        self.nodes: Dict[str, Any] = nodes if nodes else {}
-        self.metrics: Dict[MetricType, Union[Metric, Stats]] = (
-            metrics if metrics else {}
-        )
-        self.deviceType: Optional[DeviceType] = deviceType
-        self.raw_data: Optional[RawData] = raw_data
-        self.regions: Optional[Dict[str, Region]] = regions
+        self.metadata: dict[str, Any] = metadata
+        self.nodes: dict[str, Any] = nodes if nodes else {}
+        self.metrics: dict[MetricType, Metric | Stats] = metrics if metrics else {}
+        self.deviceType: DeviceType | None = deviceType
+        self.raw_data: RawData | None = raw_data
+        self.regions: dict[str, Region] | None = regions
         self.processed = processed
 
-    def addRegionData(self, localRegions: List[LocalRegions], start_time: int) -> None:
+    def addRegionData(self, localRegions: list[LocalRegions], start_time: int) -> None:
         """Add region information to to data node.
 
         Parameters
         ----------
-        localRegions : List[LocalRegions]
+        localRegions : list[LocalRegions]
             Gathered local regions from all MPI ranks
         start_time : int
             'Official' start time of the run.
@@ -420,7 +419,7 @@ class DataNode:
                     t_s *= 1e-9
                     self.regions[region_name].raw_data[rank] = t_s
 
-    def toDict(self, include_raw_data: bool = True) -> Dict:
+    def toDict(self, include_raw_data: bool = True) -> dict[str, Any]:
         """Transform object to dictionary."""
         resultsDict = {
             "id": self.id,
@@ -451,7 +450,7 @@ class DataNode:
         return resultsDict
 
     @classmethod
-    def fromDict(cls, resultsDict: Dict) -> "DataNode":
+    def fromDict(cls, resultsDict: dict[str, Any]) -> "DataNode":
         """Create dataNode from python dictionary.
 
         Parameters

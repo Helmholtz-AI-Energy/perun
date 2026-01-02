@@ -5,9 +5,10 @@ import logging
 from configparser import ConfigParser
 from datetime import datetime
 from itertools import chain
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 from perun.data_model.data import (
     AggregateType,
@@ -27,9 +28,9 @@ log = logging.getLogger(__name__)
 
 def processEnergyData(
     raw_data: RawData,
-    start: Optional[Number] = None,
-    end: Optional[Number] = None,
-) -> Tuple[Any, Any]:
+    start: Number | None = None,
+    end: Number | None = None,
+) -> tuple[Any, Any]:
     """Calculate total energy and average power from an energy or power time series.
 
     Using the start and end parameters the results can be limited to certain areas of the application run.
@@ -48,7 +49,7 @@ def processEnergyData(
     _type_
        Tuple with total energy in joules and avg power in watts.
     """
-    t_s: np.ndarray = raw_data.timesteps.astype("float32")
+    t_s = raw_data.timesteps.astype("float32")
     t_s *= raw_data.t_md.mag.value / Magnitude.ONE.value
     magFactor = raw_data.v_md.mag.value / Magnitude.ONE.value
 
@@ -193,7 +194,7 @@ def processSensorData(sensorData: DataNode) -> DataNode:
 
             sensorData.metrics[metricType] = Metric(
                 metricType,
-                np.mean(rawData.values),
+                np.mean(rawData.values),  # type: ignore[arg-type]
                 rawData.v_md,
                 AggregateType.MEAN,
             )
@@ -272,7 +273,7 @@ def processDataNode(
         duration = datetime.now() - start
         log.info(f"Region processing duration: {duration}")
 
-    aggregatedMetrics: Dict[MetricType, List[Metric]] = {}
+    aggregatedMetrics: dict[MetricType, list[Metric]] = {}
     for _, subNode in dataNode.nodes.items():
         # Make sure sub nodes have their metrics ready
         if not subNode.processed or force_process:
@@ -369,7 +370,7 @@ def processDataNode(
     return dataNode
 
 
-def processRegionsWithSensorData(regions: List[Region], dataNode: DataNode) -> None:
+def processRegionsWithSensorData(regions: list[Region], dataNode: DataNode) -> None:
     """Complete region information using sensor data found on the data node (in place op).
 
     Parameters
@@ -591,8 +592,8 @@ def addRunAndRuntimeInfoToRegion(region: Region) -> None:
 
 
 def getInterpolatedValues(
-    t: np.ndarray, x: np.ndarray, start: Number, end: Number
-) -> Tuple[np.ndarray, np.ndarray]:
+    t: npt.NDArray[np.floating], x: npt.NDArray[np.floating], start: Number, end: Number
+) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.floating]]:
     """Extract a time range out of a time series, and interpolate the values at the edges.
 
     Parameters
