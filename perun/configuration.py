@@ -142,10 +142,10 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
         config.set("post-processing", "pue", "1.0")
 
     try:
-        emissions_factor = config.getfloat("post-processing", "emissions_factor")
         default_emissions_factor = _default_config["post-processing"][
             "emissions_factor"
         ]
+        emissions_factor = config.getfloat("post-processing", "emissions_factor")
         if emissions_factor < 0:
             # Default value is the global average emissions factor
             log.warning(
@@ -161,8 +161,8 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
         config.set("post-processing", "emissions_factor", str(default_emissions_factor))
 
     try:
-        price_factor = config.getfloat("post-processing", "price_factor")
         default_price_factor = _default_config["post-processing"]["price_factor"]
+        price_factor = config.getfloat("post-processing", "price_factor")
         if price_factor < 0:
             log.warning(
                 f"Invalid price factor {price_factor}. Should be a number higher or equal than 0. Defaulting to {default_price_factor} Currency/kWh."
