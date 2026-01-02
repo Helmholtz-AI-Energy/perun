@@ -1,7 +1,7 @@
 """Pandas IO module."""
 
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import Any
 
 import pandas as pd
 
@@ -40,7 +40,7 @@ def exportCSV(outputPath: Path, dataNode: DataNode, mr_id: str) -> None:
     df.to_csv(outputPath)
 
 
-def _rowsFromRunNode(runNode: DataNode, run_n: int) -> List[Tuple[Any, ...]]:
+def _rowsFromRunNode(runNode: DataNode, run_n: int) -> list[tuple[Any, ...]]:
     """Create table rows from a RUN type data node.
 
     Parameters
@@ -52,10 +52,10 @@ def _rowsFromRunNode(runNode: DataNode, run_n: int) -> List[Tuple[Any, ...]]:
 
     Returns
     -------
-    List[Tuple[Any, ...]]
+    list[tuple[Any, ...]]
         List of tuples with table entries.
     """
-    rows: List[Tuple[Any, ...]] = []
+    rows: list[tuple[Any, ...]] = []
     for hostId, hostNode in runNode.nodes.items():
         for deviceGroupId, deviceGroupNode in hostNode.nodes.items():
             for sensorId, sensorNode in deviceGroupNode.nodes.items():

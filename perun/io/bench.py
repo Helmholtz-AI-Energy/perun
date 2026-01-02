@@ -3,7 +3,6 @@
 import json
 import logging
 import pprint as pp
-from typing import Dict, Union
 
 import numpy as np
 
@@ -39,7 +38,7 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
         for value in mrNode.metadata["benchmarking.metrics"].split(",")
     ]
 
-    bench_units: Dict[str, Magnitude] = {
+    bench_units: dict[str, Magnitude] = {
         "JOULE": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.joule"]),
         "SECOND": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.second"]),
         "WATT": Magnitude.fromSymbol(mrNode.metadata["benchmarking.units.watt"]),
@@ -77,9 +76,7 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
                     }
                 )
 
-    region_data: dict[
-        str, dict[str, tuple[list[Union[int, float]], MetricMetaData]]
-    ] = {}
+    region_data: dict[str, dict[str, tuple[list[int | float], MetricMetaData]]] = {}
     if len(mrNode.nodes) > 1:
         log.info(
             "When generating benchmarks for regions, it is preferable to if each function only runs a single time."

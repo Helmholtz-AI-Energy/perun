@@ -7,7 +7,7 @@ import os
 import subprocess
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Callable, Dict, Tuple, Union
+from typing import Any, Callable
 
 log = logging.getLogger(__name__)
 
@@ -18,13 +18,13 @@ class Application:
 
     Parameters
     ----------
-    app : Union[Path, Callable]
+    app : Path | Callable
         The application to be executed. It can be either a file path or a callable object.
     config : ConfigParser
         The configuration object containing application settings.
     args : tuple, optional
         Positional arguments to be passed to the application (default is an empty tuple).
-    kwargs : Dict, optional
+    kwargs : dict, optional
         Keyword arguments to be passed to the application (default is an empty dictionary).
 
     Attributes
@@ -33,7 +33,7 @@ class Application:
         The name of the application.
     args : tuple
         The positional arguments to be passed to the application.
-    kwargs : Dict
+    kwargs : dict
         The keyword arguments to be passed to the application.
 
     Methods
@@ -44,11 +44,11 @@ class Application:
 
     def __init__(
         self,
-        app: Union[Path, Callable, str],
+        app: Path | Callable | str,
         config: ConfigParser,
         is_binary: bool = False,
-        args: Tuple[Any, ...] = (),
-        kwargs: Dict[str, Any] = {},
+        args: tuple[Any, ...] = (),
+        kwargs: dict[str, Any] = {},
     ):
         self._app = app
         self._name = self._setName(config)
@@ -71,12 +71,12 @@ class Application:
         return self._name
 
     @property
-    def args(self) -> Tuple[Any, ...]:
+    def args(self) -> tuple[Any, ...]:
         """Return the application positional arguments."""
         return self._args
 
     @property
-    def kwargs(self) -> Dict[str, Any]:
+    def kwargs(self) -> dict[str, Any]:
         """Return the application keyword arguments."""
         return self._kwargs
 

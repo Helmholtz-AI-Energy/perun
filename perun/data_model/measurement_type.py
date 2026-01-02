@@ -3,13 +3,13 @@
 import dataclasses
 import enum
 import logging
-from typing import Dict, Union
+from typing import Any
 
 import numpy as np
 
 log = logging.getLogger(__name__)
 
-Number = Union[int, float, np.integer, np.floating]
+Number = int | float | np.integer | np.floating
 
 
 class Unit(str, enum.Enum):
@@ -40,7 +40,7 @@ class Unit(str, enum.Enum):
         return self.symbol
 
 
-_mag_symbols: Dict[str, str] = {
+_mag_symbols: dict[str, str] = {
     "PICO": "p",
     "NANO": "n",
     "MICRO": "µ",
@@ -120,7 +120,7 @@ class MetricMetaData:
     fill: Number
 
     @classmethod
-    def fromDict(cls, mdDict: Dict) -> "MetricMetaData":
+    def fromDict(cls, mdDict: dict[str, Any]) -> "MetricMetaData":
         """Create MetricMetadata from a dictionary."""
         dtype = np.dtype(mdDict["dtype"])
         return cls(
