@@ -22,6 +22,7 @@ from perun.backend import (
 from perun.comm import Comm
 from perun.coordination import assignSensors, getHostRankDict
 from perun.data_model.data import DataNode, NodeType
+from perun.data_model.measurement_type import Number
 from perun.io.io import IOFormat, exportTo, importFrom
 from perun.monitoring.application import Application
 from perun.monitoring.monitor import MonitorStatus, PerunMonitor
@@ -57,7 +58,10 @@ class Perun(metaclass=Singleton):
         self._l_host_metadata: dict[str, Any] | None = None
         self._l_backend_metadata: dict[str, Any] | None = None
         self._monitor: PerunMonitor | None = None
-        self.postprocess_callbacks: dict[str, Callable[[DataNode], None]] = {}
+        self._postprocess_callbacks: dict[str, Callable[[DataNode], None]] = {}
+        self._live_callbacks: dict[
+            str, Callable[[], Callable[[dict[str, Number]], None]]
+        ] = {}
 
         self.warmup_round: bool = False
 

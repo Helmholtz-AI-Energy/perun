@@ -9,7 +9,7 @@ from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as EventClass
 from queue import Empty
 from subprocess import Popen
-from typing import Any
+from typing import Any, Callable
 
 from perun.backend.backend import Backend
 from perun.comm import Comm

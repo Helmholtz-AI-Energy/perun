@@ -85,7 +85,7 @@ def register_callback(func: Callable[[DataNode], None]) -> None:
     func : Callable[[DataNode], None]
         Function to be called.
     """
-    perun: Union[Perun, None] = Perun.getInstance()
+    perun: Perun | None = Perun.getInstance()
 
     if perun and func.__name__ not in perun._postprocess_callbacks:
         log.info(f"Rank {perun.comm.Get_rank()}: Registering callback {func.__name__}")
@@ -113,7 +113,7 @@ def register_live_callback(
     id : str
         Identifier for the live callback, used to register it in the Perun instance.
     """
-    perun: Union[Perun, None] = Perun.getInstance()
+    perun: Perun | None = Perun.getInstance()
     if perun and id not in perun._live_callbacks:
         log.info(f"Rank {perun.comm.Get_rank()}: Registering live callback {id}")
         perun._live_callbacks[id] = obj
