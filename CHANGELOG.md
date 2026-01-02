@@ -11,9 +11,15 @@
 
 ### Features
 
-* feat: [Experimental] Live Monitoring dashboard integration **live callbackas** (#178) ([`5d90a8f`](https://github.com/Helmholtz-AI-Energy/perun/commit/5d90a8fdb945678f74c795a5694030bdad5d34fc))
+* feat: [Experimental] Live Monitoring dashboard integration **live callbacks** (#178) ([`5d90a8f`](https://github.com/Helmholtz-AI-Energy/perun/commit/5d90a8fdb945678f74c795a5694030bdad5d34fc))
+
+* feat: [Experimental] Examples for integrating perun with **torchrun** (#180)
 
 * feat: Measure CPU usage per CPU (#181) ([`f4550c2`](https://github.com/Helmholtz-AI-Energy/perun/commit/f4550c2e68d57a87c6ee229ee21477a061868fd5))
+
+### CI
+
+* ci: added codeql analysis for security vulnerabilities (#181) ([`65399e`](https://github.com/Helmholtz-AI-Energy/perun/tree/65399efc68f39d6521eeb6abbd4af66c466643ed)
 
 
 ## v0.9.0 (2025-05-20)
