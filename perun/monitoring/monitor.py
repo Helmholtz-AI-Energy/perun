@@ -9,7 +9,7 @@ from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as EventClass
 from queue import Empty
 from subprocess import Popen
-from typing import Any
+from typing import Any, Callable
 
 from perun.backend.backend import Backend
 from perun.comm import Comm
@@ -92,13 +92,18 @@ class PerunMonitor:
         comm: Comm,
         backends: dict[str, Backend],
         l_assigned_sensors: dict[str, tuple],
+        live_callback_inits: dict[
+            str, Callable[[], Callable[[dict[str, Number]], None]]
+        ],
         config: ConfigParser,
     ) -> None:
         self._app = app
         self._comm = comm
         self._backends = backends
         self._l_assigned_sensors = l_assigned_sensors
+        self._live_callback_inits = live_callback_inits
         self._config = config
+
         self.status = MonitorStatus.SETUP
 
         self.sp_ready_event: EventClass = Event()
@@ -127,6 +132,7 @@ class PerunMonitor:
                 self.stop_event,
                 self.close_event,
                 self._config.getfloat("monitor", "sampling_period"),
+                self._live_callback_inits,
             ],
         )
         log.info(f"Rank {self._comm.Get_rank()}: Starting monitoring subprocess")
@@ -254,6 +260,7 @@ class PerunMonitor:
         self.start_event.set()
         starttime_ns = time.time_ns()
         try:
+            log.info(f"Rank {self._comm.Get_rank()}: Running app {self._app}")
             app_result = self._app.run()
         except SystemExit:
             self.status = MonitorStatus.SCRIPT_ERROR

@@ -15,6 +15,7 @@ from perun.core import Perun
 from perun.data_model.data import DataNode
 from perun.logging import set_logger_config
 from perun.monitoring.application import Application
+from perun.processing import Number
 
 log = logging.getLogger(__name__)
 
@@ -84,7 +85,35 @@ def register_callback(func: Callable[[DataNode], None]) -> None:
     func : Callable[[DataNode], None]
         Function to be called.
     """
-    perun = Perun.getInstance()
-    if func.__name__ not in perun.postprocess_callbacks:
+    perun: Perun | None = Perun.getInstance()
+
+    if perun and func.__name__ not in perun._postprocess_callbacks:
         log.info(f"Rank {perun.comm.Get_rank()}: Registering callback {func.__name__}")
-        perun.postprocess_callbacks[func.__name__] = func
+        perun._postprocess_callbacks[func.__name__] = func
+
+
+def register_live_callback(
+    obj: Callable[[], Callable[[dict[str, Number]], None]],
+    id: str,
+) -> None:
+    """
+    Register a function that initializes a live callback function that will be run after each datapoint is collected on the monitoring subprocess.
+
+    This is useful for live monitoring of metrics in real-time.
+
+    The function passed should return a callable that accepts the metric identifier and the metric value.
+
+    This structure is for systems that need to establish a connection to an external server, like MLFlow and Weights and Biases, as such objects are not serializable and can sometimes cause issues with the multiprocessing module.
+
+    Parameters
+    ----------
+    obj : Callable[[], Callable[[str, Union[int, float]], None]]
+        Function that initializes the live callback.
+        It should return a callable that accepts the metric identifier and the metric value. It should take no arguments.
+    id : str
+        Identifier for the live callback, used to register it in the Perun instance.
+    """
+    perun: Perun | None = Perun.getInstance()
+    if perun and id not in perun._live_callbacks:
+        log.info(f"Rank {perun.comm.Get_rank()}: Registering live callback {id}")
+        perun._live_callbacks[id] = obj
