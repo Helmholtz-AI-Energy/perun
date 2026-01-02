@@ -30,7 +30,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 dependencies = [
     "py-cpuinfo>=5.0.0",
