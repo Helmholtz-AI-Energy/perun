@@ -1,8 +1,4 @@
 #!/bin/bash
-
-# Load environment
-source .venv/bin/activate
-
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
 export MASTER_PORT=$(expr 2950 + $(echo -n $SLURM_JOBID | tail -c 4))
