@@ -86,6 +86,43 @@ def test_sanitize_config():
     assert sanitized_config.get("debug", "log_lvl") == "WARNING"
 
 
+def test_sanitize_config_invalid_values():
+    config.set("post-processing", "power_overhead", "-10")
+    config.set("post-processing", "pue", "0.5")
+    config.set("post-processing", "emissions_factor", "abc")
+    config.set("post-processing", "price_factor", "$")
+    config.set("monitor", "sampling_period", "0.05")
+    config.set("monitor", "include_backends", "backend1")
+    config.set("monitor", "exclude_backends", "backend2")
+    config.set("monitor", "include_sensors", "sensor1")
+    config.set("monitor", "exclude_sensors", "sensor2")
+    config.set("output", "data_out", "./non_existent_dir")
+    config.set("output", "format", "invalid_format")
+    config.set("benchmarking", "rounds", "0")
+    config.set("benchmarking", "warmup_rounds", "-1")
+    config.set("debug", "log_lvl", "INVALID")
+
+    sanitized_config = sanitize_config(config)
+
+    assert sanitized_config.getfloat("post-processing", "power_overhead") == 0
+    assert sanitized_config.getfloat("post-processing", "pue") == 1.0
+    assert (
+        sanitized_config.getfloat("post-processing", "emissions_factor")
+        == _default_config["post-processing"]["emissions_factor"]
+    )
+    assert (
+        sanitized_config.getfloat("post-processing", "price_factor")
+        == _default_config["post-processing"]["price_factor"]
+    )
+    assert sanitized_config.getfloat("monitor", "sampling_period") == 1
+    assert sanitized_config.get("monitor", "include_backends") == ""
+    assert sanitized_config.get("monitor", "include_sensors") == ""
+    assert sanitized_config.get("output", "format") == "text"
+    assert sanitized_config.getint("benchmarking", "rounds") == 1
+    assert sanitized_config.getint("benchmarking", "warmup_rounds") == 0
+    assert sanitized_config.get("debug", "log_lvl") == "WARNING"
+
+
 def test_sanitize_config_valid_values():
     config.set("post-processing", "power_overhead", "10")
     config.set("post-processing", "pue", "1.5")
