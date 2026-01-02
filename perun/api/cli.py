@@ -5,7 +5,6 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import perun
 from perun.configuration import (
@@ -279,7 +278,7 @@ def sensors(args: argparse.Namespace) -> None:
     else:
         log.debug("Printing all available sensors.")
         g_available_sensors = perun.g_available_sensors
-        available_sensors: Dict[str, Tuple] = {}
+        available_sensors: dict[str, tuple] = {}
         for _, sensors in enumerate(g_available_sensors):
             available_sensors.update(sensors)
         if perun.comm.Get_rank() == 0:
@@ -332,7 +331,7 @@ def monitor(args: argparse.Namespace) -> None:
     log.debug(f"Cmd: {cmd}")
     argIndex = sys.argv.index(args.cmd)
     sys.argv = sys.argv[argIndex:]
-    cmd_args: List[str] = sys.argv.copy()
+    cmd_args: list[str] = sys.argv.copy()
     log.debug(f"Cmd args: {cmd_args}")
     if not args.binary:
         scriptPath = Path(cmd)
