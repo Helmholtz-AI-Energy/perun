@@ -3,7 +3,7 @@
 import logging
 import sys
 import time
-from typing import Any, List, Optional
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class Comm:
         else:
             return self._size
 
-    def gather(self, obj: Any, root: int = 0) -> Optional[List[Any]]:
+    def gather(self, obj: Any, root: int = 0) -> list[Any] | None:
         """MPI gather operation.
 
         Parameters
@@ -101,7 +101,7 @@ class Comm:
 
         Returns
         -------
-        Optional[List[Any]]
+        list[Any] | None
             List with the gathered objects.
         """
         if self._enabled:
@@ -111,7 +111,7 @@ class Comm:
         else:
             return [obj]
 
-    def allgather(self, obj: Any) -> List[Any]:
+    def allgather(self, obj: Any) -> list[Any]:
         """MPI allgather operation.
 
         Parameters
@@ -121,7 +121,7 @@ class Comm:
 
         Returns
         -------
-        List[Any]
+        list[Any]
             List with the gathered objects.
         """
         if self._enabled:
@@ -170,22 +170,22 @@ class Comm:
             sys.exit(1)
 
     def gather_from_ranks(
-        self, obj: Any, ranks: List[int], root: int = 0
-    ) -> Optional[List[Any]]:
+        self, obj: Any, ranks: list[int], root: int = 0
+    ) -> list[Any] | None:
         """Collect python objects from specific ranks at the determined root.
 
         Parameters
         ----------
         obj : Any
             Object to be collected.
-        ranks : List[int]
+        ranks : list[int]
             List of ranks that need to send the object.
         root : int, optional
             Reciever rank, by default 0
 
         Returns
         -------
-        Optional[List[Any]]
+        list[Any] | None
             List with the gathered objects.
         """
         if self._enabled:
@@ -206,7 +206,7 @@ class Comm:
         else:
             return [obj]
 
-    def check_available_ranks(self) -> List[int]:
+    def check_available_ranks(self) -> list[int]:
         """Return an array with all the ranks that are capable of responding to a single send/recv.
 
         Returns

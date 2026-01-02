@@ -4,7 +4,7 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class Singleton(type):
     >>> my_instance = MyClass()  # Returns the instance of MyClass
     """
 
-    _instances: Dict = {}
+    _instances: dict[type, object] = {}
     __allow_reinitialization: bool = False
 
     def __call__(cls, *args: Any, **kwargs: Any) -> Any:
@@ -82,7 +82,8 @@ class Singleton(type):
             ):
                 # if the class allows reinitialization, then do it
                 log.debug(f"Singleton __call__ {cls.__name__} reinit")
-                instance.__init__(*args, **kwargs)  # call the init again
+                instance = super().__call__(*args, **kwargs)  # call the init again
+                cls._instances[cls] = instance
 
         log.debug(
             f"Singleton __call__ {cls.__name__} returning instance id {id(instance)}"
@@ -111,7 +112,7 @@ class Singleton(type):
             )
 
 
-def getRunId(starttime: datetime, run_id: Optional[str] = None) -> str:
+def getRunId(starttime: datetime, run_id: str | None = None) -> str:
     """
     Return run id based on the configuration object or the current datetime.
 
@@ -142,12 +143,12 @@ def getRunId(starttime: datetime, run_id: Optional[str] = None) -> str:
         return starttime.isoformat()
 
 
-def increaseIdCounter(existing: List[str], newId: str) -> str:
+def increaseIdCounter(existing: list[str], newId: str) -> str:
     """Increase id counter based on number of existing entries with the same id.
 
     Parameters
     ----------
-    existing : List[str]
+    existing : list[str]
         List of existing ids.
     newId : str
         New id to compare againts.
@@ -158,7 +159,7 @@ def increaseIdCounter(existing: List[str], newId: str) -> str:
         newId with an added counter if any matches were found.
     """
     exp = re.compile(r"^" + newId + r"(_\d+)?$")
-    matches: List[re.Match[str]] = [
+    matches: list[re.Match[str]] = [
         m for m in map(exp.match, existing) if m is not None
     ]
     if len(matches) > 0:
@@ -172,30 +173,30 @@ def increaseIdCounter(existing: List[str], newId: str) -> str:
 
 
 def filter_sensors(
-    sensors: Dict[str, Tuple],
-    include_sensors: Optional[List[str]] = None,
-    exclude_sensors: Optional[List[str]] = None,
-    include_backends: Optional[List[str]] = None,
-    exclude_backends: Optional[List[str]] = None,
-) -> Dict[str, Tuple]:
+    sensors: dict[str, tuple],
+    include_sensors: list[str] | None = None,
+    exclude_sensors: list[str] | None = None,
+    include_backends: list[str] | None = None,
+    exclude_backends: list[str] | None = None,
+) -> dict[str, tuple]:
     """Filter sensors based on include and exclude lists.
 
     Parameters
     ----------
-    sensors : Dict[str, Tuple]
+    sensors : dict[str, tuple]
         Dictionary of sensors.
-    include_sensors : Optional[List[str]], optional
+    include_sensors : list[str] | None, optional
         List of sensors to include, by default None
-    exclude_sensors : Optional[List[str]], optional
+    exclude_sensors : list[str] | None, optional
         List of sensors to exclude, by default None
-    include_backends : Optional[List[str]], optional
+    include_backends : list[str] | None, optional
         List of backends to include, by default None
-    exclude_backends : Optional[List[str]], optional
+    exclude_backends : list[str] | None, optional
         List of backends to exclude, by default None
 
     Returns
     -------
-    Dict[str, Tuple]
+    dict[str, tuple]
         Filtered dictionary of sensors.
     """
     # Ensure only include or excluce lists are set
@@ -256,12 +257,12 @@ def filter_sensors(
     return filtered_sensors
 
 
-def matchesOneOf(patterns: List[str], string: str) -> bool:
+def matchesOneOf(patterns: list[str], string: str) -> bool:
     """Check if a string matches any of the given patterns.
 
     Parameters
     ----------
-    patterns : List[str]
+    patterns : list[str]
         List of patterns to match against.
     string : str
         String to check.
