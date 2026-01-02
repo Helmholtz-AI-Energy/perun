@@ -69,8 +69,14 @@ def test_sanitize_config():
 
     assert sanitized_config.getfloat("post-processing", "power_overhead") == 0
     assert sanitized_config.getfloat("post-processing", "pue") == 1.0
-    assert sanitized_config.getfloat("post-processing", "emissions_factor") == 417.80
-    assert sanitized_config.getfloat("post-processing", "price_factor") == 0.3251
+    assert (
+        sanitized_config.getfloat("post-processing", "emissions_factor")
+        == _default_config["post-processing"]["emissions_factor"]
+    )
+    assert (
+        sanitized_config.getfloat("post-processing", "price_factor")
+        == _default_config["post-processing"]["price_factor"]
+    )
     assert sanitized_config.getfloat("monitor", "sampling_period") == 1
     assert sanitized_config.get("monitor", "include_backends") == ""
     assert sanitized_config.get("monitor", "include_sensors") == ""

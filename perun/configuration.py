@@ -151,12 +151,14 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
             log.warning(
                 f"Invalid emissions factor {emissions_factor}. Should be a number higher or equal than 0. Defaulting to {default_emissions_factor} gCO2eq/kWh."
             )
-            config.set("post-processing", "emissions_factor", default_emissions_factor)
+            config.set(
+                "post-processing", "emissions_factor", str(default_emissions_factor)
+            )
     except ValueError:
         log.warning(
-            "Invalid emissions factor. Should be a number higher or equal than 0. Defaulting to 417.80 gCO2eq/kWh."
+            f"Invalid emissions factor. Should be a number higher or equal than 0. Defaulting to {default_emissions_factor} gCO2eq/kWh."
         )
-        config.set("post-processing", "emissions_factor", default_emissions_factor)
+        config.set("post-processing", "emissions_factor", str(default_emissions_factor))
 
     try:
         price_factor = config.getfloat("post-processing", "price_factor")
@@ -165,7 +167,7 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
             log.warning(
                 f"Invalid price factor {price_factor}. Should be a number higher or equal than 0. Defaulting to {default_price_factor} Currency/kWh."
             )
-            config.set("post-processing", "price_factor", default_price_factor)
+            config.set("post-processing", "price_factor", str(default_price_factor))
     except ValueError:
         log.warning(
             "Invalid price factor. Should be a number higher or equal than 0. Defaulting to 0.3251 Currency/kWh."
@@ -173,7 +175,7 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
         config.set(
             "post-processing",
             "price_factor",
-            _default_config["post-processing"]["price_factor"],
+            str(_default_config["post-processing"]["price_factor"]),
         )
     # Ensure that the monitoring options are valid
     try:
