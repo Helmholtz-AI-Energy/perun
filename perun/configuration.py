@@ -26,7 +26,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "include_backends": "",
         "include_sensors": "",
         "exclude_backends": "",
-        "exclude_sensors": "",
+        "exclude_sensors": "CPU_FREQ_ CPU_USAGE_ DISK_READ_BYTES_ DISK_WRITE_BYTES_ NET_READ_BYTES_ NET_WRITE_BYTES_",
     },
     "output": {
         "app_name": None,

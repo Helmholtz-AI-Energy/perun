@@ -5,8 +5,9 @@ import pprint as pp
 import re
 from io import IOBase
 from pathlib import Path
-from typing import Callable
+from typing import Callable, override
 
+import cpuinfo
 import numpy as np
 
 from perun.backend.backend import Backend
@@ -18,23 +19,37 @@ log = logging.getLogger(__name__)
 HWMON_PATH = "/sys/class/hwmon/"
 
 # Regex patterns for device subdirectory power sensors
-POWER_AVERAGE_RGX = r"power(\d+)_average"  # Power average in microwatts
+POWER_AVERAGE_RGX = r"power(\d+)_average$"  # Power average in microwatts
 
 
-class HWMonBackend(Backend):
+class HWMonGraceBackend(Backend):
     """Hardware Monitoring (hwmon) backend for reading system sensors.
 
     Uses the Linux hwmon sysfs interface to gather power measurements
     from device subdirectories.
+    
+    Docs: https://docs.nvidia.com/dccpu/grace-perf-tuning-guide/power-thermals.html
     """
 
-    id = "hwmon"
-    name = "Hardware Monitor"
-    description = "Reads power measurements from hwmon sysfs device subdirectories"
+    id = "hwmon-grace"
+    name = "Hardware Monitor (Grace)"
+    description = "Reads power measurements from hwmon sysfs device subdirectories for Grace systems."
+    
+    def __init__(self) -> None:
+        super().__init__()
+        self._files: list[IOBase] = []
 
     def setup(self) -> None:
         """Initialize hwmon backend and discover available sensors."""
-        self._files: list[IOBase] = []
+        cpuInfo = cpuinfo.get_cpu_info()
+        self._metadata = {}
+        for key, value in cpuInfo.items():
+            if value is not None and value != "":
+                self._metadata[key] = str(value)
+
+        self.devices: dict[str, Sensor] = {}
+        log.debug(f"CPU info metadata: {pp.pformat(self._metadata)}")
+
         self._metadata: dict[str, str] = {}
         self.devices: dict[str, Sensor] = {}
 
@@ -66,33 +81,6 @@ class HWMonBackend(Backend):
             except Exception:
                 return ""
 
-        def get_sensor_label(hwmon_dir: Path, sensor_type: str, index: str) -> str:
-            """Get the label for a sensor if available."""
-            label_path = hwmon_dir / f"{sensor_type}{index}_label"
-            if label_path.exists():
-                return read_file_content(label_path)
-            return ""
-
-        def get_sensor_max(hwmon_dir: Path, sensor_type: str, index: str) -> int | None:
-            """Get the maximum value for a sensor if available."""
-            max_path = hwmon_dir / f"{sensor_type}{index}_max"
-            if max_path.exists():
-                try:
-                    return int(read_file_content(max_path))
-                except ValueError:
-                    return None
-            return None
-
-        def get_sensor_min(hwmon_dir: Path, sensor_type: str, index: str) -> int | None:
-            """Get the minimum value for a sensor if available."""
-            min_path = hwmon_dir / f"{sensor_type}{index}_min"
-            if min_path.exists():
-                try:
-                    return int(read_file_content(min_path))
-                except ValueError:
-                    return None
-            return None
-
         # Iterate over all hwmon devices
         for hwmon_dir in sorted(hwmonPath.iterdir()):
             if not hwmon_dir.is_dir():
@@ -101,16 +89,7 @@ class HWMonBackend(Backend):
             hwmon_name = hwmon_dir.name
             log.debug(f"Scanning hwmon device: {hwmon_dir}")
 
-            # Get the device name
-            name_path = hwmon_dir / "name"
-            device_name = (
-                read_file_content(name_path) if name_path.exists() else hwmon_name
-            )
-
             # Store metadata about this hwmon device
-            self._metadata[hwmon_name] = device_name
-
-            log.debug(f"Device name: {device_name}")
 
             # Scan for power*_average files in device subdirectories
             device_dir = hwmon_dir / "device"
@@ -140,62 +119,42 @@ class HWMonBackend(Backend):
                             if oem_info_path.exists()
                             else ""
                         )
-
-                        # Get label from standard label file if oem_info not available
-                        label = (
-                            oem_info
-                            if oem_info
-                            else get_sensor_label(device_dir, "power", sensor_index)
-                        )
-
-                        # Get limits if available
-                        max_val = get_sensor_max(device_dir, "power", sensor_index)
-                        min_val = get_sensor_min(device_dir, "power", sensor_index)
+                        
 
                         # Determine device type based on label
-                        dev_type = DeviceType.OTHER
-                        label_lower = label.lower()
-                        if (
-                            "cpu" in label_lower
-                            or "core" in label_lower
-                            or "processor" in label_lower
-                        ):
-                            dev_type = DeviceType.CPU
-                        elif "gpu" in label_lower or "graphics" in label_lower:
-                            dev_type = DeviceType.GPU
-                        elif "memory" in label_lower or "dram" in label_lower:
-                            dev_type = DeviceType.RAM
+                        if "Module Power Socket" in oem_info:
+                            device_type = DeviceType.OTHER
+                        elif "Grace Power Socket" in oem_info:
+                            device_type = DeviceType.SOCKET
+                        elif "CPU Power Socket" in oem_info:
+                            device_type = DeviceType.CPU
+                        elif "SysIO Power Socket" in oem_info:
+                            device_type = DeviceType.SYSIO
+                        else:
+                            device_type = DeviceType.OTHER
 
                         # Create sensor ID
-                        label_part = label if label else f"power{sensor_index}_avg"
-                        sensor_id = (
-                            f"{device_name}_{hwmon_name}_device_power_{label_part}"
-                        )
-                        # Clean up sensor ID (remove spaces, special chars)
-                        sensor_id = re.sub(r"[^\w\-_]", "_", sensor_id)
+                        sensor_id = f"{oem_info.replace(' ', '_').lower()}"
 
                         # Create metadata for this sensor (power_average is in microwatts)
                         dataType = MetricMetaData(
                             Unit.WATT,
                             Magnitude.MICRO,
                             np.dtype("int64"),
-                            np.int64(min_val) if min_val is not None else np.int64(0),
-                            np.int64(max_val) if max_val is not None else np.int64(0),
+                            np.int64(0),
+                            np.iinfo("int64").max,
                             np.int64(0),  # overflow value
                         )
 
                         sensor_metadata = {
                             "hwmon_device": hwmon_name,
-                            "device_name": device_name,
+                            "device_name": oem_info,
                             "sensor_type": "power_average",
-                            "sensor_index": sensor_index,
-                            "label": label,
-                            "oem_info": oem_info,
                         }
 
                         device = Sensor(
                             sensor_id,
-                            dev_type,
+                            device_type,
                             sensor_metadata,
                             dataType,
                             getCallback(sensor_file_handle, str(sensor_path)),
@@ -204,10 +163,11 @@ class HWMonBackend(Backend):
                         self.devices[device.id] = device
                         log.debug(f"Added device power sensor: {sensor_id}")
 
-        log.debug(
+        log.info(
             f"HWMon devices: {pp.pformat([deviceId for deviceId in self.devices])}"
         )
 
+    @override
     def close(self) -> None:
         """Backend shutdown code, closes all open sensor files."""
         log.debug("Closing hwmon sensor files")
@@ -216,7 +176,8 @@ class HWMonBackend(Backend):
             file.close()
         return
 
-    def availableSensors(self) -> dict[str, tuple]:
+    @override
+    def availableSensors(self) -> dict[str, tuple[str, DeviceType, Unit]]:
         """Return string id set of visible devices.
 
         Returns
@@ -229,6 +190,7 @@ class HWMonBackend(Backend):
             for sensor_id, sensor in self.devices.items()
         }
 
+    @override
     def getSensors(self, deviceList: set[str]) -> list[Sensor]:
         """Gather device objects based on a set of device ids.
 

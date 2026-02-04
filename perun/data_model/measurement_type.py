@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 log = logging.getLogger(__name__)
 
@@ -117,7 +118,7 @@ class MetricMetaData:
 
     unit: Unit
     mag: Magnitude
-    dtype: np.dtype
+    dtype: npt.DTypeLike
     min: Number
     max: Number
     fill: Number
