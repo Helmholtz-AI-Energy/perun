@@ -284,7 +284,11 @@ def processDataNode(
                     subNode, perunConfig=perunConfig, force_process=force_process
                 )
 
-        if dataNode.deviceType in {DeviceType.SYSIO, DeviceType.SOCKET, DeviceType.OTHER}:
+        if dataNode.deviceType in {
+            DeviceType.SYSIO,
+            DeviceType.SOCKET,
+            DeviceType.OTHER,
+        }:
             continue
 
         if dataNode.type == NodeType.APP:

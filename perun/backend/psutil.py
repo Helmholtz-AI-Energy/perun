@@ -61,8 +61,16 @@ class PSUTILBackend(Backend):
 
         if psutil.disk_io_counters(nowrap=True) is not None:
             for disk in psutil.disk_io_counters(perdisk=True).keys():
-                sensors[f"DISK_READ_BYTES_{disk}"] = (self.id, DeviceType.DISK, Unit.BYTE)
-                sensors[f"DISK_WRITE_BYTES_{disk}"] = (self.id, DeviceType.DISK, Unit.BYTE)
+                sensors[f"DISK_READ_BYTES_{disk}"] = (
+                    self.id,
+                    DeviceType.DISK,
+                    Unit.BYTE,
+                )
+                sensors[f"DISK_WRITE_BYTES_{disk}"] = (
+                    self.id,
+                    DeviceType.DISK,
+                    Unit.BYTE,
+                )
 
         if psutil.cpu_freq(percpu=True) is not None:
             for cpu_id, _ in enumerate(psutil.cpu_freq(percpu=True)):
@@ -96,25 +104,37 @@ class PSUTILBackend(Backend):
             disk_id = device.split("_")[-1]
 
             def func() -> Number:
-                return np.uint64(psutil.disk_io_counters(perdisk=True, nowrap=True)[disk_id].read_bytes)  # type: ignore[union-attr]
+                return np.uint64(
+                    psutil.disk_io_counters(perdisk=True, nowrap=True)[
+                        disk_id
+                    ].read_bytes
+                )  # type: ignore[union-attr]
 
         elif device.startswith("DISK_WRITE_BYTES_"):
             disk_id = device.split("_")[-1]
 
             def func() -> Number:
-                return np.uint64(psutil.disk_io_counters(perdisk=True, nowrap=True)[disk_id].write_bytes)  # type: ignore[union-attr]
+                return np.uint64(
+                    psutil.disk_io_counters(perdisk=True, nowrap=True)[
+                        disk_id
+                    ].write_bytes
+                )  # type: ignore[union-attr]
 
         elif device.startswith("NET_WRITE_BYTES_"):
             nid = device.split("_")[-1]
 
             def func() -> Number:
-                return np.uint64(psutil.net_io_counters(pernic=True, nowrap=True)[nid].bytes_sent)
+                return np.uint64(
+                    psutil.net_io_counters(pernic=True, nowrap=True)[nid].bytes_sent
+                )
 
         elif device.startswith("NET_READ_BYTES_"):
             nid = device.split("_")[-1]
 
             def func() -> Number:
-                return np.uint64(psutil.net_io_counters(pernic=True, nowrap=True)[nid].bytes_recv)
+                return np.uint64(
+                    psutil.net_io_counters(pernic=True, nowrap=True)[nid].bytes_recv
+                )
 
         elif device.startswith("CPU_FREQ_"):
             cpuId = int(device.split("_")[-1])

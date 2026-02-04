@@ -31,14 +31,13 @@ class PowercapRAPLBackend(Backend):
     id = "powercap_rapl"
     name = "Powercap RAPL"
     description = "Reads energy usage from CPUs and DRAM using Powercap RAPL"
-    
+
     def __init__(self) -> None:
         super().__init__()
         self._files: list[IOBase] = []
 
     def setup(self) -> None:
         """Check Intel RAPL access."""
-
         cpuInfo = cpuinfo.get_cpu_info()
         self._metadata = {}
         for key, value in cpuInfo.items():

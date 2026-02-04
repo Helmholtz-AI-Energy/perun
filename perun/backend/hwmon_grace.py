@@ -27,14 +27,14 @@ class HWMonGraceBackend(Backend):
 
     Uses the Linux hwmon sysfs interface to gather power measurements
     from device subdirectories.
-    
+
     Docs: https://docs.nvidia.com/dccpu/grace-perf-tuning-guide/power-thermals.html
     """
 
     id = "hwmon-grace"
     name = "Hardware Monitor (Grace)"
     description = "Reads power measurements from hwmon sysfs device subdirectories for Grace systems."
-    
+
     def __init__(self) -> None:
         super().__init__()
         self._files: list[IOBase] = []
@@ -119,7 +119,6 @@ class HWMonGraceBackend(Backend):
                             if oem_info_path.exists()
                             else ""
                         )
-                        
 
                         # Determine device type based on label
                         if "Module Power Socket" in oem_info:
