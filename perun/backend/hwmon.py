@@ -103,7 +103,9 @@ class HWMonBackend(Backend):
 
             # Get the device name
             name_path = hwmon_dir / "name"
-            device_name = read_file_content(name_path) if name_path.exists() else hwmon_name
+            device_name = (
+                read_file_content(name_path) if name_path.exists() else hwmon_name
+            )
 
             # Store metadata about this hwmon device
             self._metadata[hwmon_name] = device_name
@@ -133,10 +135,18 @@ class HWMonBackend(Backend):
 
                         # Get device name from power*_oem_info file
                         oem_info_path = device_dir / f"power{sensor_index}_oem_info"
-                        oem_info = read_file_content(oem_info_path) if oem_info_path.exists() else ""
+                        oem_info = (
+                            read_file_content(oem_info_path)
+                            if oem_info_path.exists()
+                            else ""
+                        )
 
                         # Get label from standard label file if oem_info not available
-                        label = oem_info if oem_info else get_sensor_label(device_dir, "power", sensor_index)
+                        label = (
+                            oem_info
+                            if oem_info
+                            else get_sensor_label(device_dir, "power", sensor_index)
+                        )
 
                         # Get limits if available
                         max_val = get_sensor_max(device_dir, "power", sensor_index)
@@ -145,7 +155,11 @@ class HWMonBackend(Backend):
                         # Determine device type based on label
                         dev_type = DeviceType.OTHER
                         label_lower = label.lower()
-                        if "cpu" in label_lower or "core" in label_lower or "processor" in label_lower:
+                        if (
+                            "cpu" in label_lower
+                            or "core" in label_lower
+                            or "processor" in label_lower
+                        ):
                             dev_type = DeviceType.CPU
                         elif "gpu" in label_lower or "graphics" in label_lower:
                             dev_type = DeviceType.GPU
@@ -154,7 +168,9 @@ class HWMonBackend(Backend):
 
                         # Create sensor ID
                         label_part = label if label else f"power{sensor_index}_avg"
-                        sensor_id = f"{device_name}_{hwmon_name}_device_power_{label_part}"
+                        sensor_id = (
+                            f"{device_name}_{hwmon_name}_device_power_{label_part}"
+                        )
                         # Clean up sensor ID (remove spaces, special chars)
                         sensor_id = re.sub(r"[^\w\-_]", "_", sensor_id)
 
@@ -188,7 +204,9 @@ class HWMonBackend(Backend):
                         self.devices[device.id] = device
                         log.debug(f"Added device power sensor: {sensor_id}")
 
-        log.debug(f"HWMon devices: {pp.pformat([deviceId for deviceId in self.devices])}")
+        log.debug(
+            f"HWMon devices: {pp.pformat([deviceId for deviceId in self.devices])}"
+        )
 
     def close(self) -> None:
         """Backend shutdown code, closes all open sensor files."""
