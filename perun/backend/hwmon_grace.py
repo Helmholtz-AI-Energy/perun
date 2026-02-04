@@ -5,7 +5,7 @@ import pprint as pp
 import re
 from io import IOBase
 from pathlib import Path
-from typing import Callable, override
+from typing import Callable
 
 import cpuinfo
 import numpy as np
@@ -166,7 +166,6 @@ class HWMonGraceBackend(Backend):
             f"HWMon devices: {pp.pformat([deviceId for deviceId in self.devices])}"
         )
 
-    @override
     def close(self) -> None:
         """Backend shutdown code, closes all open sensor files."""
         log.debug("Closing hwmon sensor files")
@@ -175,7 +174,6 @@ class HWMonGraceBackend(Backend):
             file.close()
         return
 
-    @override
     def availableSensors(self) -> dict[str, tuple[str, DeviceType, Unit]]:
         """Return string id set of visible devices.
 
@@ -189,7 +187,6 @@ class HWMonGraceBackend(Backend):
             for sensor_id, sensor in self.devices.items()
         }
 
-    @override
     def getSensors(self, deviceList: set[str]) -> list[Sensor]:
         """Gather device objects based on a set of device ids.
 
