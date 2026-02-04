@@ -35,12 +35,10 @@ class HWMonGraceBackend(Backend):
     name = "Hardware Monitor (Grace)"
     description = "Reads power measurements from hwmon sysfs device subdirectories for Grace systems."
 
-    def __init__(self) -> None:
-        super().__init__()
-        self._files: list[IOBase] = []
-
     def setup(self) -> None:
         """Initialize hwmon backend and discover available sensors."""
+        self._files: list[IOBase] = []
+
         cpuInfo = cpuinfo.get_cpu_info()
         self._metadata = {}
         for key, value in cpuInfo.items():
