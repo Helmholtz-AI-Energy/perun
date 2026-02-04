@@ -17,8 +17,8 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
     "post-processing": {
         "power_overhead": 0,  # Watt
         "pue": 1.0,  # No assumption where the workflow is running
-        "emissions_factor": 230.0,  # gCO2eq/kWh - Germany, 20.05.2025 (https://app.electricitymaps.com/zone/DE/72h/hourly)
-        "price_factor": 0.2678,  # Euro/kWh - Germany, 20.05.2025 (https://www.stromauskunft.de/strompreise/)
+        "emissions_factor": 332,  # gCO2eq/kWh - Germany, 04.02.2026 (https://ourworldindata.org/grapher/carbon-intensity-electricity?mapSelect=~DEU)
+        "price_factor": 0.4070,  # Euro/kWh (Grundversorgung) - Germany, 04.02.2026 (https://www.stromauskunft.de/strompreise/)
         "price_unit": "€",
     },
     "monitor": {
@@ -26,7 +26,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "include_backends": "",
         "include_sensors": "",
         "exclude_backends": "",
-        "exclude_sensors": "",
+        "exclude_sensors": "CPU_FREQ_ CPU_USAGE_ DISK_READ_BYTES_ DISK_WRITE_BYTES_ NET_READ_BYTES_ NET_WRITE_BYTES_",
     },
     "output": {
         "app_name": None,
