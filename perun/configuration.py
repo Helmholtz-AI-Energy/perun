@@ -23,6 +23,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
     },
     "monitor": {
         "sampling_period": 1,
+        "queue_timeout": 60,  # Seconds to wait for a result from the monitoring subprocess before considering it failed
         "include_backends": "",
         "include_sensors": "",
         "exclude_backends": "",
@@ -209,6 +210,12 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
         )
         config.set("monitor", "include_sensors", "")
 
+    queue_timeout = config.getint("monitor", "queue_timeout")
+    if queue_timeout < 1:
+        log.warning(
+            f"Invalid monitoring subprocess queue timeout {queue_timeout}. Should be a number higher than 0. Defaulting to 60 seconds."
+        )
+        config.set("monitor", "queue_timeout", "60")
     # Ensure that the output format is valid
     try:
         format = config.get("output", "format")
