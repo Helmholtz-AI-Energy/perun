@@ -288,7 +288,7 @@ class Perun(metaclass=Singleton):
     def monitor_application(
         self,
         app: Application,
-    ) -> Any:
+    ) -> tuple[MonitorStatus, Any]:
         """Execute coordination, monitoring, post-processing, and reporting steps, in that order.
 
         Parameters
@@ -298,8 +298,8 @@ class Perun(metaclass=Singleton):
 
         Returns
         -------
-        Any
-            Last result of the application execution, only when the perun decorator is used.
+        tuple[MonitorStatus, Any]
+            Return the output status from the monitoring process, and the last result of the application execution (if any).
         """
         log.debug(f"Rank {self.comm.Get_rank()} Backends: {pp.pformat(self.backends)}")
 
@@ -325,6 +325,8 @@ class Perun(metaclass=Singleton):
         )
 
         warmup_rounds = self.config.getint("benchmarking", "warmup_rounds")
+        status = MonitorStatus.READY
+        last_result = None
 
         if warmup_rounds > 0:
             log.info(f"Rank {self.comm.Get_rank()} : Started warmup rounds")
@@ -338,7 +340,7 @@ class Perun(metaclass=Singleton):
                     status == MonitorStatus.FILE_NOT_FOUND
                     or status == MonitorStatus.SCRIPT_ERROR
                 ):
-                    return
+                    return status, last_result
 
         log.info(f"Rank {self.comm.Get_rank()}: Monitoring start")
         multirun_nodes: dict[str, DataNode] = {}
@@ -361,10 +363,10 @@ class Perun(metaclass=Singleton):
                     )
                     self._export_multirun(failedRun)
 
-                return
+                return status, last_result
             elif status == MonitorStatus.FILE_NOT_FOUND:
                 log.error(f"Rank {self.comm.Get_rank()}: App not found")
-                return
+                return status, last_result
             elif status == MonitorStatus.SP_ERROR:
                 log.error(
                     f"Rank {self.comm.Get_rank()}: Failed to start run {i}, saving previous runs (if any), and exiting."
@@ -390,7 +392,7 @@ class Perun(metaclass=Singleton):
             self._export_multirun(multirun_node)
             self._run_postprocess_callbacks(multirun_node)
 
-        return last_result
+        return status, last_result
 
     def _export_multirun(self, multirun_node: DataNode) -> None:
         data_out = Path(self.config.get("output", "data_out"))
