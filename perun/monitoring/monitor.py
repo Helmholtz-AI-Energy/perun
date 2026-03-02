@@ -354,7 +354,7 @@ class PerunMonitor:
         log.error(f"Rank {self._comm.Get_rank()}: Available ranks {availableRanks}")
         try:
             recoverdNodes = self._process_single_run(
-                str("failed"), time.time_ns(), available_ranks=availableRanks
+                str("failed"), time.time_ns(), available_ranks=availableRanks, queue_timeout=self._config.getint("monitor", "queue_timeout")
             )
         except Empty:
             log.error(
@@ -385,6 +385,7 @@ class PerunMonitor:
         run_id: str,
         starttime_ns: int,
         available_ranks: list[int] | None = None,
+        queue_timeout: int = 60,
     ) -> DataNode | None:
         """Collect data from subprocess and pack it in a data node.
 
@@ -404,7 +405,7 @@ class PerunMonitor:
         """
         if self.queue and self.perunSP:
             log.info(f"Rank {self._comm.Get_rank()}: Collecting queue data.")
-            nodeData = self.queue.get(block=True, timeout=600)
+            nodeData = self.queue.get(block=True, timeout=queue_timeout)
         else:
             nodeData = None
 

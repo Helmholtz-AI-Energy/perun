@@ -14,11 +14,11 @@ from perun.configuration import (
     sanitize_config,
     save_to_config,
 )
-from perun.core import Perun
+from perun.core import Perun, MonitorStatus
 from perun.io.io import IOFormat
 from perun.io.text_report import sensors_table
 from perun.logging import set_logger_config
-from perun.monitoring.application import Application
+from perun.monitoring.application import Application 
 
 log = logging.getLogger(__name__)
 
@@ -141,6 +141,11 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         "--sampling_period",
         type=float,
         help="Sampling period in seconds. Defaults to 1 second.",
+    )
+    monitor_parser.add_argument(
+        "--queue_timeout",
+        type=int,
+        help="Seconds to wait for a result from the monitoring subprocess before considering it failed. Defaults to 60 seconds.",
     )
     monitor_parser.add_argument(
         "--include_sensors",
@@ -373,4 +378,7 @@ def monitor(args: argparse.Namespace) -> None:
 
     log.info("Starting perun monitoring application.")
 
-    perun.monitor_application(app)
+    exit_status, _ = perun.monitor_application(app)
+    log.info(f"Monitoring finished with status {exit_status}. Exiting.")
+    if exit_status not in [MonitorStatus.PROCESSING, MonitorStatus.READY, MonitorStatus.CLOSED]:
+        exit(1)
