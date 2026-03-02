@@ -149,7 +149,7 @@ exclude = ["docs", "examples"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "D", "D417", "NPY"]
-ignore = ["E501"]
+ignore = ["E501", "NPY201"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["D"]
