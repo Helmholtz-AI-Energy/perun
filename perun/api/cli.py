@@ -14,11 +14,11 @@ from perun.configuration import (
     sanitize_config,
     save_to_config,
 )
-from perun.core import Perun, MonitorStatus
+from perun.core import MonitorStatus, Perun
 from perun.io.io import IOFormat
 from perun.io.text_report import sensors_table
 from perun.logging import set_logger_config
-from perun.monitoring.application import Application 
+from perun.monitoring.application import Application
 
 log = logging.getLogger(__name__)
 
@@ -380,5 +380,9 @@ def monitor(args: argparse.Namespace) -> None:
 
     exit_status, _ = perun.monitor_application(app)
     log.info(f"Monitoring finished with status {exit_status}. Exiting.")
-    if exit_status not in [MonitorStatus.PROCESSING, MonitorStatus.READY, MonitorStatus.CLOSED]:
+    if exit_status not in [
+        MonitorStatus.PROCESSING,
+        MonitorStatus.READY,
+        MonitorStatus.CLOSED,
+    ]:
         exit(1)
