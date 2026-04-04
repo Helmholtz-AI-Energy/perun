@@ -34,7 +34,7 @@ class PowercapRAPLBackend(Backend):
 
     def setup(self) -> None:
         """Check Intel RAPL access."""
-        self._files = []
+        self._files: list[IOBase] = []
 
         cpuInfo = cpuinfo.get_cpu_info()
         self._metadata = {}

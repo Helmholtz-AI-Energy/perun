@@ -54,14 +54,23 @@ class PSUTILBackend(Backend):
                 sensors[f"CPU_USAGE_{cpu_id}"] = (self.id, DeviceType.CPU, Unit.PERCENT)
         else:
             log.info("CPU_USAGE not available")
-
         if psutil.net_io_counters(nowrap=True) is not None:
-            sensors["NET_WRITE_BYTES"] = (self.id, DeviceType.NET, Unit.BYTE)
-            sensors["NET_READ_BYTES"] = (self.id, DeviceType.NET, Unit.BYTE)
+            for nid in psutil.net_if_addrs().keys():
+                sensors[f"NET_WRITE_BYTES_{nid}"] = (self.id, DeviceType.NET, Unit.BYTE)
+                sensors[f"NET_READ_BYTES_{nid}"] = (self.id, DeviceType.NET, Unit.BYTE)
 
         if psutil.disk_io_counters(nowrap=True) is not None:
-            sensors["DISK_READ_BYTES"] = (self.id, DeviceType.DISK, Unit.BYTE)
-            sensors["DISK_WRITE_BYTES"] = (self.id, DeviceType.DISK, Unit.BYTE)
+            for disk in psutil.disk_io_counters(perdisk=True).keys():
+                sensors[f"DISK_READ_BYTES_{disk}"] = (
+                    self.id,
+                    DeviceType.DISK,
+                    Unit.BYTE,
+                )
+                sensors[f"DISK_WRITE_BYTES_{disk}"] = (
+                    self.id,
+                    DeviceType.DISK,
+                    Unit.BYTE,
+                )
 
         if psutil.cpu_freq(percpu=True) is not None:
             for cpu_id, _ in enumerate(psutil.cpu_freq(percpu=True)):
@@ -91,25 +100,41 @@ class PSUTILBackend(Backend):
             def func() -> Number:
                 return np.float32(psutil.cpu_percent(percpu=True)[cpuId])
 
-        elif device == "DISK_READ_BYTES":
+        elif device.startswith("DISK_READ_BYTES_"):
+            disk_id = device.split("_")[-1]
 
             def func() -> Number:
-                return np.uint64(psutil.disk_io_counters(nowrap=True).read_bytes)  # type: ignore[union-attr]
+                return np.uint64(
+                    psutil.disk_io_counters(perdisk=True, nowrap=True)[
+                        disk_id
+                    ].read_bytes
+                )  # type: ignore[union-attr]
 
-        elif device == "DISK_WRITE_BYTES":
-
-            def func() -> Number:
-                return np.uint64(psutil.disk_io_counters(nowrap=True).write_bytes)  # type: ignore[union-attr]
-
-        elif device == "NET_WRITE_BYTES":
-
-            def func() -> Number:
-                return np.uint64(psutil.net_io_counters(nowrap=True).bytes_sent)
-
-        elif device == "NET_READ_BYTES":
+        elif device.startswith("DISK_WRITE_BYTES_"):
+            disk_id = device.split("_")[-1]
 
             def func() -> Number:
-                return np.uint64(psutil.net_io_counters(nowrap=True).bytes_recv)
+                return np.uint64(
+                    psutil.disk_io_counters(perdisk=True, nowrap=True)[
+                        disk_id
+                    ].write_bytes
+                )  # type: ignore[union-attr]
+
+        elif device.startswith("NET_WRITE_BYTES_"):
+            nid = device.split("_")[-1]
+
+            def func() -> Number:
+                return np.uint64(
+                    psutil.net_io_counters(pernic=True, nowrap=True)[nid].bytes_sent
+                )
+
+        elif device.startswith("NET_READ_BYTES_"):
+            nid = device.split("_")[-1]
+
+            def func() -> Number:
+                return np.uint64(
+                    psutil.net_io_counters(pernic=True, nowrap=True)[nid].bytes_recv
+                )
 
         elif device.startswith("CPU_FREQ_"):
             cpuId = int(device.split("_")[-1])

@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 log = logging.getLogger(__name__)
 
@@ -23,6 +24,9 @@ class Unit(str, enum.Enum):
     SCALAR = ""
     GRAM = "g"
     HZ = "Hz"
+    CELSIUS = "°C"
+    VOLT = "V"
+    AMPERE = "A"
 
     @property
     def symbol(self) -> str:
@@ -44,7 +48,7 @@ _mag_symbols: dict[str, str] = {
     "PICO": "p",
     "NANO": "n",
     "MICRO": "µ",
-    "MILI": "m",
+    "MILLI": "m",
     "ONE": "",
     "KILO": "k",
     "MEGA": "M",
@@ -59,7 +63,7 @@ class Magnitude(float, enum.Enum):
     PICO = 1e-12
     NANO = 1e-9
     MICRO = 1e-6
-    MILI = 1e-3
+    MILLI = 1e-3
     ONE = 1
     KILO = 1e3
     MEGA = 1e6
@@ -114,7 +118,7 @@ class MetricMetaData:
 
     unit: Unit
     mag: Magnitude
-    dtype: np.dtype
+    dtype: npt.DTypeLike
     min: Number
     max: Number
     fill: Number

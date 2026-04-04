@@ -161,7 +161,7 @@ class NVMLBackend(Backend):
 
         data_type = MetricMetaData(
             Unit.WATT,
-            Magnitude.MILI,
+            Magnitude.MILLI,
             np.dtype("uint32"),
             np.uint32(0),
             max_power,
