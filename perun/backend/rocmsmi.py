@@ -1,6 +1,5 @@
 """ROCM Backend."""
 
-import importlib
 import logging
 from typing import Callable
 
@@ -9,6 +8,7 @@ import numpy as np
 from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
+from perun.util import optional_import
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +25,9 @@ class ROCMBackend(Backend):
 
     def setup(self) -> None:
         """Init rocm object."""
-        self.amdsmi = importlib.import_module("amdsmi")
+        self.amdsmi = optional_import(
+            "amdsmi", extra="rocm", feature="AMD GPU monitoring"
+        )
         try:
             self.amdsmi.amdsmi_init(self.amdsmi.AmdSmiInitFlags.INIT_AMD_GPUS)
             self._metadata = {

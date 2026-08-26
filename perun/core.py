@@ -27,7 +27,13 @@ from perun.io.io import IOFormat, exportTo, importFrom
 from perun.monitoring.application import Application
 from perun.monitoring.monitor import MonitorStatus, PerunMonitor
 from perun.processing import processDataNode
-from perun.util import Singleton, filter_sensors, getRunId, increaseIdCounter
+from perun.util import (
+    MissingDependencyError,
+    Singleton,
+    filter_sensors,
+    getRunId,
+    increaseIdCounter,
+)
 from perun.version import __version__
 
 log = logging.getLogger(__name__)
@@ -111,12 +117,19 @@ class Perun(metaclass=Singleton):
                 try:
                     backend_instance = backend_class()
                     self._backends[backend_instance.id] = backend_instance
+                except MissingDependencyError as mde:
+                    # Optional dependency missing: record an actionable hint but
+                    # never crash. The backend is simply skipped. Logged at info
+                    # level so it does not pollute machine-readable stdout output
+                    # (e.g. `perun sensors`/`metadata`); raise the log level to
+                    # see it.
+                    log.info(f"Skipping backend {name}: {mde}")
                 except ImportError as ie:
                     log.info(f"Missing dependencies for backend {name}")
                     log.info(ie)
                 except Exception as e:
-                    log.error(f"Unknown error loading dependecy {name}")
-                    log.error(e)
+                    log.warning(f"Failed to initialize backend {name}, skipping it.")
+                    log.warning(e)
 
         return self._backends
 

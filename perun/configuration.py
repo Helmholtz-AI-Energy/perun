@@ -67,8 +67,8 @@ if globalConfigPath.exists() and globalConfigPath.is_file():
     config.read(globalConfigPath)
 
 localConfigPath = Path.cwd() / ".perun.ini"
-if globalConfigPath.exists() and globalConfigPath.is_file():
-    config.read(globalConfigPath)
+if localConfigPath.exists() and localConfigPath.is_file():
+    config.read(localConfigPath)
 
 
 def read_custom_config(
@@ -150,10 +150,8 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
         )
         config.set("post-processing", "pue", "1.0")
 
+    default_emissions_factor = _default_config["post-processing"]["emissions_factor"]
     try:
-        default_emissions_factor = _default_config["post-processing"][
-            "emissions_factor"
-        ]
         emissions_factor = config.getfloat("post-processing", "emissions_factor")
         if emissions_factor < 0:
             # Default value is the global average emissions factor
@@ -169,8 +167,8 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
         )
         config.set("post-processing", "emissions_factor", str(default_emissions_factor))
 
+    default_price_factor = _default_config["post-processing"]["price_factor"]
     try:
-        default_price_factor = _default_config["post-processing"]["price_factor"]
         price_factor = config.getfloat("post-processing", "price_factor")
         if price_factor < 0:
             log.warning(
@@ -179,12 +177,12 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
             config.set("post-processing", "price_factor", str(default_price_factor))
     except ValueError:
         log.warning(
-            "Invalid price factor. Should be a number higher or equal than 0. Defaulting to 0.3251 Currency/kWh."
+            f"Invalid price factor. Should be a number higher or equal than 0. Defaulting to {default_price_factor} Currency/kWh."
         )
         config.set(
             "post-processing",
             "price_factor",
-            str(_default_config["post-processing"]["price_factor"]),
+            str(default_price_factor),
         )
     # Ensure that the monitoring options are valid
     try:
@@ -225,8 +223,8 @@ def sanitize_config(config: configparser.ConfigParser) -> configparser.ConfigPar
         )
         config.set("monitor", "queue_timeout", "60")
     # Ensure that the output format is valid
+    format = config.get("output", "format")
     try:
-        format = config.get("output", "format")
         IOFormat(format)
     except ValueError:
         log.warning(
