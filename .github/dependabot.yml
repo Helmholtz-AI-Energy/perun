@@ -1,0 +1,31 @@
+# Dependabot configuration.
+#
+# The example projects under `examples/` are illustrative only. They are not
+# part of perun's supported/installed surface, so we deliberately do NOT want
+# Dependabot version-bump PRs for them (they were the source of a lot of
+# security-advisory noise). Dependabot is therefore only pointed at the root
+# Python project and the GitHub Actions workflows.
+#
+# Note: this file controls Dependabot *version-update PRs*. Dependabot
+# *security alerts* for a manifest are governed by repository settings
+# (Settings -> Code security and analysis). To stop alerts for the examples,
+# see docs/README note in this PR, or disable alerts for those paths there.
+version: 2
+updates:
+  # Root Python project dependencies (pyproject.toml).
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+
+  # GitHub Actions used by the CI/release workflows.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "github-actions"

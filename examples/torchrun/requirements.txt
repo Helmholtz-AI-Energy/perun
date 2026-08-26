@@ -1,38 +1,9 @@
-filelock
-fsspec
-h5py
-jinja2
-markupsafe
-mpi4py
-mpmath
-networkx
-numpy
-nvidia-cublas-cu12
-nvidia-cuda-cupti-cu12
-nvidia-cuda-nvrtc-cu12
-nvidia-cuda-runtime-cu12
-nvidia-cudnn-cu12
-nvidia-cufft-cu12
-nvidia-cufile-cu12
-nvidia-curand-cu12
-nvidia-cusolver-cu12
-nvidia-cusparse-cu12
-nvidia-cusparselt-cu12
-nvidia-ml-py
-nvidia-nccl-cu12
-nvidia-nvjitlink-cu12
-nvidia-nvtx-cu12
-pandas
-perun
-psutil
-py-cpuinfo
-python-dateutil
-pytz
-setuptools
-six
-sympy
-tabulate
-torch
-triton
-typing-extensions
-tzdata
+# Direct dependencies for the perun + torchrun (DDP) example.
+#
+# These are intentionally kept as loose lower bounds ( >= ) rather than exact
+# pins. The examples are illustrative and are not part of perun's supported
+# surface, so we do not track security advisories against them. Install a CUDA
+# build of torch that matches your local toolkit if needed.
+perun[nvidia]
+torch>=2.0
+mpi4py>=3.1
