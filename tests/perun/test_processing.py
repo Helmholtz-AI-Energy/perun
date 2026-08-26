@@ -1,13 +1,16 @@
 from configparser import ConfigParser
+from dataclasses import asdict
 
 import numpy as np
 import pytest
 
 from perun.data_model.data import (
     DataNode,
+    Metric,
     MetricType,
     NodeType,
     RawData,
+    Stats,
 )
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Unit
 from perun.data_model.sensor import DeviceType
@@ -17,6 +20,40 @@ from perun.processing import (
     processEnergyData,
     processSensorData,
 )
+
+
+def test_stats_fromdict_roundtrip_preserves_sum():
+    # Regression: Stats.fromDict used to map "min" onto the "sum" field, losing
+    # the real sum on any dict-based round-trip (json / pickle).
+    from perun.data_model.data import AggregateType
+
+    md = MetricMetaData(
+        Unit.JOULE,
+        Magnitude.ONE,
+        np.dtype("float32"),
+        np.float32(0),
+        np.float32(1000),
+        np.float32(-1),
+    )
+    stats = Stats.fromMetrics(
+        [
+            Metric(MetricType.ENERGY, np.float32(10.0), md, agg=AggregateType.SUM),
+            Metric(MetricType.ENERGY, np.float32(20.0), md, agg=AggregateType.SUM),
+            Metric(MetricType.ENERGY, np.float32(30.0), md, agg=AggregateType.SUM),
+        ]
+    )
+    assert float(stats.sum) == pytest.approx(60.0)
+    assert float(stats.min) == pytest.approx(10.0)
+    assert float(stats.max) == pytest.approx(30.0)
+
+    restored = Stats.fromDict(asdict(stats))
+    assert float(restored.sum) == pytest.approx(float(stats.sum))
+    assert float(restored.mean) == pytest.approx(float(stats.mean))
+    assert float(restored.std) == pytest.approx(float(stats.std))
+    assert float(restored.min) == pytest.approx(float(stats.min))
+    assert float(restored.max) == pytest.approx(float(stats.max))
+    # The bug conflated sum and min; make sure they are now distinct.
+    assert float(restored.sum) != float(restored.min)
 
 
 def test_processEnergyData():

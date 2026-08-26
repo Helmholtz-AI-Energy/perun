@@ -195,7 +195,7 @@ class Stats:
         return cls(
             MetricType(statsDict["type"]),
             MetricMetaData.fromDict(statsDict["metric_md"]),
-            statsDict["min"],
+            statsDict["sum"],
             statsDict["mean"],
             statsDict["std"],
             statsDict["max"],

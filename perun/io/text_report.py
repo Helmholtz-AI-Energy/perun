@@ -6,9 +6,20 @@ from typing import Any
 import pandas as pd
 
 from perun.data_model.data import DataNode, MetricType, Stats
-from perun.io.util import dataframe_to_markdown, value2MeanStdStr, value2ValueUnitStr
+from perun.io.util import (
+    dataframe_to_markdown,
+    raw_metric_stats,
+    value2MeanStdStr,
+    value2ValueUnitStr,
+)
 
 log = logging.getLogger(__name__)
+
+# Statistics that can be requested per metric column via
+# ``benchmarking.metric_stats``. The order here defines the column order in the
+# report.
+_VALID_STATS = ("avg", "min", "max")
+_STAT_LABELS = {"avg": "Avg", "min": "Min", "max": "Max"}
 
 # Default columns for the host/device table, used when the configuration does
 # not specify a `benchmarking.metrics` value.
@@ -37,11 +48,11 @@ DEFAULT_REGION_METRICS = [
 # Friendly column headers for region metrics; any metric not listed falls back
 # to a generic "Avg <NAME>" label.
 _REGION_METRIC_LABELS = {
-    MetricType.RUNTIME: "Avg Runtime",
-    MetricType.POWER: "Avg Power",
-    MetricType.CPU_UTIL: "Avg CPU Util",
-    MetricType.DRAM_MEM: "Avg RAM Mem Util",
-    MetricType.GPU_MEM: "Avg GPU Mem Util",
+    MetricType.RUNTIME: "Runtime",
+    MetricType.POWER: "Power",
+    MetricType.CPU_UTIL: "CPU Util",
+    MetricType.DRAM_MEM: "RAM Mem Util",
+    MetricType.GPU_MEM: "GPU Mem Util",
 }
 
 
@@ -87,9 +98,110 @@ def _parse_metric_list(raw: str | None, defaults: list[MetricType]) -> list[Metr
     return resolved if resolved else list(defaults)
 
 
-def _region_metric_label(metric: MetricType) -> str:
+def _region_metric_label(metric: MetricType, stat: str = "avg") -> str:
     """Return a human friendly column label for a region metric."""
-    return _REGION_METRIC_LABELS.get(metric, f"Avg {metric.name}")
+    return f"{_STAT_LABELS[stat]} {_REGION_METRIC_LABELS.get(metric, f'{metric.name}')}"
+
+
+def _region_metric_value(stats: Stats, stat_type: str = "avg") -> str:
+
+    match stat_type:
+        case "max":
+            return value2ValueUnitStr(stats.max, stats.metric_md)
+        case "min":
+            return value2ValueUnitStr(stats.min, stats.metric_md)
+        case "sum":
+            return value2ValueUnitStr(stats.sum, stats.metric_md)
+        case "avg":
+            return value2MeanStdStr(stats)
+        case _:
+            return value2MeanStdStr(stats)
+
+
+def _parse_stats_list(raw: str | None) -> list[str]:
+    """Parse the ``benchmarking.metric_stats`` option into a list of stats.
+
+    Accepts a comma/space separated list of ``avg``, ``min`` and ``max``
+    (case-insensitive). Unknown tokens are skipped leniently. Always returns at
+    least ``["avg"]`` so a column is never left empty.
+    """
+    if not raw or not raw.strip():
+        return ["avg"]
+
+    tokens = [tok.strip().lower() for tok in raw.replace(",", " ").split()]
+    resolved: list[str] = []
+    for token in tokens:
+        if not token:
+            continue
+        # Accept a few friendly aliases.
+        alias = {"mean": "avg", "average": "avg", "minimum": "min", "maximum": "max"}
+        token = alias.get(token, token)
+        if token not in _VALID_STATS:
+            log.warning(
+                "Unknown metric stat '%s' in report configuration; skipping it.", token
+            )
+            continue
+        if token not in resolved:
+            resolved.append(token)
+
+    if not resolved:
+        return ["avg"]
+    # Preserve the canonical avg, min, max ordering.
+    return [s for s in _VALID_STATS if s in resolved]
+
+
+def _parse_group_by(raw: str | None) -> str:
+    """Parse ``benchmarking.group_by`` into ``"host"`` or ``"device"``."""
+    if raw and raw.strip().lower() == "device":
+        return "device"
+    return "host"
+
+
+def _metric_column_label(metric_type: MetricType, stat: str, include_stat: bool) -> str:
+    """Build the column label for a metric/stat combination."""
+    if include_stat:
+        return f"{_STAT_LABELS[stat]} {metric_type.name}"
+    return metric_type.name
+
+
+def _fill_metric_columns(
+    entry: dict[str, Any],
+    node: DataNode,
+    metric_type: MetricType,
+    stats: list[str],
+    include_stat: bool,
+) -> None:
+    """Populate ``entry`` with the requested stats for ``metric_type``.
+
+    ``avg`` uses the aggregated metric value already stored on ``node``; ``min``
+    and ``max`` are computed directly from the underlying raw sensor
+    time-series. Missing statistics are simply left out of the row.
+
+    ``include_stat`` controls whether column headers are prefixed with the stat
+    name (``Avg`` / ``Min`` / ``Max``). It is kept consistent across every row
+    of a table so columns line up even though host/"All" rows only carry the
+    average.
+    """
+    # Average: use the already-aggregated metric on the node (respects the
+    # metric's own aggregation rule, e.g. sum for memory, mean for util).
+    if "avg" in stats and metric_type in node.metrics:
+        m = node.metrics[metric_type]
+        entry[_metric_column_label(metric_type, "avg", include_stat)] = (
+            value2ValueUnitStr(m.value, m.metric_md)
+        )
+
+    if "min" in stats or "max" in stats:
+        raw_stats = raw_metric_stats(node, metric_type)
+        if raw_stats is not None:
+            r_min, _, r_max, r_md = raw_stats
+            if "min" in stats:
+                entry[_metric_column_label(metric_type, "min", include_stat)] = (
+                    value2ValueUnitStr(r_min, r_md)
+                )
+            if "max" in stats:
+                entry[_metric_column_label(metric_type, "max", include_stat)] = (
+                    value2ValueUnitStr(r_max, r_md)
+                )
 
 
 def textReport(dataNode: DataNode, mr_id: str) -> str:
@@ -139,6 +251,11 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
     region_metrics = _parse_metric_list(
         mr_node.metadata.get("benchmarking.region_metrics"), DEFAULT_REGION_METRICS
     )
+    metric_stats = _parse_stats_list(mr_node.metadata.get("benchmarking.metric_stats"))
+    group_by = _parse_group_by(mr_node.metadata.get("benchmarking.group_by"))
+    # min/max are only meaningful on the per-device rows; label columns with the
+    # stat name only when we are actually going to emit more than the average.
+    show_stats = group_by == "device" and metric_stats != ["avg"]
 
     for run_number, run_node in mr_node.nodes.items():
         if run_node.regions:
@@ -151,34 +268,71 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
                     }
                     row.update(
                         {
-                            _region_metric_label(metric_type): value2MeanStdStr(stats)
+                            _region_metric_label(
+                                metric_type, stat_type
+                            ): _region_metric_value(stats, stat_type)
                             for metric_type, stats in region.metrics.items()
                             if metric_type in region_metrics
+                            for stat_type in metric_stats
                         }
                     )
                     region_rows.append(row)
+
         for host_name, host_node in run_node.nodes.items():
-            entry = {
-                "Round #": run_number,
-                "Host": host_name,
-            }
-            for metric_type in table_metrics:
-                if metric_type in host_node.metrics:
-                    m = host_node.metrics[metric_type]
-                    entry[metric_type.name] = value2ValueUnitStr(m.value, m.metric_md)
+            if group_by == "device":
+                # One row per device group; min/max come from the raw sensor
+                # time-series of that device group.
+                for device_group in host_node.nodes.values():
+                    entry = {
+                        "Round #": run_number,
+                        "Host": host_name,
+                        "Device": str(device_group.id),
+                    }
+                    for metric_type in table_metrics:
+                        _fill_metric_columns(
+                            entry, device_group, metric_type, metric_stats, show_stats
+                        )
+                    host_device_rows.append(entry)
+                # Host total row (averages only).
+                host_entry: dict[str, Any] = {
+                    "Round #": run_number,
+                    "Host": host_name,
+                    "Device": "All",
+                }
+                for metric_type in table_metrics:
+                    _fill_metric_columns(
+                        host_entry, host_node, metric_type, ["avg"], show_stats
+                    )
+                host_device_rows.append(host_entry)
+            else:
+                # Host-level rows only (historical behaviour, averages only).
+                entry = {
+                    "Round #": run_number,
+                    "Host": host_name,
+                }
+                for metric_type in table_metrics:
+                    _fill_metric_columns(
+                        entry, host_node, metric_type, ["avg"], show_stats
+                    )
+                host_device_rows.append(entry)
 
-            host_device_rows.append(entry)
-        entry = {"Round #": run_number, "Host": "All"}
+        # Run-wide "All" row (averages only).
+        run_entry: dict[str, Any] = {"Round #": run_number, "Host": "All"}
+        if group_by == "device":
+            run_entry["Device"] = "All"
         for metric_type in table_metrics:
-            if metric_type in run_node.metrics:
-                m = run_node.metrics[metric_type]
-                entry[metric_type.name] = value2ValueUnitStr(m.value, m.metric_md)
+            _fill_metric_columns(run_entry, run_node, metric_type, ["avg"], show_stats)
+        host_device_rows.append(run_entry)
 
-        host_device_rows.append(entry)
-
-    mr_table = pd.DataFrame.from_records(host_device_rows).sort_values(
-        by=["Host", "Round #"]
+    sort_columns = (
+        ["Host", "Device", "Round #"]
+        if group_by == "device"
+        else [
+            "Host",
+            "Round #",
+        ]
     )
+    mr_table = pd.DataFrame.from_records(host_device_rows).sort_values(by=sort_columns)
     mr_report_str = f"RUN ID: {mr_id}\n\n" + dataframe_to_markdown(mr_table) + "\n\n"
 
     # Regions
