@@ -42,11 +42,19 @@ class IOFormat(enum.Enum):
 
     @classmethod
     def fromSuffix(cls, suffix: str) -> "IOFormat":
-        """Return format from suffix."""
+        """Return format from suffix.
+
+        The suffix is matched exactly (ignoring a leading dot and case) against
+        the known format suffixes. Substring matching is intentionally avoided
+        because several suffixes share characters (e.g. ``json`` vs ``bench``'s
+        ``json``), which previously led to the wrong format being selected
+        depending on dictionary ordering.
+        """
+        normalized = suffix.lower().lstrip(".")
         for key, value in _suffixes.items():
-            if value in suffix:
+            if value == normalized:
                 return cls(key)
-        raise ValueError("Invalid file format.")
+        raise ValueError(f"Invalid file format for suffix '{suffix}'.")
 
 
 def exportTo(

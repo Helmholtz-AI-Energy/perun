@@ -1,4 +1,13 @@
-from perun.util import filter_sensors, increaseIdCounter
+import types
+
+import pytest
+
+from perun.util import (
+    MissingDependencyError,
+    filter_sensors,
+    increaseIdCounter,
+    optional_import,
+)
 
 
 def test_increaseIdCounter_no_existing_ids():
@@ -147,3 +156,45 @@ def test_filter_sensors_include_and_exclude_backends():
         sensors, include_backends=include_backends, exclude_backends=exclude_backends
     )
     assert result == {"sensor1": ("backend1",), "sensor3": ("backend1",)}
+
+
+def test_optional_import_existing_module():
+    # A module guaranteed to be importable in the test environment.
+    mod = optional_import("json")
+    assert isinstance(mod, types.ModuleType)
+    assert mod.__name__ == "json"
+
+
+def test_optional_import_missing_raises_missing_dependency_error():
+    with pytest.raises(MissingDependencyError) as excinfo:
+        optional_import("a_module_that_does_not_exist_xyz", extra="nvidia")
+    assert isinstance(excinfo.value, ImportError)
+    assert excinfo.value.module == "a_module_that_does_not_exist_xyz"
+    assert excinfo.value.extra == "nvidia"
+
+
+def test_optional_import_message_contains_install_hint():
+    with pytest.raises(MissingDependencyError) as excinfo:
+        optional_import(
+            "a_module_that_does_not_exist_xyz",
+            extra="nvidia",
+            feature="NVIDIA GPU monitoring",
+        )
+    message = str(excinfo.value)
+    assert "pip install perun[nvidia]" in message
+    assert "NVIDIA GPU monitoring" in message
+    assert "a_module_that_does_not_exist_xyz" in message
+
+
+def test_optional_import_message_without_extra_uses_module_name():
+    with pytest.raises(MissingDependencyError) as excinfo:
+        optional_import("a_module_that_does_not_exist_xyz")
+    message = str(excinfo.value)
+    assert "pip install a_module_that_does_not_exist_xyz" in message
+
+
+def test_missing_dependency_error_chains_original_import_error():
+    with pytest.raises(MissingDependencyError) as excinfo:
+        optional_import("a_module_that_does_not_exist_xyz", extra="rocm")
+    # The original ImportError is preserved as the cause for debugging.
+    assert isinstance(excinfo.value.__cause__, ImportError)

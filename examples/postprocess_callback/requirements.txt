@@ -1,0 +1,11 @@
+# Direct dependencies for the perun + MLflow post-processing callback example.
+#
+# These are intentionally kept as loose lower bounds ( >= ) rather than exact
+# pins. The examples are illustrative and are not part of perun's supported
+# surface, so we do not track security advisories against them. Pin exact
+# versions locally if you need a fully reproducible run.
+perun
+mlflow>=2.9
+numpy>=1.20
+pandas>=1.3
+scikit-learn>=1.0
