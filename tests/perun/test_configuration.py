@@ -178,3 +178,33 @@ def test_sanitize_config_invalid_log_level():
     config.set("debug", "log_lvl", "INVALID")
     sanitized_config = sanitize_config(config)
     assert sanitized_config.get("debug", "log_lvl") == "WARNING"
+
+
+def test_local_config_is_loaded(tmp_path, monkeypatch):
+    """Regression test: a project-local ``.perun.ini`` must be read at import time.
+
+    Previously the module-level loader mistakenly checked ``globalConfigPath``
+    twice, so ``./.perun.ini`` in the current working directory was silently
+    ignored.
+    """
+    import importlib
+
+    # Point HOME somewhere without a global config, and CWD at a dir with a
+    # local .perun.ini so only the local file should influence the result.
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    work_dir = tmp_path / "work"
+    work_dir.mkdir()
+    (work_dir / ".perun.ini").write_text("[post-processing]\npower_overhead = 42\n")
+
+    monkeypatch.setattr("pathlib.Path.home", lambda: fake_home)
+    monkeypatch.chdir(work_dir)
+
+    import perun.configuration as configuration
+
+    reloaded = importlib.reload(configuration)
+    try:
+        assert reloaded.config.getfloat("post-processing", "power_overhead") == 42
+    finally:
+        # Restore the module to its pristine state for subsequent tests.
+        importlib.reload(configuration)
