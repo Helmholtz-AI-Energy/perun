@@ -6,11 +6,13 @@ from typing import Any
 import pandas as pd
 
 from perun.data_model.data import DataNode, MetricType, Stats
-from perun.io.util import value2MeanStdStr, value2ValueUnitStr
+from perun.io.util import dataframe_to_markdown, value2MeanStdStr, value2ValueUnitStr
 
 log = logging.getLogger(__name__)
 
-tableMetrics = [
+# Default columns for the host/device table, used when the configuration does
+# not specify a `benchmarking.metrics` value.
+DEFAULT_TABLE_METRICS = [
     MetricType.RUNTIME,
     MetricType.ENERGY,
     MetricType.POWER,
@@ -22,13 +24,72 @@ tableMetrics = [
     MetricType.DRAM_MEM,
 ]
 
-regionMetrics = {
+# Default region metrics, used when the configuration does not specify a
+# `benchmarking.region_metrics` value.
+DEFAULT_REGION_METRICS = [
+    MetricType.RUNTIME,
+    MetricType.POWER,
+    MetricType.CPU_UTIL,
+    MetricType.DRAM_MEM,
+    MetricType.GPU_MEM,
+]
+
+# Friendly column headers for region metrics; any metric not listed falls back
+# to a generic "Avg <NAME>" label.
+_REGION_METRIC_LABELS = {
     MetricType.RUNTIME: "Avg Runtime",
     MetricType.POWER: "Avg Power",
     MetricType.CPU_UTIL: "Avg CPU Util",
     MetricType.DRAM_MEM: "Avg RAM Mem Util",
     MetricType.GPU_MEM: "Avg GPU Mem Util",
 }
+
+
+def _parse_metric_list(raw: str | None, defaults: list[MetricType]) -> list[MetricType]:
+    """Parse a comma/space separated metric list from the configuration.
+
+    Unknown metric names are skipped with a warning (lenient behaviour) rather
+    than raising, so a typo in the configuration never breaks report
+    generation.
+
+    Parameters
+    ----------
+    raw : str | None
+        Raw configuration value (e.g. ``"runtime,energy"``). If ``None`` or
+        empty, ``defaults`` is returned.
+    defaults : list[MetricType]
+        Fallback list used when ``raw`` is empty.
+
+    Returns
+    -------
+    list[MetricType]
+        Resolved, de-duplicated list of metric types.
+    """
+    if not raw or not raw.strip():
+        return list(defaults)
+
+    tokens = [tok.strip() for tok in raw.replace(",", " ").split()]
+    resolved: list[MetricType] = []
+    for token in tokens:
+        if not token:
+            continue
+        try:
+            metric = MetricType(token.lower())
+        except ValueError:
+            log.warning(
+                "Unknown metric '%s' in report configuration; skipping it.", token
+            )
+            continue
+        if metric not in resolved:
+            resolved.append(metric)
+    # If every configured metric was invalid, fall back to the defaults so the
+    # report is never left without any columns.
+    return resolved if resolved else list(defaults)
+
+
+def _region_metric_label(metric: MetricType) -> str:
+    """Return a human friendly column label for a region metric."""
+    return _REGION_METRIC_LABELS.get(metric, f"Avg {metric.name}")
 
 
 def textReport(dataNode: DataNode, mr_id: str) -> str:
@@ -69,6 +130,16 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
     region_rows = []
     mr_node: DataNode = dataNode.nodes[mr_id]
 
+    # Which metrics to show is driven by the perun configuration, which is
+    # persisted in the MULTI_RUN node metadata as "<section>.<option>" keys.
+    # Unknown metric names are skipped leniently (see _parse_metric_list).
+    table_metrics = _parse_metric_list(
+        mr_node.metadata.get("benchmarking.metrics"), DEFAULT_TABLE_METRICS
+    )
+    region_metrics = _parse_metric_list(
+        mr_node.metadata.get("benchmarking.region_metrics"), DEFAULT_REGION_METRICS
+    )
+
     for run_number, run_node in mr_node.nodes.items():
         if run_node.regions:
             for region_name, region in run_node.regions.items():
@@ -80,9 +151,9 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
                     }
                     row.update(
                         {
-                            regionMetrics[metric_type]: value2MeanStdStr(stats)
+                            _region_metric_label(metric_type): value2MeanStdStr(stats)
                             for metric_type, stats in region.metrics.items()
-                            if metric_type in regionMetrics
+                            if metric_type in region_metrics
                         }
                     )
                     region_rows.append(row)
@@ -91,14 +162,14 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
                 "Round #": run_number,
                 "Host": host_name,
             }
-            for metric_type in tableMetrics:
+            for metric_type in table_metrics:
                 if metric_type in host_node.metrics:
                     m = host_node.metrics[metric_type]
                     entry[metric_type.name] = value2ValueUnitStr(m.value, m.metric_md)
 
             host_device_rows.append(entry)
         entry = {"Round #": run_number, "Host": "All"}
-        for metric_type in tableMetrics:
+        for metric_type in table_metrics:
             if metric_type in run_node.metrics:
                 m = run_node.metrics[metric_type]
                 entry[metric_type.name] = value2ValueUnitStr(m.value, m.metric_md)
@@ -108,11 +179,7 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
     mr_table = pd.DataFrame.from_records(host_device_rows).sort_values(
         by=["Host", "Round #"]
     )
-    mr_report_str = (
-        f"RUN ID: {mr_id}\n\n"
-        + mr_table.to_markdown(index=False, stralign="right")
-        + "\n\n"
-    )
+    mr_report_str = f"RUN ID: {mr_id}\n\n" + dataframe_to_markdown(mr_table) + "\n\n"
 
     # Regions
     if len(region_rows) > 0:
@@ -120,9 +187,7 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
             by=["Function", "Round #"]
         )
         region_report_str = (
-            "Monitored Functions\n\n"
-            + region_table.to_markdown(index=False, stralign="right")
-            + "\n\n"
+            "Monitored Functions\n\n" + dataframe_to_markdown(region_table) + "\n\n"
         )
     else:
         region_report_str = ""
@@ -170,26 +235,24 @@ def sensors_table(sensors: list[dict[str, Any]], by_rank: bool = True) -> str:
         for rank, rank_sensors in enumerate(sensors):
             result += f"RANK {rank}:\n"
 
-            table = (
+            table = dataframe_to_markdown(
                 pd.DataFrame.from_dict(
                     rank_sensors, orient="index", columns=["Source", "Device", "Unit"]
                 )
                 .reset_index()
                 .rename(columns={"index": "Sensor"})
                 .sort_values(by=["Source", "Sensor"])
-                .to_markdown(index=False, stralign="right")
             )
             result += table + "\n\n"
 
     else:
-        table = (
+        table = dataframe_to_markdown(
             pd.DataFrame.from_dict(
                 sensors[0], orient="index", columns=["Source", "Device", "Unit"]
             )
             .reset_index()
             .rename(columns={"index": "Sensor"})
             .sort_values(by=["Source", "Sensor"])
-            .to_markdown(index=False, stralign="right")
         )
         result += table + "\n"
 
