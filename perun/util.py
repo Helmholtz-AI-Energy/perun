@@ -1,12 +1,97 @@
 """Util module."""
 
+import importlib
 import logging
 import os
 import re
 from datetime import datetime
+from types import ModuleType
 from typing import Any
 
 log = logging.getLogger(__name__)
+
+
+class MissingDependencyError(ImportError):
+    """Raised when an optional dependency required for a feature is not installed.
+
+    The error message includes an actionable hint telling the user which perun
+    "extra" to install (e.g. ``pip install perun[nvidia]``) so that missing
+    optional dependencies never result in a bare, hard-to-interpret traceback.
+
+    Attributes
+    ----------
+    module : str
+        The name of the module that failed to import.
+    extra : str | None
+        The name of the perun optional-dependency extra that provides the module.
+    """
+
+    def __init__(
+        self,
+        module: str,
+        extra: str | None = None,
+        feature: str | None = None,
+    ) -> None:
+        """Build a ``MissingDependencyError`` with an actionable message.
+
+        Parameters
+        ----------
+        module : str
+            Name of the module that could not be imported.
+        extra : str | None, optional
+            Name of the perun optional-dependency extra that ships ``module``.
+            When provided, the message suggests ``pip install perun[<extra>]``.
+        feature : str | None, optional
+            Human readable name of the feature that requires the dependency,
+            used to make the message clearer.
+        """
+        self.module = module
+        self.extra = extra
+        feature_str = f" required for {feature}" if feature else ""
+        if extra:
+            hint = f"install it with `pip install perun[{extra}]`"
+        else:
+            hint = f"install it with `pip install {module}`"
+        super().__init__(
+            f"Optional dependency '{module}'{feature_str} is not installed; {hint}."
+        )
+
+
+def optional_import(
+    module: str,
+    extra: str | None = None,
+    feature: str | None = None,
+) -> ModuleType:
+    """Import an optional dependency, raising a friendly error if it is missing.
+
+    This is a thin wrapper around :func:`importlib.import_module` that converts a
+    plain :class:`ImportError`/:class:`ModuleNotFoundError` into a
+    :class:`MissingDependencyError` carrying an actionable, user-facing hint
+    about how to install the missing package.
+
+    Parameters
+    ----------
+    module : str
+        Name of the module to import.
+    extra : str | None, optional
+        Name of the perun optional-dependency extra that ships ``module``.
+    feature : str | None, optional
+        Human readable name of the feature that requires the dependency.
+
+    Returns
+    -------
+    ModuleType
+        The imported module.
+
+    Raises
+    ------
+    MissingDependencyError
+        If the module cannot be imported.
+    """
+    try:
+        return importlib.import_module(module)
+    except ImportError as e:
+        raise MissingDependencyError(module, extra=extra, feature=feature) from e
 
 
 class Singleton(type):

@@ -1,6 +1,5 @@
 """Nvidia Mangement Library Source definition."""
 
-import importlib
 import logging
 from typing import Any, Callable
 
@@ -9,6 +8,7 @@ import numpy as np
 from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
+from perun.util import optional_import
 
 log = logging.getLogger(__name__)
 
@@ -25,7 +25,9 @@ class NVMLBackend(Backend):
 
     def setup(self) -> None:
         """Init pynvml and gather number of devices."""
-        self.pynvml = importlib.import_module("pynvml")
+        self.pynvml = optional_import(
+            "pynvml", extra="nvidia", feature="NVIDIA GPU monitoring"
+        )
         self.pynvml.nvmlInit()
         deviceCount = self.pynvml.nvmlDeviceGetCount()
         self._metadata = {
