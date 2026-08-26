@@ -47,7 +47,7 @@ class MonitorStatus(enum.Enum):
     SP_ERROR = enum.auto()
     MPI_ERROR = enum.auto()
     FILE_NOT_FOUND = enum.auto()
-    CLOSED = enum.auto
+    CLOSED = enum.auto()
 
 
 PERUN_MP_START_METHOD: str = "spawn"
