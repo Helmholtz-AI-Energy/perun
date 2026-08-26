@@ -34,8 +34,10 @@ Options
 
     "benchmarking", "rounds", 1, "Number of times the application is run."
     "benchmarking", "warmup_rounds", 0, "Number of warmup rounds to run before starting the benchmarks."
-    "benchmarking", "metrics", "runtime,energy", "List of metrics to present on the benchmarking report."
-    "benchmarking", "region_metrics", "runtime,power", "List of metrics to present on the region report."
+    "benchmarking", "metrics", "runtime,energy", "Comma/space separated list of metrics to present on the text and bench reports. Unknown metrics are skipped. Applies to both the host/device table and the bench output."
+    "benchmarking", "region_metrics", "runtime,power", "Comma/space separated list of metrics to present on the region report (text and bench)."
+    "benchmarking", "group_by", "host", "How to group the report's host/device table. **host** shows one row per host plus an *All* row (the historical behaviour). **device** additionally breaks each host down into per-device rows (cpu, gpu, ram, ...)."
+    "benchmarking", "metric_stats", "avg", "Comma/space separated list of statistics to show per metric: any of **avg**, **min**, **max**. ``min`` and ``max`` are computed directly from the raw sensor time-series and are only shown on the per-device rows (requires ``group_by = device``)."
 
     "benchmarking.units", "joule", "k", "Default order of magnitude to present total energy for the benchmarking report."
     "benchmarking.units", "second", "", "Default order of magnitude to present runtime information for the benchmarking report."

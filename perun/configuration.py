@@ -40,6 +40,14 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "warmup_rounds": 0,
         "metrics": "runtime,energy",
         "region_metrics": "runtime,power",
+        # How to group the host/device table rows in the report.
+        # "host"   -> one row per host (plus an "All" row) [default]
+        # "device" -> additionally break each host down per device
+        "group_by": "host",
+        # Which statistics to show for each metric column, as a comma/space
+        # separated list of "avg", "min" and "max". Applies to both the text
+        # and bench reports.
+        "metric_stats": "avg",
     },
     "benchmarking.units": {
         "joule": "k",
