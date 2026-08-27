@@ -10,7 +10,7 @@ from .psutil import PSUTILBackend
 from .rocmsmi import ROCMBackend
 
 available_backends: dict[str, Type[Backend]] = {
-    "HWMonBackend": HWMonGraceBackend,
+    "HWMonGraceBackend": HWMonGraceBackend,
     "NVMLBackend": NVMLBackend,
     "PowercapRAPLBackend": PowercapRAPLBackend,
     "PSUTILBackend": PSUTILBackend,
