@@ -1,6 +1,5 @@
 """Nvidia Mangement Library Source definition."""
 
-import importlib
 import logging
 from typing import Any, Callable
 
@@ -9,6 +8,7 @@ import numpy as np
 from perun.backend.backend import Backend
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
+from perun.util import optional_import
 
 log = logging.getLogger(__name__)
 
@@ -19,13 +19,15 @@ class NVMLBackend(Backend):
     Setups connection to NVML and creates relevant devices
     """
 
-    id = "nvlm"
+    id = "nvml"
     name = "NVIDIA ML"
     description: str = "Access GPU information from NVML python bindings"
 
     def setup(self) -> None:
         """Init pynvml and gather number of devices."""
-        self.pynvml = importlib.import_module("pynvml")
+        self.pynvml = optional_import(
+            "pynvml", extra="nvidia", feature="NVIDIA GPU monitoring"
+        )
         self.pynvml.nvmlInit()
         deviceCount = self.pynvml.nvmlDeviceGetCount()
         self._metadata = {
@@ -125,7 +127,12 @@ class NVMLBackend(Backend):
         devices = []
 
         for device_id in deviceList:
-            device_idx = int(device_id.split(":")[1][0])
+            # device_id has the form "CUDA:<idx>_<measurement>", e.g. "CUDA:10_POWER".
+            # Split on ":" to drop the prefix, then on the first "_" to separate the
+            # device index from the measurement. Using [0] here would truncate indices
+            # with more than one digit (e.g. GPU 10 -> 1).
+            index_and_unit = device_id.split(":", 1)[1]
+            device_idx = int(index_and_unit.split("_", 1)[0])
             measurement_unit = device_id.split("_", 1)[1]
 
             if measurement_unit == "POWER":
@@ -236,7 +243,7 @@ class NVMLBackend(Backend):
                     f"Could not get memory usage for device {self.pynvml.nvmlDeviceGetUUID(handle)}"
                 )
                 log.exception(e)
-                return np.uint32(0)
+                return np.uint64(0)
 
         return func
 

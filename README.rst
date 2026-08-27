@@ -1,4 +1,4 @@
-.. image:: https://raw.githubusercontent.com/Helmholtz-AI-Energy/perun/main/docs/images/full_logo.svg
+.. image:: https://raw.githubusercontent.com/Helmholtz-AI-Energy/perun/main/docs/_static/full_logo.svg
 
 | |fair-software| |openssf| |zenodo| |license| |docs|
 | |pypi-version| |python-version| |pypi-downloads| |black| |codecov|

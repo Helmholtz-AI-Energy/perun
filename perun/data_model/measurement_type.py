@@ -132,8 +132,8 @@ class MetricMetaData:
             Magnitude(mdDict["mag"]),
             dtype,
             dtype.type(mdDict["min"]),
-            dtype.type(mdDict["max"], dtype=dtype),
-            dtype.type(mdDict["fill"], dtype=dtype),
+            dtype.type(mdDict["max"]),
+            dtype.type(mdDict["fill"]),
         )
 
     def copy(self) -> "MetricMetaData":
