@@ -40,16 +40,13 @@ class HWMonGraceBackend(Backend):
         self._files: list[IOBase] = []
 
         cpuInfo = cpuinfo.get_cpu_info()
-        self._metadata = {}
+        self._metadata: dict[str, str] = {}
         for key, value in cpuInfo.items():
             if value is not None and value != "":
                 self._metadata[key] = str(value)
 
         self.devices: dict[str, Sensor] = {}
         log.debug(f"CPU info metadata: {pp.pformat(self._metadata)}")
-
-        self._metadata: dict[str, str] = {}
-        self.devices: dict[str, Sensor] = {}
 
         hwmonPath = Path(HWMON_PATH)
 
