@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from perun.api.cli import _get_arg_parser
+from perun.api.cli import _get_arg_parser, _resolve_clearable_value
 from perun.core import Perun
 from perun.io.text_report import sensors_table
 
@@ -224,3 +224,85 @@ def test_export_command(format: str, suffix: str, tmp_path: Path):
     exportedFile = resultFiles.pop()
     assert exportedFile.is_file()
     assert exportedFile.suffix == f".{suffix}"
+
+
+@pytest.mark.parametrize(
+    "flag",
+    [
+        "--sampling-period",
+        "--sampling_period",
+    ],
+)
+def test_monitor_flag_dash_and_underscore_aliases(flag):
+    # Both the dashed (canonical) and underscore (legacy) forms should map to
+    # the same argparse destination.
+    parser = _get_arg_parser()
+    args = parser.parse_args(["monitor", flag, "2.0", "script.py"])
+    assert args.sampling_period == 2.0
+
+
+@pytest.mark.parametrize(
+    "flag,dest",
+    [
+        ("--exclude-sensors", "exclude_sensors"),
+        ("--exclude_sensors", "exclude_sensors"),
+        ("--include-sensors", "include_sensors"),
+        ("--exclude-backends", "exclude_backends"),
+        ("--include-backends", "include_backends"),
+    ],
+)
+def test_monitor_filter_flags(flag, dest):
+    parser = _get_arg_parser()
+    args = parser.parse_args(["monitor", flag, "CPU_FREQ", "script.py"])
+    assert getattr(args, dest) == "CPU_FREQ"
+
+
+def test_filter_options_default_to_none():
+    # When not provided, the filter options default to None so that the CLI can
+    # distinguish "not provided" from "provided empty".
+    parser = _get_arg_parser()
+    args = parser.parse_args(["monitor", "script.py"])
+    assert args.exclude_sensors is None
+    assert args.include_sensors is None
+    assert args.exclude_backends is None
+    assert args.include_backends is None
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (None, None),
+        ("", ""),
+        ("   ", ""),
+        ("none", ""),
+        ("NONE", ""),
+        ("None", ""),
+        ("CPU_FREQ", "CPU_FREQ"),
+    ],
+)
+def test_resolve_clearable_value(value, expected):
+    assert _resolve_clearable_value(value) == expected
+
+
+def test_monitor_clears_default_excluded_sensors(tmp_path: Path):
+    # Passing an empty exclude list should clear the default excluded sensors,
+    # allowing the excluded psutil sensors to be monitored again.
+    testFilePath = tmp_path / "idle.py"
+    testFilePath.write_text("import time\n\ntime.sleep(1)")
+    resultsPath = tmp_path / "results"
+
+    subprocess.run(
+        [
+            "perun",
+            "monitor",
+            "--data-out",
+            str(resultsPath),
+            "--exclude-sensors",
+            "none",
+            str(testFilePath),
+        ],
+        timeout=30,
+    )
+
+    resultFiles = list(resultsPath.iterdir())
+    assert (resultsPath / "idle.hdf5") in resultFiles

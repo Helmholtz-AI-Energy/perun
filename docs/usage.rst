@@ -53,7 +53,20 @@ To modify the peruns behaviour, the subcommand accepts options many configuratio
 
 .. code:: bash
 
-    $ perun monitor --format json --sampling_period 5 your_app.py
+    $ perun monitor --format json --sampling-period 5 your_app.py
+
+Command line options use dashes to separate words (e.g. ``--sampling-period``).
+The old underscore forms (e.g. ``--sampling_period``) are still accepted as
+aliases for backwards compatibility.
+
+perun excludes some noisy sensors by default (see the ``exclude_sensors`` option
+in the configuration). To monitor *every* available sensor from the command
+line, clear the exclude list by passing an empty value or the literal
+``none``:
+
+.. code:: bash
+
+    $ perun monitor --exclude-sensors none your_app.py
 
 The options can also be set as environmental variables.
 
