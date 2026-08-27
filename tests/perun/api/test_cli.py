@@ -25,9 +25,15 @@ def test_no_subcommand():
         (["--active"], True),
     ],
 )
-def test_sensors_command(flag, by_rank, perun: Perun):
+def test_sensors_command(flag, by_rank, perun: Perun, tmp_path: Path):
+    # Run from an isolated working directory so a local ``.perun.ini`` (e.g. the
+    # one shipped in the repository root) does not alter the assigned sensors.
     processOut = subprocess.run(
-        ["perun", "sensors"] + flag, capture_output=True, text=True, timeout=10
+        ["perun", "sensors"] + flag,
+        capture_output=True,
+        text=True,
+        timeout=10,
+        cwd=tmp_path,
     ).stdout.rstrip()
     expectedResult = sensors_table(
         (
@@ -40,20 +46,27 @@ def test_sensors_command(flag, by_rank, perun: Perun):
     assert processOut == expectedResult
 
 
-def test_showconf_command(defaultConfig: configparser.ConfigParser):
+def test_showconf_command(defaultConfig: configparser.ConfigParser, tmp_path: Path):
     # 1) Are the outputs the same?
+    # Run from an isolated working directory so a local ``.perun.ini`` (e.g. the
+    # one shipped in the repository root) does not override the defaults.
     processorOut = subprocess.run(
-        ["perun", "showconf"], capture_output=True, text=True
+        ["perun", "showconf"], capture_output=True, text=True, cwd=tmp_path
     ).stdout
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
     assert parser == defaultConfig
 
 
-def test_showconf_command_with_cli_args(defaultConfig: configparser.ConfigParser):
+def test_showconf_command_with_cli_args(
+    defaultConfig: configparser.ConfigParser, tmp_path: Path
+):
     # 2) Are cli arguments correctly set?
     processorOut = subprocess.run(
-        ["perun", "--log_lvl", "ERROR", "showconf"], capture_output=True, text=True
+        ["perun", "--log_lvl", "ERROR", "showconf"],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
     ).stdout
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
@@ -74,6 +87,7 @@ def test_showconf_command_with_conf_file(
         ["perun", "--configuration", str(confPath), "showconf"],
         capture_output=True,
         text=True,
+        cwd=tmp_path,
     ).stdout
     parser = configparser.ConfigParser(allow_no_value=True)
     parser.read_string(processorOut)
@@ -94,6 +108,7 @@ def test_showconf_command_with_default(
         ["perun", "--log_lvl", "ERROR", "--configuration", str(confPath), "showconf"],
         capture_output=True,
         text=True,
+        cwd=tmp_path,
     ).stdout
     print(processorOut)
     parser = configparser.ConfigParser(allow_no_value=True)
@@ -117,6 +132,7 @@ def test_showconf_command_with_default(
         ],
         capture_output=True,
         text=True,
+        cwd=tmp_path,
     ).stdout
     print(processorOut)
     parser = configparser.ConfigParser(allow_no_value=True)
@@ -291,6 +307,8 @@ def test_monitor_clears_default_excluded_sensors(tmp_path: Path):
     testFilePath.write_text("import time\n\ntime.sleep(1)")
     resultsPath = tmp_path / "results"
 
+    # Run from an isolated working directory so a local ``.perun.ini`` does not
+    # interfere with the default exclude list being tested here.
     subprocess.run(
         [
             "perun",
@@ -302,6 +320,7 @@ def test_monitor_clears_default_excluded_sensors(tmp_path: Path):
             str(testFilePath),
         ],
         timeout=30,
+        cwd=tmp_path,
     )
 
     resultFiles = list(resultsPath.iterdir())
