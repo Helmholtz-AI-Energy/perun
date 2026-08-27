@@ -11,12 +11,23 @@ from queue import Empty
 from subprocess import Popen
 from typing import Any, Callable
 
+import numpy as np
+
 from perun.backend.backend import Backend
 from perun.comm import Comm
 from perun.data_model.data import DataNode, LocalRegions, NodeType
 from perun.data_model.measurement_type import Number
 from perun.monitoring.subprocess import createNode, perunSubprocess, prepSensors
-from perun.processing import processDataNode
+from perun.processing import (
+    AggregateType,
+    Magnitude,
+    Metric,
+    MetricMetaData,
+    MetricType,
+    Stats,
+    Unit,
+    processDataNode,
+)
 
 from .application import Application
 
@@ -258,16 +269,19 @@ class PerunMonitor:
         self.local_regions = LocalRegions()
         self.status = MonitorStatus.RUNNING
         self.start_event.set()
-        starttime_ns = time.time_ns()
+        starttime_ns = time.perf_counter_ns()
         try:
             log.info(f"Rank {self._comm.Get_rank()}: Running app {self._app}")
             app_result = self._app.run()
+            endtime_ns = time.perf_counter_ns()
         except SystemExit:
             self.status = MonitorStatus.SCRIPT_ERROR
             log.info(
                 "The application exited using exit(), quit() or sys.exit(). This is not the recommended way to exit an application, as it complicates the data collection process. Please refactor your code."
             )
-            recoveredNodes = self._handle_failed_run()
+            recoveredNodes = self._handle_failed_run(
+                starttime_ns, time.perf_counter_ns()
+            )
             return self.status, recoveredNodes, None
 
         except Exception as e:
@@ -282,14 +296,16 @@ class PerunMonitor:
             log.error(
                 f"Rank {self._comm.Get_rank()}:  Set start and stop event forcefully"
             )
-            recoveredNodes = self._handle_failed_run()
+            recoveredNodes = self._handle_failed_run(
+                starttime_ns, time.perf_counter_ns()
+            )
             return self.status, recoveredNodes, None
 
         self.stop_event.set()
         self.status = MonitorStatus.PROCESSING
         # run_stoptime = datetime.utcnow()
         log.info(f"Rank {self._comm.Get_rank()}: App Stopped")
-        node = self._process_single_run(run_id, starttime_ns)
+        node = self._process_single_run(run_id, starttime_ns, endtime_ns)
 
         # 4) App finished, stop subrocess and get data
         self.status = MonitorStatus.READY
@@ -315,24 +331,26 @@ class PerunMonitor:
         sampling_period = self._config.getfloat("monitor", "sampling_period")
 
         # 2) Start monitoring process
-        starttime_ns = time.time_ns()
+        starttime_ns = time.perf_counter_ns()
         process = Popen([self._app.name, *self._app.args])
 
-        timesteps.append(time.time_ns())
+        timesteps.append(starttime_ns)
         for idx, device in enumerate(lSensors):
             rawValues[idx].append(device.read())
 
         exitCode = process.poll()
+        delta = (time.perf_counter_ns() - timesteps[-1]) * 1e-9
 
         while not isinstance(exitCode, int):
-            time.sleep(sampling_period)
-            timesteps.append(time.time_ns())
+            time.sleep(max(sampling_period - delta, 0.0))
+            timesteps.append(time.perf_counter_ns())
             for idx, device in enumerate(lSensors):
                 rawValues[idx].append(device.read())
 
             exitCode = process.poll()
+            delta = (time.perf_counter_ns() - timesteps[-1]) * 1e-9
 
-        timesteps.append(time.time_ns())
+        timesteps.append(time.perf_counter_ns())
         for idx, device in enumerate(lSensors):
             rawValues[idx].append(device.read())
         log.info(f"Rank {self._comm.Get_rank()}: App Stopped with exit code {exitCode}")
@@ -348,14 +366,15 @@ class PerunMonitor:
 
         return MonitorStatus.READY, runNode, None
 
-    def _handle_failed_run(self) -> DataNode | None:
+    def _handle_failed_run(self, starttime_ns: int, endtime_ns: int) -> DataNode | None:
         availableRanks = self._comm.check_available_ranks()
 
         log.error(f"Rank {self._comm.Get_rank()}: Available ranks {availableRanks}")
         try:
             recoverdNodes = self._process_single_run(
                 str("failed"),
-                time.time_ns(),
+                starttime_ns,
+                endtime_ns,
                 available_ranks=availableRanks,
                 queue_timeout=self._config.getint("monitor", "queue_timeout"),
             )
@@ -387,6 +406,7 @@ class PerunMonitor:
         self,
         run_id: str,
         starttime_ns: int,
+        endtime_ns: int,
         available_ranks: list[int] | None = None,
         queue_timeout: int = 60,
     ) -> DataNode | None:
@@ -398,6 +418,8 @@ class PerunMonitor:
             The id to use for the data node.
         starttime_ns : int
             Start time of the run.
+        endtime_ns : int
+            End time of the run.
         available_ranks: list[int], optional
             List of available rank. Only relevant if some ranks failed mid run.
         queue_timeout: int, optional
@@ -429,18 +451,28 @@ class PerunMonitor:
             globalRegions = self._comm.gather_from_ranks(
                 self.local_regions, ranks=available_ranks, root=available_ranks[0]
             )
-
+        metrics: dict[MetricType, Metric | Stats] = {}
         if dataNodes and globalRegions:
             dataNodesDict = {node.id: node for node in dataNodes if node}
             if len(dataNodesDict) == 0:
-                log.error(f"Rank {self._comm.Get_rank()}: No rank reported any data.")
-                raise ValueError("Could not collect data from any rank.")
+                log.warning(f"Rank {self._comm.Get_rank()}: No rank reported any data.")
+                metrics[MetricType.RUNTIME] = Metric(
+                    type=MetricType.RUNTIME,
+                    value=np.float32((endtime_ns - starttime_ns) / 1e9),
+                    metric_md=MetricMetaData(
+                        Unit.SECOND,
+                        Magnitude.ONE,
+                        np.dtype("float32"),
+                        np.float32(0),
+                        np.finfo("float32").max,
+                        np.float32(-1),
+                    ),
+                    agg=AggregateType.MAX,
+                )
 
             # 6) On the first rank, create run node
             runNode = DataNode(
-                id=run_id,
-                type=NodeType.RUN,
-                nodes=dataNodesDict,
+                id=run_id, type=NodeType.RUN, nodes=dataNodesDict, metrics=metrics
             )
             runNode.addRegionData(globalRegions, starttime_ns)
 

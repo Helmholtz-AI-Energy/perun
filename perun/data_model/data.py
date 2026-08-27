@@ -267,7 +267,7 @@ class LocalRegions:
         if region_name not in self._regions:
             self._regions[region_name] = []
 
-        self._regions[region_name].append(time.time_ns())
+        self._regions[region_name].append(time.perf_counter_ns())
 
     def isEmpty(self) -> bool:
         """Check if there are any regions marked.

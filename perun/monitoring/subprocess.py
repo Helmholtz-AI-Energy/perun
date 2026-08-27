@@ -14,7 +14,10 @@ from perun.backend import Backend, available_backends
 from perun.data_model.data import DataNode, NodeType, RawData
 from perun.data_model.measurement_type import Magnitude, MetricMetaData, Number, Unit
 from perun.data_model.sensor import DeviceType, Sensor
-from perun.processing import processDataNode, processSensorData
+from perun.processing import (
+    processDataNode,
+    processSensorData,
+)
 
 log = logging.getLogger(__name__)
 
@@ -70,7 +73,7 @@ def _monitoringLoop(
     stopCondition: Callable[[float], bool],
     callbacks: list[Callable[[dict[str, Number]], None]] = [],
 ) -> None:
-    timesteps.append(time.time_ns())
+    timesteps.append(time.perf_counter_ns())
     values: dict[str, Number] = {}
     hostname = platform.node()
     for idx, device in enumerate(lSensors):
@@ -81,9 +84,9 @@ def _monitoringLoop(
     for callback in callbacks:
         callback(values)
 
-    delta = (time.time_ns() - timesteps[-1]) * 1e-9
+    delta = (time.perf_counter_ns() - timesteps[-1]) * 1e-9
     while not stopCondition(delta):
-        timesteps.append(time.time_ns())
+        timesteps.append(time.perf_counter_ns())
         for idx, device in enumerate(lSensors):
             value = device.read()
             rawValues[idx].append(value)
@@ -91,9 +94,9 @@ def _monitoringLoop(
 
         for callback in callbacks:
             callback(values)
-        delta = (time.time_ns() - timesteps[-1]) * 1e-9
+        delta = (time.perf_counter_ns() - timesteps[-1]) * 1e-9
 
-    timesteps.append(time.time_ns())
+    timesteps.append(time.perf_counter_ns())
     for idx, device in enumerate(lSensors):
         value = device.read()
         rawValues[idx].append(value)

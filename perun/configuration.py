@@ -17,8 +17,8 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
     "post-processing": {
         "power_overhead": 0,  # Watt
         "pue": 1.0,  # No assumption where the workflow is running
-        "emissions_factor": 332,  # gCO2eq/kWh - Germany, 04.02.2026 (https://ourworldindata.org/grapher/carbon-intensity-electricity?mapSelect=~DEU)
-        "price_factor": 0.4070,  # Euro/kWh (Grundversorgung) - Germany, 04.02.2026 (https://www.stromauskunft.de/strompreise/)
+        "emissions_factor": 274.8,  # gCO2eq/kWh - Germany, 30.06.2026 (https://ourworldindata.org/grapher/carbon-intensity-electricity?mapSelect=~DEU)
+        "price_factor": 0.4037,  # Euro/kWh (Grundversorgung) - Germany, 04.02.2026 (https://www.stromauskunft.de/strompreise/)
         "price_unit": "€",
     },
     "monitor": {
@@ -27,7 +27,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         "include_backends": "",
         "include_sensors": "",
         "exclude_backends": "",
-        "exclude_sensors": "CPU_FREQ_ CPU_USAGE_ DISK_READ_BYTES_ DISK_WRITE_BYTES_ NET_READ_BYTES_ NET_WRITE_BYTES_",
+        "exclude_sensors": "CPU_FREQ_([1-9]+) CPU_USAGE_([1-9]+) DISK_READ_BYTES_ DISK_WRITE_BYTES_ NET_READ_BYTES_ NET_WRITE_BYTES_",
     },
     "output": {
         "app_name": None,
@@ -38,8 +38,8 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
     "benchmarking": {
         "rounds": 1,
         "warmup_rounds": 0,
-        "metrics": "runtime,energy",
-        "region_metrics": "runtime,power",
+        "metrics": "runtime,energy,power,dram_mem,cpu_util,gpu_power,gpu_mem",
+        "region_metrics": "runtime,power,dram_mem,cpu_util,gpu_power,gpu_mem",
         # How to group the host/device table rows in the report.
         # "host"   -> one row per host (plus an "All" row) [default]
         # "device" -> additionally break each host down per device
@@ -47,7 +47,7 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
         # Which statistics to show for each metric column, as a comma/space
         # separated list of "avg", "min" and "max". Applies to both the text
         # and bench reports.
-        "metric_stats": "avg",
+        "metric_stats": "avg,max",
     },
     "benchmarking.units": {
         "joule": "k",
