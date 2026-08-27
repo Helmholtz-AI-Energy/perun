@@ -61,7 +61,7 @@ class HWMonGraceBackend(Backend):
                     file.seek(0)
                     value = file.readline().strip()
                     return np.int64(value) if value else np.int64(0)
-                except Exception as e:
+                except (OSError, ValueError) as e:
                     log.warning(f"Error reading file: {file_path}")
                     log.exception(e)
                     return np.int64(0)
@@ -73,7 +73,7 @@ class HWMonGraceBackend(Backend):
             try:
                 with open(path, "r") as f:
                     return f.readline().strip()
-            except Exception:
+            except OSError:
                 return ""
 
         # Iterate over all hwmon devices
@@ -100,7 +100,7 @@ class HWMonGraceBackend(Backend):
 
                         try:
                             sensor_file_handle = open(sensor_path, "r")
-                        except Exception as e:
+                        except OSError as e:
                             log.debug(f"Error opening file: {sensor_path}")
                             log.debug(e)
                             continue
