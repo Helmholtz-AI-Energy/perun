@@ -17,7 +17,12 @@ from perun.backend.backend import Backend
 from perun.comm import Comm
 from perun.data_model.data import DataNode, LocalRegions, NodeType
 from perun.data_model.measurement_type import Number
-from perun.monitoring.subprocess import createNode, perunSubprocess, prepSensors
+from perun.monitoring.subprocess import (
+    _warnOnSlowRead,
+    createNode,
+    perunSubprocess,
+    prepSensors,
+)
 from perun.processing import (
     AggregateType,
     Magnitude,
@@ -334,12 +339,15 @@ class PerunMonitor:
         starttime_ns = time.perf_counter_ns()
         process = Popen([self._app.name, *self._app.args])
 
+        warned = False
+
         timesteps.append(starttime_ns)
         for idx, device in enumerate(lSensors):
             rawValues[idx].append(device.read())
 
         exitCode = process.poll()
         delta = (time.perf_counter_ns() - timesteps[-1]) * 1e-9
+        warned = _warnOnSlowRead(delta, sampling_period, warned)
 
         while not isinstance(exitCode, int):
             time.sleep(max(sampling_period - delta, 0.0))
@@ -349,6 +357,7 @@ class PerunMonitor:
 
             exitCode = process.poll()
             delta = (time.perf_counter_ns() - timesteps[-1]) * 1e-9
+            warned = _warnOnSlowRead(delta, sampling_period, warned)
 
         endtime_ns = time.perf_counter_ns()
         timesteps.append(time.perf_counter_ns())
