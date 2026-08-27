@@ -4,6 +4,7 @@ import configparser
 import pytest
 from hypothesis import settings
 
+from perun.backend.hwmon_grace import HWMonGraceBackend
 from perun.backend.nvml import NVMLBackend
 from perun.backend.powercap_rapl import PowercapRAPLBackend
 from perun.backend.psutil import PSUTILBackend
@@ -35,6 +36,7 @@ def perun(defaultConfig):
 def setup_cleanup():
     # Setup
     Perun._instances = {}
+    HWMonGraceBackend._instances = {}
     NVMLBackend._instances = {}
     PowercapRAPLBackend._instances = {}
     PSUTILBackend._instances = {}
@@ -44,6 +46,7 @@ def setup_cleanup():
     # Cleanup
 
     Perun._instances = {}
+    HWMonGraceBackend._instances = {}
     NVMLBackend._instances = {}
     PowercapRAPLBackend._instances = {}
     PSUTILBackend._instances = {}
