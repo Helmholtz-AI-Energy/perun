@@ -229,6 +229,7 @@ class PerunMonitor:
                 self._comm.barrier()
                 return self._run_python_app(run_id)
         else:
+            result = None
             try:
                 result = self._app.run()
             except SystemExit:
@@ -238,7 +239,6 @@ class PerunMonitor:
                 )
             except Exception as e:
                 self.status = MonitorStatus.SCRIPT_ERROR
-                result = None
                 log.error(
                     f"Rank {self._comm.Get_rank()}:  Found error on monitored application: {str(self._app)}"
                 )
@@ -350,6 +350,7 @@ class PerunMonitor:
             exitCode = process.poll()
             delta = (time.perf_counter_ns() - timesteps[-1]) * 1e-9
 
+        endtime_ns = time.perf_counter_ns()
         timesteps.append(time.perf_counter_ns())
         for idx, device in enumerate(lSensors):
             rawValues[idx].append(device.read())
@@ -359,6 +360,24 @@ class PerunMonitor:
         hostNode = createNode(timesteps, t_metadata, rawValues, lSensors, self._config)
         processDataNode(hostNode, self._config)
         globalRegions = [LocalRegions()]
+
+        if len(lSensors) == 0:
+            metrics = {
+                MetricType.RUNTIME: Metric(
+                    type=MetricType.RUNTIME,
+                    value=np.float32((endtime_ns - starttime_ns) / 1e9),
+                    metric_md=MetricMetaData(
+                        Unit.SECOND,
+                        Magnitude.ONE,
+                        np.dtype("float32"),
+                        np.float32(0),
+                        np.finfo("float32").max,
+                        np.float32(-1),
+                    ),
+                    agg=AggregateType.MAX,
+                )
+            }
+            hostNode.metrics.update(metrics)
 
         # 4) Collect data from everyone on the first rank
         runNode = DataNode(id=run_id, type=NodeType.RUN, nodes={hostNode.id: hostNode})
