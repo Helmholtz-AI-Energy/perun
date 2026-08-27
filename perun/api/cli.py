@@ -22,6 +22,42 @@ from perun.monitoring.application import Application
 
 log = logging.getLogger(__name__)
 
+# The sensor/backend filter options are special: an explicitly provided empty
+# string (or the literal "none") means "clear whatever value is set in the
+# configuration file". This is the only way to remove the default excluded
+# sensors from the command line.
+CLEARABLE_OPTIONS = frozenset(
+    {
+        "include_sensors",
+        "include_backends",
+        "exclude_sensors",
+        "exclude_backends",
+    }
+)
+
+
+def _resolve_clearable_value(value: str | None) -> str | None:
+    """Resolve the value of a clearable filter option.
+
+    Parameters
+    ----------
+    value : str | None
+        The raw value coming from the command line. ``None`` means the flag was
+        not provided.
+
+    Returns
+    -------
+    str | None
+        ``None`` if the option should be left untouched (flag not provided),
+        an empty string if the option should be cleared (empty string or the
+        literal ``"none"`` was provided), otherwise the original value.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip().lower() in {"", "none"}:
+        return ""
+    return value
+
 
 def _get_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -37,12 +73,16 @@ def _get_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "-l",
+        "--log-lvl",
         "--log_lvl",
+        dest="log_lvl",
         choices=["DEBUG", "INFO", "WARN", "ERROR", "CRITICAL"],
         help="Logging level.",
     )
     parser.add_argument(
+        "--log-file",
         "--log_file",
+        dest="log_file",
         default=None,
         help="Path to the log file. None by default. Writting to a file disables logging in stdout.",
     )
@@ -72,7 +112,9 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         "--all", help="Print all available sensors.", action="store_true"
     )
     sensor_group.add_argument(
+        "--by-rank",
         "--by_rank",
+        dest="by_rank",
         help="Print sensors by available on each rank.",
         action="store_true",
     )
@@ -117,12 +159,14 @@ def _get_arg_parser() -> argparse.ArgumentParser:
     )
     monitor_parser.add_argument(
         "-n",
+        "--app-name",
         "--app_name",
         dest="app_name",
         help="Name o the monitored application. The name is used to distinguish between multiple application in the same directory. If left empty, the file name will be used.",
     )
     monitor_parser.add_argument(
         "-i",
+        "--run-id",
         "--run_id",
         dest="run_id",
         help="Unique id of the latest run of the application. If left empty, perun will use the current date.",
@@ -134,41 +178,61 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         choices=[format.value for format in IOFormat],
     )
     monitor_parser.add_argument(
+        "--data-out",
         "--data_out",
+        dest="data_out",
         help="Directory where output files are saved. Defaults to ./perun_results",
     )
     monitor_parser.add_argument(
+        "--sampling-period",
         "--sampling_period",
+        dest="sampling_period",
         type=float,
         help="Sampling period in seconds. Defaults to 1 second.",
     )
     monitor_parser.add_argument(
+        "--queue-timeout",
         "--queue_timeout",
+        dest="queue_timeout",
         type=int,
         help="Seconds to wait for a result from the monitoring subprocess before considering it failed. Defaults to 60 seconds.",
     )
     monitor_parser.add_argument(
+        "--include-sensors",
         "--include_sensors",
+        dest="include_sensors",
         type=str,
-        help="Comma separated list of sensors to use. Defaults to an empty string (all available sensors). ",
+        default=None,
+        help="Space separated list of sensors to use. Defaults to an empty string (all available sensors). Pass an empty string (--include-sensors '') or 'none' to clear a value set in the configuration file.",
     )
     monitor_parser.add_argument(
+        "--include-backends",
         "--include_backends",
+        dest="include_backends",
         type=str,
-        help="Comma separated list of measuring backends to use. Defaults to an empty string (all available sensors).",
+        default=None,
+        help="Space separated list of measuring backends to use. Defaults to an empty string (all available sensors). Pass an empty string (--include-backends '') or 'none' to clear a value set in the configuration file.",
     )
     monitor_parser.add_argument(
+        "--exclude-sensors",
         "--exclude_sensors",
+        dest="exclude_sensors",
         type=str,
-        help="Comma separated list of sensors to exclude. Defaults to an empty string (all available sensors).",
+        default=None,
+        help="Space separated list of sensors to exclude. Perun excludes some noisy sensors by default. Pass an empty string (--exclude-sensors '') or 'none' to clear the default exclude list and monitor every sensor.",
     )
     monitor_parser.add_argument(
+        "--exclude-backends",
         "--exclude_backends",
+        dest="exclude_backends",
         type=str,
-        help="Comma separated list of measuring backends to use. Defaults to an empty string (all available sensors).",
+        default=None,
+        help="Space separated list of measuring backends to exclude. Pass an empty string (--exclude-backends '') or 'none' to clear a value set in the configuration file.",
     )
     monitor_parser.add_argument(
+        "--power-overhead",
         "--power_overhead",
+        dest="power_overhead",
         type=float,
         help="Estimated power consumption of non-measured hardware components in Watts. Will be added to measured power consumption on the text report summary. Defaults to 0 Watts",
     )
@@ -176,17 +240,23 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         "--pue", type=float, help="Data center Power Usage Effectiveness. Defaults to 1"
     )
     monitor_parser.add_argument(
+        "--price-factor",
         "--price_factor",
+        dest="price_factor",
         type=float,
         help="Electricity to Currency convertion factor in the form of Currency/kWh. Defaults to 0.3251 €/kWh",
     )
     monitor_parser.add_argument(
+        "--price-unit",
         "--price_unit",
+        dest="price_unit",
         type=str,
         help="Currency character to use on the text report summary. Defaults to €",
     )
     monitor_parser.add_argument(
+        "--emission-factor",
         "--emission_factor",
+        dest="emission_factor",
         type=float,
         help="Average carbon intensity of electricity (gCO2e/kWh). Defaults to 417.80 gC02e/kWh",
     )
@@ -194,18 +264,23 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         "--rounds", type=int, help="Number of warmup rounds to run app. Defaults to 1"
     )
     monitor_parser.add_argument(
+        "--warmup-rounds",
         "--warmup_rounds",
+        dest="warmup_rounds",
         type=int,
         help="Number of warmup rounds to run the app. A warmup round is a full run of the application without gathering performance data. Defaults to 0",
     )
     monitor_parser.add_argument(
+        "--bench-metrics",
         "--bench_metrics",
         dest="metrics",
         type=str,
         help="List of metrics to add to the benchmark results. Only relevant when using the 'bench' format. Defaults to 'runtime,energy'",
     )
     monitor_parser.add_argument(
+        "--region-metrics",
         "--region_metrics",
+        dest="region_metrics",
         type=str,
         help="List of metrics to add to the benchmark results that are associated with individual regions. Only relevant when using the 'bench' format. Defaults to 'runtime,energy'",
     )
@@ -216,6 +291,7 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         help="Indicate if the monitored application is a binary. Otherwise treat it as a python script.",
     )
     monitor_parser.add_argument(
+        "--live-callback-files",
         "--live_callback_files",
         nargs="+",
         default=[],
@@ -249,7 +325,11 @@ def cli() -> None:
 
     # 3) Parse remaining arguments
     for key, value in vars(args).items():
-        if value:
+        if key in CLEARABLE_OPTIONS:
+            resolved = _resolve_clearable_value(value)
+            if resolved is not None:
+                save_to_config(key, resolved)
+        elif value:
             save_to_config(key, value)
 
     sanitize_config(config)

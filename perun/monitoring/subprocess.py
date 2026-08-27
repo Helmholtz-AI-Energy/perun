@@ -66,16 +66,59 @@ def prepSensors(
     return t_metadata, lSensors
 
 
+def _warnOnSlowRead(delta: float, sampling_period: float, warned: bool) -> bool:
+    """Warn once if reading the sensors takes longer than the sampling period.
+
+    A read that is slower than the configured sampling period means perun cannot
+    keep up with the requested sampling rate: sampling drifts and too much data is
+    being collected per step. The most common cause is having too many sensors
+    enabled.
+
+    Parameters
+    ----------
+    delta : float
+        Time it took to read all sensors, in seconds.
+    sampling_period : float
+        Configured sampling period, in seconds.
+    warned : bool
+        Whether the warning has already been emitted for the current run.
+
+    Returns
+    -------
+    bool
+        Updated ``warned`` flag (``True`` once the warning has been emitted).
+    """
+    if not warned and delta > sampling_period:
+        log.warning(
+            "Reading the sensors took %.3fs, which is longer than the sampling "
+            "period of %.3fs. perun cannot keep up with the requested sampling "
+            "rate and is collecting more data than it can handle. This is usually "
+            "caused by having too many sensors enabled. Consider filtering the "
+            "sensors or backends being monitored, either through the configuration "
+            "file (the 'include_sensors', 'exclude_sensors', 'include_backends' "
+            "and 'exclude_backends' options in the '[monitor]' section) or the "
+            "equivalent command line flags (--include-sensors, --exclude-sensors, "
+            "--include-backends, --exclude-backends). Alternatively, increase the "
+            "sampling period with --sampling-period.",
+            delta,
+            sampling_period,
+        )
+        return True
+    return warned
+
+
 def _monitoringLoop(
     lSensors: list[Sensor],
     timesteps: list[int],
     rawValues: list[list[Number]],
     stopCondition: Callable[[float], bool],
+    sampling_period: float,
     callbacks: list[Callable[[dict[str, Number]], None]] = [],
 ) -> None:
     timesteps.append(time.perf_counter_ns())
     values: dict[str, Number] = {}
     hostname = platform.node()
+    warned = False
     for idx, device in enumerate(lSensors):
         value = device.read()
         rawValues[idx].append(value)
@@ -85,6 +128,7 @@ def _monitoringLoop(
         callback(values)
 
     delta = (time.perf_counter_ns() - timesteps[-1]) * 1e-9
+    warned = _warnOnSlowRead(delta, sampling_period, warned)
     while not stopCondition(delta):
         timesteps.append(time.perf_counter_ns())
         for idx, device in enumerate(lSensors):
@@ -95,6 +139,7 @@ def _monitoringLoop(
         for callback in callbacks:
             callback(values)
         delta = (time.perf_counter_ns() - timesteps[-1]) * 1e-9
+        warned = _warnOnSlowRead(delta, sampling_period, warned)
 
     timesteps.append(time.perf_counter_ns())
     for idx, device in enumerate(lSensors):
@@ -265,6 +310,7 @@ def perunSubprocess(
                 timesteps,
                 rawValues,
                 lambda delta: stop_event.wait(sampling_period - delta),
+                sampling_period,
                 callbacks,
             )
             stop_event.clear()
