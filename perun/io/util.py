@@ -100,6 +100,7 @@ def getTFactorMag(value: Number, metric_md: MetricMetaData) -> Tuple[float, Magn
         metric_md.unit == Unit.WATT
         or metric_md.unit == Unit.JOULE
         or metric_md.unit == Unit.BYTE
+        or metric_md.unit == Unit.BYTES_PER_SECOND
     ):
         transformFactor = 1
         for mag in reversed(Magnitude):

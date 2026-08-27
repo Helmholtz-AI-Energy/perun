@@ -19,6 +19,7 @@ class Unit(str, enum.Enum):
     JOULE = "J"
     WATT = "W"
     BYTE = "B"
+    BYTES_PER_SECOND = "B/s"
     SECOND = "s"
     PERCENT = "%"
     SCALAR = ""

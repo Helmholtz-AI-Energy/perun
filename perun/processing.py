@@ -104,6 +104,67 @@ def processEnergyData(
     return energy_J, avg_power_W
 
 
+def processIOData(
+    raw_data: RawData,
+    start: Number | None = None,
+    end: Number | None = None,
+) -> tuple[Any, Any]:
+    """Calculate total bytes and average bandwidth from a byte counter series.
+
+    Network and disk IO sensors report a cumulative byte counter. The raw
+    counter values on their own are not very useful, so this function converts
+    them into an IO bandwidth (bytes per second) series, in the same spirit as
+    :func:`processEnergyData`, which turns an energy counter into a power
+    series.
+
+    Using the start and end parameters the results can be limited to certain
+    areas of the application run.
+
+    Parameters
+    ----------
+    raw_data : RawData
+        Raw data from a cumulative byte counter sensor.
+    start : Optional[Number], optional
+        Start time of region, by default None
+    end : Optional[Number], optional
+        End time of region, by default None
+
+    Returns
+    -------
+    tuple[Any, Any]
+        Tuple with the total number of bytes transferred and the average
+        bandwidth in bytes per second.
+    """
+    t_s = raw_data.timesteps.astype("float32")
+    t_s *= raw_data.t_md.mag.value / Magnitude.ONE.value
+    magFactor = raw_data.v_md.mag.value / Magnitude.ONE.value
+
+    # Cumulative byte counter -> bytes transferred between samples.
+    bytes_v = raw_data.values
+    d_bytes = np.diff(bytes_v).astype("float32")
+    d_bytes *= magFactor
+
+    dt = np.diff(t_s)
+    # Guard against division by zero for samples taken at the (nearly) same
+    # instant.
+    dt[dt == 0] = np.finfo("float32").eps
+
+    # Bytes transferred per second between samples.
+    bandwidth_Bps = d_bytes / dt
+    bandwidth_Bps = np.insert(bandwidth_Bps, 0, bandwidth_Bps[0])
+
+    if start and end:
+        t_s, bandwidth_Bps = getInterpolatedValues(t_s, bandwidth_Bps, start, end)
+
+    avg_bandwidth_Bps = np.mean(bandwidth_Bps)
+    if np.__version__[0] == "1":
+        total_bytes = np.trapz(bandwidth_Bps, x=t_s)  # type: ignore[attr-defined]
+    else:
+        total_bytes = np.trapezoid(bandwidth_Bps, x=t_s)  # type: ignore[attr-defined]
+
+    return total_bytes, avg_bandwidth_Bps
+
+
 def processSensorData(sensorData: DataNode) -> DataNode:
     """Calculate metrics based on raw values.
 
@@ -201,40 +262,57 @@ def processSensorData(sensorData: DataNode) -> DataNode:
         elif rawData.v_md.unit == Unit.BYTE:
             bytes_v = rawData.values
 
-            if sensorData.deviceType == DeviceType.NET:
-                if "READ" in sensorData.id:
-                    metricType = MetricType.NET_READ
+            if sensorData.deviceType in {DeviceType.NET, DeviceType.DISK}:
+                # Network and disk sensors expose a cumulative byte counter.
+                # The raw counter is not very useful on its own, so we report
+                # the IO bandwidth (bytes per second) instead, similar to how
+                # the energy counter is turned into power.
+                if sensorData.deviceType == DeviceType.NET:
+                    metricType = (
+                        MetricType.NET_READ
+                        if "READ" in sensorData.id
+                        else MetricType.NET_WRITE
+                    )
                 else:
-                    metricType = MetricType.NET_WRITE
+                    metricType = (
+                        MetricType.DISK_READ
+                        if "READ" in sensorData.id
+                        else MetricType.DISK_WRITE
+                    )
 
-                d_bytes = bytes_v[1:] - bytes_v[:-1]
-                result = d_bytes.sum()
+                _, avg_bandwidth = processIOData(rawData)
+                result = avg_bandwidth
                 aggType = AggregateType.SUM
-            elif sensorData.deviceType == DeviceType.DISK:
-                if "READ" in sensorData.id:
-                    metricType = MetricType.DISK_READ
-                else:
-                    metricType = MetricType.DISK_WRITE
-
-                d_bytes = bytes_v[1:] - bytes_v[:-1]
-                result = d_bytes.sum()
-                aggType = AggregateType.SUM
-            elif sensorData.deviceType == DeviceType.GPU:
-                metricType = MetricType.GPU_MEM
-                result = bytes_v.mean()
-                aggType = AggregateType.SUM
-            elif sensorData.deviceType == DeviceType.RAM:
-                metricType = MetricType.DRAM_MEM
-                result = bytes_v.mean()
-                aggType = AggregateType.SUM
+                bandwidth_md = MetricMetaData(
+                    Unit.BYTES_PER_SECOND,
+                    Magnitude.ONE,
+                    np.dtype("float32"),
+                    np.float32(0),
+                    np.finfo("float32").max,
+                    np.float32(-1),
+                )
+                sensorData.metrics[metricType] = Metric(
+                    metricType,
+                    np.float32(result),
+                    bandwidth_md,
+                    aggType,
+                )
             else:
-                metricType = MetricType.OTHER_MEM
+                if sensorData.deviceType == DeviceType.GPU:
+                    metricType = MetricType.GPU_MEM
+                elif sensorData.deviceType == DeviceType.RAM:
+                    metricType = MetricType.DRAM_MEM
+                else:
+                    metricType = MetricType.OTHER_MEM
+
                 result = bytes_v.mean()
                 aggType = AggregateType.SUM
-
-            sensorData.metrics[metricType] = Metric(
-                metricType, result.astype(rawData.v_md.dtype), rawData.v_md, aggType
-            )
+                sensorData.metrics[metricType] = Metric(
+                    metricType,
+                    result.astype(rawData.v_md.dtype),
+                    rawData.v_md,
+                    aggType,
+                )
 
         sensorData.processed = True
     return sensorData

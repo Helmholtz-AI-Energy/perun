@@ -80,3 +80,11 @@ Supported backends:
 
 * **Storage IO**: `psutil <https://github.com/giampaolo/psutil>`_
 * **Network IO**: `psutil <https://github.com/giampaolo/psutil>`_
+
+.. note::
+    The disk and network sensors read the operating system's cumulative byte
+    counters. perun turns these counters into an IO **bandwidth** (bytes per
+    second, ``B/s``) for the reported ``disk_read``, ``disk_write``,
+    ``net_read`` and ``net_write`` metrics, similar to how the energy counters
+    are turned into power. The raw cumulative counters are still stored in the
+    output files.
