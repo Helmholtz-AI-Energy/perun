@@ -116,19 +116,27 @@ class HWMonGraceBackend(Backend):
                         )
 
                         # Determine device type based on label
-                        if "Module Power Socket" in oem_info:
-                            device_type = DeviceType.OTHER
-                        elif "Grace Power Socket" in oem_info:
+                        if "Grace Power Socket" in oem_info:
                             device_type = DeviceType.SOCKET
                         elif "CPU Power Socket" in oem_info:
                             device_type = DeviceType.CPU
                         elif "SysIO Power Socket" in oem_info:
                             device_type = DeviceType.SYSIO
+                        elif "Module Power Socket" in oem_info:
+                            device_type = DeviceType.OTHER
                         else:
                             device_type = DeviceType.OTHER
 
-                        # Create sensor ID
-                        sensor_id = f"{oem_info.replace(' ', '_').lower()}"
+                        # Create a unique sensor ID. Prefer the human readable
+                        # OEM label, but always qualify it with the hwmon device
+                        # name and sensor index so distinct sensors that share
+                        # the same OEM label (or report an empty label) cannot
+                        # collide and overwrite each other in self.devices.
+                        label = oem_info.replace(" ", "_").lower()
+                        if label:
+                            sensor_id = f"{label}_{hwmon_name}_power{sensor_index}"
+                        else:
+                            sensor_id = f"{hwmon_name}_power{sensor_index}"
 
                         # Create metadata for this sensor (power_average is in microwatts)
                         dataType = MetricMetaData(
