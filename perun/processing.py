@@ -122,6 +122,12 @@ def processIOData(
     :func:`processEnergyData`, which turns an energy counter into a power
     series.
 
+    Just like :func:`processEnergyData`, when the input is a cumulative byte
+    counter (unit ``BYTE``) this function **mutates** ``raw_data`` in place: the
+    original cumulative counter is stored in ``raw_data.alt_values`` /
+    ``raw_data.alt_v_md`` and ``raw_data.values`` / ``raw_data.v_md`` are
+    replaced with the bandwidth series (unit ``BYTES_PER_SECOND``).
+
     Using the start and end parameters the results can be limited to certain
     areas of the application run.
 
@@ -144,19 +150,45 @@ def processIOData(
     t_s *= raw_data.t_md.mag.value / Magnitude.ONE.value
     magFactor = raw_data.v_md.mag.value / Magnitude.ONE.value
 
-    # Cumulative byte counter -> bytes transferred between samples.
-    bytes_v = raw_data.values
-    d_bytes = np.diff(bytes_v).astype("float32")
-    d_bytes *= magFactor
+    if raw_data.v_md.unit == Unit.BYTE:
+        # Cumulative byte counter -> bytes transferred between samples.
+        bytes_v = raw_data.values
+        d_bytes = np.diff(bytes_v).astype("float32")
 
-    dt = np.diff(t_s)
-    # Guard against division by zero for samples taken at the (nearly) same
-    # instant.
-    dt[dt == 0] = np.finfo("float32").eps
+        dt = np.diff(t_s)
+        # Guard against division by zero for samples taken at the (nearly) same
+        # instant.
+        dt[dt == 0] = np.finfo("float32").eps
 
-    # Bytes transferred per second between samples.
-    bandwidth_Bps = d_bytes / dt
-    bandwidth_Bps = np.insert(bandwidth_Bps, 0, bandwidth_Bps[0])
+        # Transform the cumulative byte series into a bandwidth series. The
+        # magnitude factor is applied to the resulting rate, exactly like the
+        # energy -> power transformation.
+        bandwidth_Bps = d_bytes / dt
+        bandwidth_Bps = np.insert(bandwidth_Bps, 0, bandwidth_Bps[0])
+        bandwidth_Bps *= magFactor
+
+        # Keep the original cumulative counter around, and expose the bandwidth
+        # series as the sensor's main values, mirroring processEnergyData.
+        raw_data.alt_values = bytes_v
+        raw_data.alt_v_md = raw_data.v_md
+
+        raw_data.values = bandwidth_Bps
+        raw_data.v_md = MetricMetaData(
+            Unit.BYTES_PER_SECOND,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.float32(0),
+            np.finfo("float32").max,
+            np.float32(-1),
+        )
+
+    elif raw_data.v_md.unit == Unit.BYTES_PER_SECOND:
+        bandwidth_Bps = raw_data.values.astype("float32") * magFactor
+    else:
+        raise ValueError(
+            "processIOData expects a sensor with unit BYTE or BYTES_PER_SECOND, "
+            f"got {raw_data.v_md.unit}."
+        )
 
     if start and end:
         t_s, bandwidth_Bps = getInterpolatedValues(t_s, bandwidth_Bps, start, end)

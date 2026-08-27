@@ -187,6 +187,34 @@ def test_processIOData_variable_rate():
     assert total_bytes == pytest.approx(300.0)
 
 
+def test_processIOData_stores_counter_as_alt_values():
+    # Like processEnergyData, processIOData should keep the original cumulative
+    # counter in alt_values and expose the bandwidth series as the main values.
+    counter = [0, 100, 200, 300, 400]
+    raw_data = _io_raw_data(counter)
+    processIOData(raw_data)
+
+    # Original cumulative counter preserved in alt_values (in bytes).
+    assert raw_data.alt_values is not None
+    assert list(raw_data.alt_values) == counter
+    assert raw_data.alt_v_md is not None
+    assert raw_data.alt_v_md.unit == Unit.BYTE
+
+    # Main values are now the bandwidth series (bytes per second).
+    assert raw_data.v_md.unit == Unit.BYTES_PER_SECOND
+    assert list(raw_data.values) == pytest.approx([100.0, 100.0, 100.0, 100.0, 100.0])
+
+
+def test_processIOData_idempotent_on_bandwidth_series():
+    # A second call on an already-processed sensor (unit BYTES_PER_SECOND) must
+    # not blow up and should return consistent results.
+    raw_data = _io_raw_data([0, 100, 200, 300, 400])
+    processIOData(raw_data)
+    total_bytes, avg_bandwidth = processIOData(raw_data)
+    assert avg_bandwidth == pytest.approx(100.0)
+    assert total_bytes == pytest.approx(400.0)
+
+
 @pytest.mark.parametrize(
     "device_type,sensor_id,expected_metric",
     [
