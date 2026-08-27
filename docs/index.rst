@@ -16,7 +16,6 @@
    install
    usage
    configuration
-   data
    hdf5
 
 
