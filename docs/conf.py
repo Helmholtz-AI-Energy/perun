@@ -30,7 +30,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 html_theme = "furo"
 # html_title = ""
 html_static_path = ["_static"]
-html_logo = "images/full_logo_vertical.svg"
+html_logo = "_static/full_logo_vertical.svg"
 
 html_theme_options = {
     "sidebar_hide_name": True,
@@ -54,9 +54,10 @@ autoapi_options = [
     "undoc-members",
     "show-inheritance",
     "show-module-summary",
-    "imported-members"
+    "imported-members",
 ]
-autodoc_typehints="signature"
+autoapi_keep_files = True
+autodoc_typehints="both"
 
 # Gallery
 # sphinx_gallery_conf = {

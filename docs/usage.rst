@@ -148,6 +148,8 @@ In addition to HDF5 and text, perun support *json*, *pickle*, *csv* and a *bench
 
 This is the default format, and the data structures on the file mirror the perun :py:class:`perun.data_model.data.DataNode` objects one-to-one. It includes the raw data metadata of each device, computational node, execution round, monitored function, run id and application.
 
+For a guide on how to open and extract data from the HDF5 file (with ``h5py``, ``pandas`` or the ``perun export`` command), see :ref:`hdf5`.
+
 **json**
 
 Similar to hdf5, it keeps the internal perun data structure, but written as a json file.
@@ -201,11 +203,10 @@ perun will print an overview of all the sensors that are available to perun, inc
 To print the sensors available in each MPI rank, use the option `--by_rank`. To see which sensors will be used during monitoring based on the current configuration file, use the option `--active`.
 
 
-export
-------
-
 .. _export:
 
+export
+------
 
 You can export existing perun output files to other formats using the export command.
 
