@@ -182,7 +182,7 @@ def _addMetricMetadata(
     """Write metric metadata into hdf5 file."""
     group.attrs["unit"] = metadata.unit.value
     group.attrs["mag"] = metadata.mag.value
-    group.attrs["dtype"] = metadata.dtype.name
+    group.attrs["dtype"] = metadata.dtype.name  # type: ignore
     group.attrs.create("valid_min", metadata.min, dtype=metadata.dtype)
     group.attrs.create("valid_max", metadata.max, dtype=metadata.dtype)
     group.attrs.create("fill", metadata.fill, dtype=metadata.dtype)

@@ -16,7 +16,7 @@ readme = "README.rst"
 license = {file = "LICENSE"}
 keywords = ["energy", "monitoring", "mpi", "python", "hpc", "command-line", "benchmarking"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",

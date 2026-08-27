@@ -57,7 +57,7 @@ def processEnergyData(
         # If getting energy, transform to power
         e_J = raw_data.values
         maxValue = raw_data.v_md.max
-        dtype = raw_data.v_md.dtype.name
+        dtype = raw_data.v_md.dtype.name  # type: ignore
 
         d_energy = np.diff(e_J)
 
@@ -283,6 +283,13 @@ def processDataNode(
                 subNode = processDataNode(
                     subNode, perunConfig=perunConfig, force_process=force_process
                 )
+
+        if dataNode.deviceType in {
+            DeviceType.SYSIO,
+            DeviceType.SOCKET,
+            DeviceType.OTHER,
+        }:
+            continue
 
         if dataNode.type == NodeType.APP:
             for subSubNode in subNode.nodes.values():

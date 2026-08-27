@@ -12,7 +12,9 @@ class DeviceType(str, enum.Enum):
 
     RACK = "rack"
     NODE = "node"
+    SOCKET = "socket"
     CPU = "cpu"
+    SYSIO = "sysio"
     GPU = "gpu"
     RAM = "ram"
     DISK = "disk"

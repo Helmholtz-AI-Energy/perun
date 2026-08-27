@@ -160,6 +160,79 @@ def test_processDataNode():
     assert processed_data.metrics[MetricType.POWER].value == pytest.approx(10.0)
 
 
+def _energy_sensor(node_id: str) -> DataNode:
+    """Build a processed-able energy sensor node yielding 40 J / 10 W."""
+    raw_data = RawData(
+        timesteps=np.array([0, 1, 2, 3, 4], dtype=np.float32),
+        values=np.array([0, 10, 20, 30, 40], dtype=np.float32),
+        t_md=MetricMetaData(
+            Unit.SECOND,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.int32(0),
+            np.int32(100),
+            np.int32(-1),
+        ),
+        v_md=MetricMetaData(
+            Unit.JOULE,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.int32(0),
+            np.int32(100),
+            np.int32(-1),
+        ),
+    )
+    return DataNode(
+        id=node_id,
+        type=NodeType.SENSOR,
+        raw_data=raw_data,
+        deviceType=DeviceType.CPU,
+    )
+
+
+def _post_processing_config() -> ConfigParser:
+    config = ConfigParser()
+    config.add_section("post-processing")
+    config.set("post-processing", "power_overhead", "0.0")
+    config.set("post-processing", "pue", "1.0")
+    config.set("post-processing", "emissions_factor", "0.5")
+    config.set("post-processing", "price_factor", "0.1")
+    return config
+
+
+@pytest.mark.parametrize(
+    "deviceType", [DeviceType.SYSIO, DeviceType.SOCKET, DeviceType.OTHER]
+)
+def test_processDataNode_skips_socket_level_device_types(deviceType):
+    # Group nodes describing socket-level power (SYSIO/SOCKET/OTHER) must not
+    # have their child metrics aggregated up, to avoid double counting them
+    # against node totals that already include CPU/RAM sensors.
+    group = DataNode(
+        id="group_node",
+        type=NodeType.DEVICE_GROUP,
+        nodes={"sensor": _energy_sensor("sensor_node")},
+        deviceType=deviceType,
+    )
+    processed = processDataNode(group, _post_processing_config(), force_process=True)
+    assert MetricType.ENERGY not in processed.metrics
+    assert MetricType.POWER not in processed.metrics
+    # The child sensor itself is still processed.
+    assert MetricType.ENERGY in processed.nodes["sensor"].metrics
+
+
+def test_processDataNode_aggregates_regular_device_types():
+    # Sanity check contrast: a CPU device group DOES aggregate its children.
+    group = DataNode(
+        id="group_node",
+        type=NodeType.DEVICE_GROUP,
+        nodes={"sensor": _energy_sensor("sensor_node")},
+        deviceType=DeviceType.CPU,
+    )
+    processed = processDataNode(group, _post_processing_config(), force_process=True)
+    assert processed.metrics[MetricType.ENERGY].value == pytest.approx(40.0)
+    assert processed.metrics[MetricType.POWER].value == pytest.approx(10.0)
+
+
 def test_getInterpolatedValues():
     t = np.array([0, 1, 2, 3, 4], dtype=np.float32)
     x = np.array([0, 10, 20, 30, 40], dtype=np.float32)
