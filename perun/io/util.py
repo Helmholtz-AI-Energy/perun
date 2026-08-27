@@ -316,13 +316,13 @@ def raw_metric_stats(
 class NumpyEncoder(json.JSONEncoder):
     """Json Numpy object encoder."""
 
-    def default(self, obj: Any) -> Any:
+    def default(self, o: Any) -> Any:
         """
         Encode an object to a JSON-serializable format, handling NumPy types.
 
         Parameters
         ----------
-        obj : Any
+        o : Any
             The object to encode.
 
         Returns
@@ -341,13 +341,13 @@ class NumpyEncoder(json.JSONEncoder):
         converting them to standard Python types or string representations. For other types,
         the superclass's default method is called.
         """
-        if isinstance(obj, np.integer):
-            return int(obj)
-        elif isinstance(obj, np.floating):
-            return float(obj)
-        elif isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif isinstance(obj, np.dtype):
-            return str(obj)
+        if isinstance(o, np.integer):
+            return int(o)
+        elif isinstance(o, np.floating):
+            return float(o)
+        elif isinstance(o, np.ndarray):
+            return o.tolist()
+        elif isinstance(o, np.dtype):
+            return str(o)
         else:
-            return super(NumpyEncoder, self).default(obj)
+            return super(NumpyEncoder, self).default(o)

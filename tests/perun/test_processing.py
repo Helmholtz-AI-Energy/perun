@@ -83,6 +83,33 @@ def test_processEnergyData():
     assert power == pytest.approx(10.0)
 
 
+def test_processEnergyData_rejects_unsupported_unit():
+    # processEnergyData only supports JOULE and WATT sensors; anything else
+    # should raise a clear error instead of failing with UnboundLocalError.
+    raw_data = RawData(
+        timesteps=np.array([0, 1, 2], dtype=np.float32),
+        values=np.array([0, 10, 20], dtype=np.float32),
+        t_md=MetricMetaData(
+            Unit.SECOND,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.float32(0),
+            np.float32(100),
+            np.float32(-1),
+        ),
+        v_md=MetricMetaData(
+            Unit.BYTE,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.float32(0),
+            np.float32(100),
+            np.float32(-1),
+        ),
+    )
+    with pytest.raises(ValueError):
+        processEnergyData(raw_data)
+
+
 def test_processSensorData():
     raw_data = RawData(
         timesteps=np.array([0, 1, 2, 3, 4], dtype=np.float32),

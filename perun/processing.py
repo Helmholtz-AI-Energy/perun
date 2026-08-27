@@ -91,6 +91,11 @@ def processEnergyData(
 
     elif raw_data.v_md.unit == Unit.WATT:
         power_W = raw_data.values.astype("float32") * magFactor
+    else:
+        raise ValueError(
+            "processEnergyData expects a sensor with unit JOULE or WATT, "
+            f"got {raw_data.v_md.unit}."
+        )
 
     if start and end:
         t_s, power_W = getInterpolatedValues(t_s, power_W, start, end)
@@ -697,6 +702,12 @@ def getInterpolatedValues(
     Tuple[np.ndarray, np.ndarray]
         Tuple with the new time steps and values.
     """
-    new_t = np.concatenate([[start], t[np.all([t >= start, t <= end], axis=0)], [end]])
+    new_t = np.concatenate(
+        [
+            np.array([start], dtype=t.dtype),
+            t[np.all([t >= start, t <= end], axis=0)],
+            np.array([end], dtype=t.dtype),
+        ]
+    )
     new_x = np.interp(new_t, t, x)
     return new_t, new_x
