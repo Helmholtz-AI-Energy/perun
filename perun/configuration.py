@@ -38,8 +38,8 @@ _default_config: Mapping[str, Mapping[str, Any]] = {
     "benchmarking": {
         "rounds": 1,
         "warmup_rounds": 0,
-        "metrics": "runtime,energy,power,dram_mem,cpu_util,gpu_power,gpu_mem",
-        "region_metrics": "runtime,power,dram_mem,cpu_util,gpu_power,gpu_mem",
+        "metrics": "runtime,energy,power,dram_mem,cpu_util,gpu_power,gpu_mem,disk_read,disk_write,net_read,net_write",
+        "region_metrics": "runtime,power,dram_mem,cpu_util,gpu_power,gpu_mem,disk_read,disk_write,net_read,net_write",
         # How to group the host/device table rows in the report.
         # "host"   -> one row per host (plus an "All" row) [default]
         # "device" -> additionally break each host down per device
