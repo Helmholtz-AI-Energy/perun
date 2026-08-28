@@ -21,7 +21,7 @@ jobs:
         id-token: write
       steps:
       - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@002fdce3c6a235733a90a27c80493a3241e56863 # v2.12.1
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           egress-policy: audit
 
@@ -40,11 +40,11 @@ jobs:
       - name: Publish package distributions to PyPI
         # Only run if the tag is a release
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, 'rc')
-        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
       - name: Publish package to Test PyPI
         # Only run if the tag is a release candidate
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'rc')
-        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # release/v1
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
       - name: Extract tag name
