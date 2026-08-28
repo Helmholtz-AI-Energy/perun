@@ -18,6 +18,7 @@ from perun.processing import (
     getInterpolatedValues,
     processDataNode,
     processEnergyData,
+    processIOData,
     processSensorData,
 )
 
@@ -82,6 +83,33 @@ def test_processEnergyData():
     assert power == pytest.approx(10.0)
 
 
+def test_processEnergyData_rejects_unsupported_unit():
+    # processEnergyData only supports JOULE and WATT sensors; anything else
+    # should raise a clear error instead of failing with UnboundLocalError.
+    raw_data = RawData(
+        timesteps=np.array([0, 1, 2], dtype=np.float32),
+        values=np.array([0, 10, 20], dtype=np.float32),
+        t_md=MetricMetaData(
+            Unit.SECOND,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.float32(0),
+            np.float32(100),
+            np.float32(-1),
+        ),
+        v_md=MetricMetaData(
+            Unit.BYTE,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.float32(0),
+            np.float32(100),
+            np.float32(-1),
+        ),
+    )
+    with pytest.raises(ValueError):
+        processEnergyData(raw_data)
+
+
 def test_processSensorData():
     raw_data = RawData(
         timesteps=np.array([0, 1, 2, 3, 4], dtype=np.float32),
@@ -114,6 +142,103 @@ def test_processSensorData():
     assert MetricType.POWER in processed_data.metrics
     assert sensor_data.metrics[MetricType.ENERGY].value == pytest.approx(40.0)
     assert sensor_data.metrics[MetricType.POWER].value == pytest.approx(10.0)
+
+
+def _io_raw_data(values):
+    """Build a RawData for a cumulative byte counter sampled every second."""
+    return RawData(
+        timesteps=np.arange(len(values), dtype=np.float32),
+        values=np.array(values, dtype=np.uint64),
+        t_md=MetricMetaData(
+            Unit.SECOND,
+            Magnitude.ONE,
+            np.dtype("float32"),
+            np.float32(0),
+            np.float32(100),
+            np.float32(-1),
+        ),
+        v_md=MetricMetaData(
+            Unit.BYTE,
+            Magnitude.ONE,
+            np.dtype("uint64"),
+            np.uint64(0),
+            np.uint64(np.iinfo("uint64").max),
+            np.uint64(np.iinfo("uint64").max),
+        ),
+    )
+
+
+def test_processIOData_constant_rate():
+    # Cumulative counter growing by 100 bytes every second -> 100 B/s bandwidth
+    # and 400 bytes transferred over the 4 second window.
+    raw_data = _io_raw_data([0, 100, 200, 300, 400])
+    total_bytes, avg_bandwidth = processIOData(raw_data)
+    assert avg_bandwidth == pytest.approx(100.0)
+    assert total_bytes == pytest.approx(400.0)
+
+
+def test_processIOData_variable_rate():
+    # Non-uniform increments still yield the mean bandwidth.
+    raw_data = _io_raw_data([0, 50, 250, 300])
+    total_bytes, avg_bandwidth = processIOData(raw_data)
+    # increments: 50, 200, 50 -> per-second bandwidth [50, 50, 200, 50]
+    # (the first value is duplicated), mean = 87.5 B/s
+    assert avg_bandwidth == pytest.approx(87.5)
+    assert total_bytes == pytest.approx(300.0)
+
+
+def test_processIOData_stores_counter_as_alt_values():
+    # Like processEnergyData, processIOData should keep the original cumulative
+    # counter in alt_values and expose the bandwidth series as the main values.
+    counter = [0, 100, 200, 300, 400]
+    raw_data = _io_raw_data(counter)
+    processIOData(raw_data)
+
+    # Original cumulative counter preserved in alt_values (in bytes).
+    assert raw_data.alt_values is not None
+    assert list(raw_data.alt_values) == counter
+    assert raw_data.alt_v_md is not None
+    assert raw_data.alt_v_md.unit == Unit.BYTE
+
+    # Main values are now the bandwidth series (bytes per second).
+    assert raw_data.v_md.unit == Unit.BYTES_PER_SECOND
+    assert list(raw_data.values) == pytest.approx([100.0, 100.0, 100.0, 100.0, 100.0])
+
+
+def test_processIOData_idempotent_on_bandwidth_series():
+    # A second call on an already-processed sensor (unit BYTES_PER_SECOND) must
+    # not blow up and should return consistent results.
+    raw_data = _io_raw_data([0, 100, 200, 300, 400])
+    processIOData(raw_data)
+    total_bytes, avg_bandwidth = processIOData(raw_data)
+    assert avg_bandwidth == pytest.approx(100.0)
+    assert total_bytes == pytest.approx(400.0)
+
+
+@pytest.mark.parametrize(
+    "device_type,sensor_id,expected_metric",
+    [
+        (DeviceType.NET, "NET_READ_BYTES_eth0", MetricType.NET_READ),
+        (DeviceType.NET, "NET_WRITE_BYTES_eth0", MetricType.NET_WRITE),
+        (DeviceType.DISK, "DISK_READ_BYTES_sda", MetricType.DISK_READ),
+        (DeviceType.DISK, "DISK_WRITE_BYTES_sda", MetricType.DISK_WRITE),
+    ],
+)
+def test_processSensorData_io_bandwidth(device_type, sensor_id, expected_metric):
+    raw_data = _io_raw_data([0, 100, 200, 300, 400])
+    sensor_data = DataNode(
+        id=sensor_id,
+        type=NodeType.SENSOR,
+        raw_data=raw_data,
+        deviceType=device_type,
+    )
+    processed = processSensorData(sensor_data)
+
+    assert expected_metric in processed.metrics
+    metric = processed.metrics[expected_metric]
+    # IO metrics are now reported as bandwidth in bytes per second.
+    assert metric.metric_md.unit == Unit.BYTES_PER_SECOND
+    assert float(metric.value) == pytest.approx(100.0)
 
 
 def test_processDataNode():
