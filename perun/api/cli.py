@@ -401,11 +401,22 @@ def export(args: argparse.Namespace) -> None:
         log.error("File does not exist.")
         return
 
+    try:
+        inputFormat = IOFormat.fromSuffix(in_file.suffix)
+    except ValueError as err:
+        log.error(f"Invalid input file format: {err}")
+        return
+
+    try:
+        out_format = IOFormat(args.format)
+    except ValueError:
+        valid = ", ".join(sorted(fmt.value for fmt in IOFormat))
+        log.error(f"Invalid format '{args.format}'. Valid formats: {valid}.")
+        return
+
     perun = Perun(config)
 
     out_path = in_file.parent
-    inputFormat = IOFormat.fromSuffix(in_file.suffix)
-    out_format = IOFormat(args.format)
 
     dataNode = perun.import_from(in_file, inputFormat)
     if args.run_id:

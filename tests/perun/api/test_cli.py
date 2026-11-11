@@ -1,11 +1,13 @@
 import configparser
 import json
+import logging
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from perun.api.cli import _get_arg_parser, _resolve_clearable_value
+from perun.api.cli import _get_arg_parser, _resolve_clearable_value, export
 from perun.core import Perun
 from perun.io.text_report import sensors_table
 
@@ -325,3 +327,25 @@ def test_monitor_clears_default_excluded_sensors(tmp_path: Path):
 
     resultFiles = list(resultsPath.iterdir())
     assert (resultsPath / "idle.hdf5") in resultFiles
+
+
+def test_export_invalid_format_logs_error(tmp_path: Path, caplog):
+    data_file = tmp_path / "run.json"
+    data_file.write_text("{}")
+    args = SimpleNamespace(input_file=str(data_file), format="bogus", run_id=None)
+    with caplog.at_level(logging.ERROR, logger="perun.api.cli"):
+        export(args)  # must report a clean error, not raise
+    assert any(
+        "Invalid format 'bogus'" in record.message for record in caplog.records
+    )
+
+
+def test_export_unknown_suffix_logs_error(tmp_path: Path, caplog):
+    data_file = tmp_path / "run.toml"
+    data_file.write_text("x = 1")
+    args = SimpleNamespace(input_file=str(data_file), format="json", run_id=None)
+    with caplog.at_level(logging.ERROR, logger="perun.api.cli"):
+        export(args)  # must report a clean error, not raise
+    assert any(
+        "Invalid input file format" in record.message for record in caplog.records
+    )
