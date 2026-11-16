@@ -2,7 +2,7 @@
 
 import json
 from collections.abc import Sequence
-from typing import Any, Tuple, cast
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -81,7 +81,7 @@ def dataframe_to_markdown(df: pd.DataFrame, stralign: str = "right") -> str:
     )
 
 
-def getTFactorMag(value: Number, metric_md: MetricMetaData) -> Tuple[float, Magnitude]:
+def getTFactorMag(value: Number, metric_md: MetricMetaData) -> tuple[float, Magnitude]:
     """Get transformation factor and magnitude to improve string formating.
 
     Parameters
@@ -93,7 +93,7 @@ def getTFactorMag(value: Number, metric_md: MetricMetaData) -> Tuple[float, Magn
 
     Returns
     -------
-    Tuple[float, Magnitude]
+    tuple[float, Magnitude]
         Scaling factor and Magnitude Enum.
     """
     if (
@@ -225,7 +225,7 @@ def _sensor_power_series(raw_data: Any) -> np.ndarray:
 
 def raw_metric_stats(
     node: Any, metric_type: Any
-) -> Tuple[Number, Number, Number, MetricMetaData] | None:
+) -> tuple[Number, Number, Number, MetricMetaData] | None:
     """Compute (min, mean, max, metadata) for a metric from raw sensor data.
 
     The statistics are taken directly from the underlying sensor time-series
@@ -348,4 +348,4 @@ class NumpyEncoder(json.JSONEncoder):
         elif isinstance(o, np.dtype):
             return str(o)
         else:
-            return super(NumpyEncoder, self).default(o)
+            return super().default(o)

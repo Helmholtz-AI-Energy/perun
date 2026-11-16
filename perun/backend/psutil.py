@@ -1,7 +1,7 @@
 """Backend based on psutil."""
 
 import logging
-from typing import Callable, Dict, List, Set, Tuple
+from collections.abc import Callable
 
 import numpy as np
 import psutil
@@ -31,12 +31,12 @@ class PSUTILBackend(Backend):
         """Close backend."""
         pass
 
-    def _findSensors(self) -> Dict[str, Tuple]:
+    def _findSensors(self) -> dict[str, tuple]:
         """Return list of visible devices.
 
         Returns
         -------
-        Dict[str, Tuple]
+        dict[str, tuple]
             Dictionary with device ids and measurement unit.
         """
         sensors = {}
@@ -77,12 +77,12 @@ class PSUTILBackend(Backend):
                 sensors[f"CPU_FREQ_{cpu_id}"] = (self.id, DeviceType.CPU, Unit.HZ)
         return sensors
 
-    def availableSensors(self) -> Dict[str, Tuple]:
+    def availableSensors(self) -> dict[str, tuple]:
         """Return a dictionary with all available sensors.
 
         Returns
         -------
-        Dict[str, Tuple]
+        dict[str, tuple]
             Dictionary with device ids and measurement unit.
         """
         return self._sensors
@@ -147,7 +147,7 @@ class PSUTILBackend(Backend):
 
         return func
 
-    def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
+    def getSensors(self, deviceList: set[str]) -> list[Sensor]:
         """Return desired device objects.
 
         Parameters
@@ -157,7 +157,7 @@ class PSUTILBackend(Backend):
 
         Returns
         -------
-        List[Sensor]
+        list[Sensor]
             Sensor objects for the wanted devices.
         """
         devices = []

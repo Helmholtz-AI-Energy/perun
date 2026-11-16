@@ -4,12 +4,13 @@ import enum
 import logging
 import multiprocessing
 import time
+from collections.abc import Callable
 from configparser import ConfigParser
 from multiprocessing import Event, Process, Queue
 from multiprocessing.synchronize import Event as EventClass
 from queue import Empty
 from subprocess import Popen
-from typing import Any, Callable
+from typing import Any
 
 import numpy as np
 
@@ -401,7 +402,7 @@ class PerunMonitor:
         log.error(f"Rank {self._comm.Get_rank()}: Available ranks {availableRanks}")
         try:
             recoverdNodes = self._process_single_run(
-                str("failed"),
+                "failed",
                 starttime_ns,
                 endtime_ns,
                 available_ranks=availableRanks,

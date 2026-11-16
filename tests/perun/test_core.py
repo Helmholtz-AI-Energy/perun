@@ -52,7 +52,7 @@ def test_multirun_id_set_correctly(tmp_path: Path, perun: Perun):
 def test_script_error(tmp_path: Path, perun: Perun):
     resultPath = tmp_path / "results"
     perun.config.set("output", "data_out", str(resultPath))
-    perun.config.set("output", "app_name", str("error"))
+    perun.config.set("output", "app_name", "error")
     perun.config.set("output", "run_id", "attempt")
 
     app = Application("./tests/scripts/error.py", perun.config)
@@ -66,7 +66,7 @@ def test_script_error(tmp_path: Path, perun: Perun):
 def test_script_exit(tmp_path: Path, perun: Perun):
     resultPath = tmp_path / "results"
     perun.config.set("output", "data_out", str(resultPath))
-    perun.config.set("output", "app_name", str("exit"))
+    perun.config.set("output", "app_name", "exit")
     perun.config.set("output", "run_id", "dont")
 
     app = Application("./tests/scripts/exit.py", perun.config)

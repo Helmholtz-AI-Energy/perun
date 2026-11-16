@@ -11,7 +11,7 @@ print(f"R{rank}: Hello world!")
 time.sleep(5)
 
 print(f"R{rank}: Reading file")
-with open(files[rank % 2], "r") as file:
+with open(files[rank % 2]) as file:
     lines = file.readlines()
     for line in lines:
         print(line)

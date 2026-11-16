@@ -5,7 +5,7 @@ import enum
 import logging
 import time
 from dataclasses import asdict
-from typing import Any
+from typing import Any, Self
 
 import numpy as np
 import numpy.typing as npt
@@ -27,7 +27,7 @@ class NodeType(enum.Enum):
     SENSOR = enum.auto()
 
 
-class MetricType(str, enum.Enum):
+class MetricType(enum.StrEnum):
     """Metric Type enum."""
 
     RUNTIME = "runtime"
@@ -57,15 +57,12 @@ class MetricType(str, enum.Enum):
     MONEY = "money"
     CO2 = "co2"
 
-    def __str__(self) -> str:
-        """Return string representation of MetricType."""
-        return self.value
-
     def __repr__(self) -> str:
         """Return string representation of MetricType."""
         return self.value
 
-    def fromString(self, value: str) -> "MetricType":
+    @classmethod
+    def fromString(cls, value: str) -> Self:
         """Create MetricType from string.
 
         Parameters
@@ -78,10 +75,10 @@ class MetricType(str, enum.Enum):
         MetricType
             MetricType object.
         """
-        return MetricType(value)
+        return cls(value)
 
 
-class AggregateType(str, enum.Enum):
+class AggregateType(enum.StrEnum):
     """Types of data aggregation."""
 
     SUM = "sum"
@@ -100,7 +97,7 @@ class Metric:
     agg: AggregateType
 
     @classmethod
-    def fromDict(cls, metricDict: dict[str, Any]) -> "Metric":
+    def fromDict(cls, metricDict: dict[str, Any]) -> Self:
         """Create Metric object from a dictionary.
 
         Parameters
@@ -120,7 +117,7 @@ class Metric:
             AggregateType(metricDict["agg"]),
         )
 
-    def copy(self) -> "Metric":
+    def copy(self) -> Self:
         """Create copy metric object.
 
         Returns
@@ -128,7 +125,7 @@ class Metric:
         _type_
             Copy of object.
         """
-        return Metric(
+        return type(self)(
             MetricType(self.type.value),
             self.value,
             self.metric_md.copy(),
@@ -149,7 +146,7 @@ class Stats:
     min: Number
 
     @classmethod
-    def fromMetrics(cls, metrics: list[Metric]) -> "Stats":
+    def fromMetrics(cls, metrics: list[Metric]) -> Self:
         """Create stats object from list of metrics with the same type.
 
         Parameters
@@ -208,7 +205,7 @@ class Stats:
         self.mean = n_value
 
     @classmethod
-    def fromDict(cls, statsDict: dict[str, Any]) -> "Stats":
+    def fromDict(cls, statsDict: dict[str, Any]) -> Self:
         """Create Stats object from a dictionary.
 
         Parameters
@@ -244,7 +241,7 @@ class RawData:
     alt_v_md: MetricMetaData | None = None
 
     @classmethod
-    def fromDict(cls, rawDataDict: dict[str, Any]) -> "RawData":
+    def fromDict(cls, rawDataDict: dict[str, Any]) -> Self:
         """Create RawData object from a dictionary.
 
         Parameters
@@ -349,7 +346,7 @@ class Region:
         return result
 
     @classmethod
-    def fromDict(cls, regionDictionary: dict[str, Any]) -> "Region":
+    def fromDict(cls, regionDictionary: dict[str, Any]) -> Self:
         """Create Regions object from a dictionary.
 
         Parameters
@@ -362,7 +359,7 @@ class Region:
         Region
             Region object.
         """
-        regionObj = Region()
+        regionObj = cls()
         regionObj.id = regionDictionary["id"]
         regionObj.raw_data = regionDictionary["raw_data"]
         regionObj.processed = regionDictionary["processed"]
@@ -490,7 +487,7 @@ class DataNode:
         return resultsDict
 
     @classmethod
-    def fromDict(cls, resultsDict: dict[str, Any]) -> "DataNode":
+    def fromDict(cls, resultsDict: dict[str, Any]) -> Self:
         """Create dataNode from python dictionary.
 
         Parameters

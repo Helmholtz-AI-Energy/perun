@@ -4,6 +4,7 @@ import enum
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Self
 
 from perun.data_model.data import DataNode
 from perun.io.bench import exportBench
@@ -47,7 +48,7 @@ class IOFormat(enum.Enum):
         return _suffixes[self.value]
 
     @classmethod
-    def fromSuffix(cls, suffix: str) -> "IOFormat":
+    def fromSuffix(cls, suffix: str) -> Self:
         """Return format from suffix.
 
         The suffix is matched exactly (ignoring a leading dot and case) against
@@ -86,7 +87,7 @@ def exportTo(
         DataNode Object.
     format : IOFormat
         Selected output format.
-    mr_id : Optional[str], optional
+    mr_id : str | None, optional
         Run id to extract from DataNode, by default None.
 
     Raises
@@ -190,7 +191,7 @@ def importFrom(filePath: Path, format: IOFormat) -> DataNode:
         Perun DataNode structure.
     """
     if format == IOFormat.JSON:
-        with open(filePath, "r") as file:
+        with open(filePath) as file:
             dataNode = importJson(file.read())
     elif format == IOFormat.HDF5:
         dataNode = importHDF5(filePath)

@@ -2,7 +2,8 @@
 
 import functools
 import logging
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from perun.configuration import (
     config,
@@ -186,7 +187,7 @@ def register_live_callback(
 
     Parameters
     ----------
-    obj : Callable[[], Callable[[str, Union[int, float]], None]]
+    obj : Callable[[], Callable[[str, int | float], None]]
         Function that initializes the live callback.
         It should return a callable that accepts the metric identifier and the metric value. It should take no arguments.
     id : str

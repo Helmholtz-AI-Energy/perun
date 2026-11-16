@@ -5,12 +5,13 @@ import os
 import platform
 import pprint as pp
 import sys
+from collections.abc import Callable
 
 # import sys
 from configparser import ConfigParser
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import cpuinfo
 import psutil

@@ -3,9 +3,9 @@
 import logging
 import pprint as pp
 import re
+from collections.abc import Callable
 from io import IOBase
 from pathlib import Path
-from typing import Callable
 
 import cpuinfo
 import numpy as np
@@ -98,7 +98,7 @@ class PowercapRAPLBackend(Backend):
                 log.debug(f"Is file: {energy_path.is_file()}")
                 # Change os.access to Path.exists() and Path.is_file(), and open with Path.open(), as it is more secure and reliable according to https://docs.python.org/3/library/os.html#os.access
                 try:
-                    energy_file = open(child / "energy_uj", "r")
+                    energy_file = open(child / "energy_uj")
                 except Exception as e:
                     log.debug(f"Error opening file: {child / 'energy_uj'}")
                     log.debug(e)
@@ -106,7 +106,7 @@ class PowercapRAPLBackend(Backend):
                 log.debug(f"Opened file: {energy_file}")
 
                 socket = match.groups()[0]
-                with open(child / "name", "r") as file:
+                with open(child / "name") as file:
                     device_name = file.readline().strip()
 
                 log.debug(device_name)
@@ -124,7 +124,7 @@ class PowercapRAPLBackend(Backend):
                     devType = DeviceType.OTHER
 
                 if devType != DeviceType.OTHER:
-                    with open(child / "max_energy_range_uj", "r") as file:
+                    with open(child / "max_energy_range_uj") as file:
                         line = file.readline().strip()
                         max_energy = np.uint64(line)
                     dataType = MetricMetaData(
@@ -154,7 +154,7 @@ class PowercapRAPLBackend(Backend):
                     for grandchild in child.iterdir():
                         match = re.match(SUBDIR_RGX, grandchild.name)
                         if match:
-                            with open(grandchild / "name", "r") as file:
+                            with open(grandchild / "name") as file:
                                 device_name = file.readline().strip()
 
                             if "dram" in device_name:
@@ -168,9 +168,7 @@ class PowercapRAPLBackend(Backend):
                                 devType = DeviceType.OTHER
 
                             if devType != DeviceType.OTHER:
-                                with open(
-                                    grandchild / "max_energy_range_uj", "r"
-                                ) as file:
+                                with open(grandchild / "max_energy_range_uj") as file:
                                     line = file.readline().strip()
                                     max_energy = np.uint64(line)
 
@@ -184,7 +182,7 @@ class PowercapRAPLBackend(Backend):
                                 )
 
                                 grandchild_energy_path = grandchild / "energy_uj"
-                                energy_file = open(grandchild_energy_path, "r")
+                                energy_file = open(grandchild_energy_path)
                                 log.debug(f"RAPL FILE OPENED: {grandchild_energy_path}")
                                 self._files.append(energy_file)
                                 device = Sensor(

@@ -6,8 +6,9 @@ import configparser
 import logging
 import os
 import pprint as pp
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from perun.io.io import IOFormat
 

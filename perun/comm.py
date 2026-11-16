@@ -49,7 +49,7 @@ class Comm:
 
         Returns
         -------
-        Optional[Tuple[int, int]]
+        tuple[int, int] | None
             Tuple with MPI version and subversion, or None if not available.
         """
         if self._enabled:
@@ -217,7 +217,7 @@ class Comm:
 
         Returns
         -------
-        List[int]
+        list[int]
             List with responsive MPI ranks.
         """
         if self._enabled:

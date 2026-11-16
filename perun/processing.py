@@ -39,9 +39,9 @@ def processEnergyData(
     ----------
     raw_data : RawData
         Raw Data from sensor.
-    start : Optional[Number], optional
+    start : Number | None, optional
         Start time of region, by default None.
-    end : Optional[Number], optional
+    end : Number | None, optional
         End time of region, by default None.
 
     Returns
@@ -135,9 +135,9 @@ def processIOData(
     ----------
     raw_data : RawData
         Raw data from a cumulative byte counter sensor.
-    start : Optional[Number], optional
+    start : Number | None, optional
         Start time of region, by default None.
-    end : Optional[Number], optional
+    end : Number | None, optional
         End time of region, by default None.
 
     Returns
@@ -496,7 +496,7 @@ def processRegionsWithSensorData(regions: list[Region], dataNode: DataNode) -> N
 
     Parameters
     ----------
-    regions : List[Region]
+    regions : list[Region]
         List of regions that use the same data node.
     dataNode : DataNode
         Data node with sensor data.
@@ -789,7 +789,7 @@ def getInterpolatedValues(
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray]
+    tuple[np.ndarray, np.ndarray]
         Tuple with the new time steps and values.
     """
     new_t = np.concatenate(

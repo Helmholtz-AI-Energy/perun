@@ -3,9 +3,9 @@
 import logging
 import pprint as pp
 import re
+from collections.abc import Callable
 from io import IOBase
 from pathlib import Path
-from typing import Callable
 
 import cpuinfo
 import numpy as np
@@ -102,7 +102,7 @@ class HWMonGraceBackend(Backend):
                 First line of the file, or an empty string if it could not be read.
             """
             try:
-                with open(path, "r") as f:
+                with open(path) as f:
                     return f.readline().strip()
             except OSError:
                 return ""
@@ -130,7 +130,7 @@ class HWMonGraceBackend(Backend):
                         log.debug(f"Found power_average sensor: {sensor_path}")
 
                         try:
-                            sensor_file_handle = open(sensor_path, "r")
+                            sensor_file_handle = open(sensor_path)
                         except OSError as e:
                             log.debug(f"Error opening file: {sensor_path}")
                             log.debug(e)

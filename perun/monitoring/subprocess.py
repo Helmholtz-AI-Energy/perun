@@ -3,10 +3,10 @@
 import logging
 import platform
 import time
+from collections.abc import Callable
 from configparser import ConfigParser
 from multiprocessing import Queue
 from multiprocessing.synchronize import Event as EventClass
-from typing import Callable
 
 import numpy as np
 
@@ -248,7 +248,7 @@ def perunSubprocess(
         Multiprocessing Queue object where the results are sent after finish.
     rank : int
         Local MPI Rank.
-    l_assigned_sensors : Dict[str, Tuple]
+    l_assigned_sensors : dict[str, tuple]
         Local MPI rank sensor configuration.
     perunConfig : ConfigParser
         Global perun configuration.

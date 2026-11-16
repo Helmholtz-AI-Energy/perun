@@ -3,7 +3,7 @@
 import dataclasses
 import enum
 import logging
-from typing import Any
+from typing import Any, Self
 
 import numpy as np
 import numpy.typing as npt
@@ -13,7 +13,7 @@ log = logging.getLogger(__name__)
 Number = int | float | np.integer | np.floating
 
 
-class Unit(str, enum.Enum):
+class Unit(enum.StrEnum):
     """Unit enum."""
 
     JOULE = "J"
@@ -39,10 +39,6 @@ class Unit(str, enum.Enum):
             Unit symbol string.
         """
         return self.value
-
-    def __str__(self) -> str:
-        """Convert object to string."""
-        return self.symbol
 
 
 _mag_symbols: dict[str, str] = {
@@ -72,7 +68,7 @@ class Magnitude(float, enum.Enum):
     TERA = 1e12
 
     @classmethod
-    def fromSymbol(cls, symbol: str) -> "Magnitude":
+    def fromSymbol(cls, symbol: str) -> Self:
         """Create a Magniture objet from a magnigure symbol.
 
         Parameters
@@ -125,7 +121,7 @@ class MetricMetaData:
     fill: Number
 
     @classmethod
-    def fromDict(cls, mdDict: dict[str, Any]) -> "MetricMetaData":
+    def fromDict(cls, mdDict: dict[str, Any]) -> Self:
         """Create MetricMetadata from a dictionary.
 
         Parameters
@@ -148,7 +144,7 @@ class MetricMetaData:
             dtype.type(mdDict["fill"]),
         )
 
-    def copy(self) -> "MetricMetaData":
+    def copy(self) -> Self:
         """Copy MetricMetaData object.
 
         Returns
@@ -156,7 +152,7 @@ class MetricMetaData:
         _type_
             Copy of object.
         """
-        return MetricMetaData(
+        return type(self)(
             Unit(self.unit.value),
             Magnitude(self.mag.value),
             self.dtype,

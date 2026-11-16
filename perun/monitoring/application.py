@@ -5,9 +5,10 @@ import logging
 import logging.handlers
 import os
 import subprocess
+from collections.abc import Callable
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class Application:
         self._is_binary = is_binary
         if isinstance(app, Path):
             try:
-                with open(app, "r") as scriptFile:
+                with open(app) as scriptFile:
                     self._scriptFile = scriptFile.read()
             except FileNotFoundError:
                 log.error(

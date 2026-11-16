@@ -1,13 +1,14 @@
 """Device module."""
 
 import enum
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
-from typing import Any, Callable
+from typing import Any
 
 from perun.data_model.measurement_type import MetricMetaData, Number
 
 
-class DeviceType(str, enum.Enum):
+class DeviceType(enum.StrEnum):
     """DeviceType enum."""
 
     RACK = "rack"
