@@ -21,13 +21,51 @@ log = logging.getLogger(__name__)
 
 
 def monitor(region_name: str | None = None) -> Callable:
-    """Decorate function to monitor its energy usage."""
+    """Decorate function to monitor its energy usage.
+
+    Parameters
+    ----------
+    region_name : str | None, optional
+        Name of the monitored region, by default the name of the decorated function.
+
+    Returns
+    -------
+    Callable
+        Decorator that wraps the function in a monitored region.
+    """
 
     def inner_function(func: Callable) -> Callable:
+        """Wrap ``func`` in a monitored region.
+
+        Parameters
+        ----------
+        func : Callable
+            Function to monitor.
+
+        Returns
+        -------
+        Callable
+            Wrapped function.
+        """
+
         @functools.wraps(func)
         def func_wrapper(*args: Any, **kwargs: Any) -> Any:
+            """Run ``func`` and record its start and end as region events.
+
+            Parameters
+            ----------
+            *args : Any
+                Positional arguments passed to ``func``.
+            **kwargs : Any
+                Keyword arguments passed to ``func``.
+
+            Returns
+            -------
+            Any
+                Result of ``func``.
+            """
             # Get custom config and kwargs
-            region_id = region_name if region_name else func.__name__
+            region_id = region_name if region_name else func.__name__  # ty: ignore[missing-attribute]
 
             perun = Perun(config)
             if perun.warmup_round:
@@ -47,11 +85,51 @@ def monitor(region_name: str | None = None) -> Callable:
 
 
 def perun(configuration_file: str = "./.perun.ini", **conf_kwargs: Any) -> Callable:
-    """Decorate function to monitor its energy usage."""
+    """Decorate function to monitor its energy usage.
+
+    Parameters
+    ----------
+    configuration_file : str, optional
+        Path to a perun configuration file, by default "./.perun.ini".
+    **conf_kwargs : Any
+        Configuration options that override the values in the configuration file.
+
+    Returns
+    -------
+    Callable
+        Decorator that runs the function under perun's monitoring.
+    """
 
     def inner_function(func: Callable) -> Callable:
+        """Wrap ``func`` so it runs under perun's monitoring.
+
+        Parameters
+        ----------
+        func : Callable
+            Function to monitor.
+
+        Returns
+        -------
+        Callable
+            Wrapped function.
+        """
+
         @functools.wraps(func)
         def func_wrapper(*args: Any, **kwargs: Any) -> Any:
+            """Configure perun and monitor a call to ``func``.
+
+            Parameters
+            ----------
+            *args : Any
+                Positional arguments passed to ``func``.
+            **kwargs : Any
+                Keyword arguments passed to ``func``.
+
+            Returns
+            -------
+            Any
+                Result of ``func``.
+            """
             # 1) Read custom config
             read_custom_config(configuration_file)
 
@@ -86,10 +164,11 @@ def register_callback(func: Callable[[DataNode], None]) -> None:
         Function to be called.
     """
     perun: Perun | None = Perun.getInstance()
+    func_name: str = func.__name__  # ty: ignore[missing-attribute]
 
-    if perun and func.__name__ not in perun._postprocess_callbacks:
-        log.info(f"Rank {perun.comm.Get_rank()}: Registering callback {func.__name__}")
-        perun._postprocess_callbacks[func.__name__] = func
+    if perun and func_name not in perun._postprocess_callbacks:
+        log.info(f"Rank {perun.comm.Get_rank()}: Registering callback {func_name}")
+        perun._postprocess_callbacks[func_name] = func
 
 
 def register_live_callback(

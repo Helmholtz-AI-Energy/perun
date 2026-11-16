@@ -15,7 +15,7 @@
    :target: https://github.com/psf/black
 .. |codecov| image:: https://codecov.io/gh/Helmholtz-AI-Energy/perun/graph/badge.svg?token=9O6FSJ6I3G
    :target: https://codecov.io/gh/Helmholtz-AI-Energy/perun
-.. |python-version| image:: https://img.shields.io/badge/Python-3.9+-blue.svg
+.. |python-version| image:: https://img.shields.io/badge/Python-3.11+-blue.svg
    :target: https://www.python.org/downloads/
 .. |license| image:: https://img.shields.io/badge/License-BSD_3--Clause-blue.svg
    :target: https://opensource.org/licenses/BSD-3-Clause

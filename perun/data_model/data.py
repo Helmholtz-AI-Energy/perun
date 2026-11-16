@@ -101,7 +101,18 @@ class Metric:
 
     @classmethod
     def fromDict(cls, metricDict: dict[str, Any]) -> "Metric":
-        """Create RawData object from a dictionary."""
+        """Create Metric object from a dictionary.
+
+        Parameters
+        ----------
+        metricDict : dict[str, Any]
+            Metric dictionary.
+
+        Returns
+        -------
+        Metric
+            Metric object.
+        """
         return cls(
             MetricType(metricDict["type"]),
             np.float32(metricDict["value"]),
@@ -187,11 +198,29 @@ class Stats:
 
     @value.setter
     def value(self, n_value: Number) -> None:
+        """Set the mean value of the stats object.
+
+        Parameters
+        ----------
+        n_value : Number
+            New mean value.
+        """
         self.mean = n_value
 
     @classmethod
     def fromDict(cls, statsDict: dict[str, Any]) -> "Stats":
-        """Stats constructor from a dictionory."""
+        """Create Stats object from a dictionary.
+
+        Parameters
+        ----------
+        statsDict : dict[str, Any]
+            Stats dictionary.
+
+        Returns
+        -------
+        Stats
+            Stats object.
+        """
         return cls(
             MetricType(statsDict["type"]),
             MetricMetaData.fromDict(statsDict["metric_md"]),
@@ -325,13 +354,13 @@ class Region:
 
         Parameters
         ----------
-        regionDictionary: dict[str, dict[int, Any]]
+        regionDictionary : dict[str, Any]
             Region dictionary.
 
         Returns
         -------
-        Regions
-            Regions object.
+        Region
+            Region object.
         """
         regionObj = Region()
         regionObj.id = regionDictionary["id"]
@@ -346,7 +375,29 @@ class Region:
 
 
 class DataNode:
-    """Recursive data structure that contains all the information of a monitored application."""
+    """Recursive data structure that contains all the information of a monitored application.
+
+    Parameters
+    ----------
+    id : str
+        Node id.
+    type : NodeType
+        Node type.
+    metadata : Dict
+        Node metadata.
+    nodes : dict[str, Any] | None, optional
+        Children nodes, by default None.
+    metrics : dict[MetricType, Metric | Stats] | None, optional
+        Node metrics, by default None.
+    deviceType : DeviceType | None, optional
+        Node device type, only relevant for leaf nodes, by default None.
+    raw_data : RawData | None, optional
+        Raw data object, only relevant for leaf nodes, by default None.
+    regions : dict[str, Region] | None, optional
+        Dictionary containing region event data, by default None.
+    processed : bool, optional
+        Marks if the node has been processed, by default False.
+    """
 
     def __init__(
         self,
@@ -360,29 +411,7 @@ class DataNode:
         regions: dict[str, Region] | None = None,
         processed: bool = False,
     ) -> None:
-        """Perun DataNode.
-
-        Parameters
-        ----------
-        id : str
-            Node id.
-        type : NodeType
-            Node type.
-        metadata : Dict
-            Node metadata.
-        nodes : dict[str, Any] | None, optional
-            Children nodes, by default None
-        metrics : dict[MetricType, Metric | Stats] | None, optional
-            Node metrics, by default None
-        deviceType : DeviceType | None, optional
-            Node device type, only relevant for leaf nodes, by default None
-        raw_data : RawData | None, optional
-            Raw data object, only relevant for leaf nodes, by default None
-        regions: dict[str, Region], optional
-            Dictionary containing region event data, by default None
-        processed : bool, optional
-            Marks if the node has been processed, by default False
-        """
+        """Perun DataNode."""
         self.id = id
         self.type = type
         self.metadata: dict[str, Any] = metadata
@@ -399,7 +428,7 @@ class DataNode:
         Parameters
         ----------
         localRegions : list[LocalRegions]
-            Gathered local regions from all MPI ranks
+            Gathered local regions from all MPI ranks.
         start_time : int
             'Official' start time of the run.
         """
@@ -420,7 +449,18 @@ class DataNode:
                     self.regions[region_name].raw_data[rank] = t_s
 
     def toDict(self, include_raw_data: bool = True) -> dict[str, Any]:
-        """Transform object to dictionary."""
+        """Transform object to dictionary.
+
+        Parameters
+        ----------
+        include_raw_data : bool, optional
+            Include the raw data of the node, by default True.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary representation of the node.
+        """
         resultsDict = {
             "id": self.id,
             "type": self.type.value,

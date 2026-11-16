@@ -30,7 +30,7 @@ def exportHDF5(filePath: Path, dataNode: DataNode) -> None:
     Parameters
     ----------
     filePath : Path
-        Output path
+        Output path.
     dataNode : DataNode
         Root of data node tree.
     """
@@ -253,7 +253,7 @@ def _addRegion(h5Group: h5py.Group, region: Region) -> None:
     region_group.attrs["processed"] = region.processed
 
     region_metrics = region_group.create_group("metrics")
-    _addMetric(region_group, region.runs_per_rank)  # type: ignore[arg-type]
+    _addMetric(region_group, region.runs_per_rank)  # ty: ignore[invalid-argument-type]
     for metricType, stat in region.metrics.items():
         _addMetric(region_metrics, stat)
     raw_data_group = region_group.create_group("raw_data")
@@ -274,9 +274,9 @@ def _readRegion(group: h5py.Group) -> Region:
     regionObj.processed = group.attrs["processed"]
 
     for metric_group in group["metrics"].values():
-        stat: Stats = _readMetric(metric_group)  # type: ignore[assignment]
+        stat: Stats = _readMetric(metric_group)  # ty: ignore[invalid-assignment]
         regionObj.metrics[stat.type] = stat
-    regionObj.runs_per_rank = _readMetric(group["N_RUNS"])  # type: ignore[assignment]
+    regionObj.runs_per_rank = _readMetric(group["N_RUNS"])  # ty: ignore[invalid-assignment]
 
     raw_data_group = group["raw_data"]
     regionObj.raw_data = {}

@@ -40,16 +40,16 @@ log = logging.getLogger(__name__)
 
 
 class Perun(metaclass=Singleton):
-    """Perun object."""
+    """Perun object.
+
+    Parameters
+    ----------
+    config : ConfigParser
+        Global configuration object.
+    """
 
     def __init__(self, config: ConfigParser) -> None:
-        """Init perun with configuration.
-
-        Parameters
-        ----------
-        config : ConfigParser
-            Global configuration object
-        """
+        """Init perun with configuration."""
         self.config = config
         self._comm: Comm | None = None
         self._backends: dict[str, Backend] | None = None
@@ -79,7 +79,13 @@ class Perun(metaclass=Singleton):
 
     @property
     def comm(self) -> Comm:
-        """Lazy initialization of mpi communication object."""
+        """Lazy initialization of mpi communication object.
+
+        Returns
+        -------
+        Comm
+            MPI communication object.
+        """
         if not self._comm:
             os.environ["OMPI_MCA_mpi_warn_on_fork"] = "0"
             os.environ["IBV_FORK_SAFE"] = "1"
@@ -146,7 +152,7 @@ class Perun(metaclass=Singleton):
         Returns
         -------
         dict[str, list[int]]
-            Dictionary with key (hostname) and values (list of ranks in host)
+            Dictionary with key (hostname) and values (list of ranks in host).
         """
         if not self._host_rank:
             self._host_rank = getHostRankDict(self.comm, self.hostname)
@@ -251,7 +257,7 @@ class Perun(metaclass=Singleton):
         Returns
         -------
         dict[str, Any]
-            Metadata dictionary
+            Metadata dictionary.
         """
         if not self._l_host_metadata:
             cpuInfo = cpuinfo.get_cpu_info()
@@ -274,7 +280,7 @@ class Perun(metaclass=Singleton):
         Returns
         -------
         dict[str, Any]
-            Metadata dictionary
+            Metadata dictionary.
         """
         if not self._l_backend_metadata:
             log.info("Getting backend metadata")
@@ -307,7 +313,7 @@ class Perun(metaclass=Singleton):
         Parameters
         ----------
         app : Path
-            App script file path
+            App script file path.
 
         Returns
         -------
@@ -499,7 +505,7 @@ class Perun(metaclass=Singleton):
             Data node to export.
         format : IOFormat
             Format to export data.
-        mr_id: str, optional
+        mr_id : str, optional
             The id of the multi_run to be exported, the last one if left empty.
         """
         exportTo(dataOut, dataNode, format, mr_id)

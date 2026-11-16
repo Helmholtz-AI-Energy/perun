@@ -104,7 +104,7 @@ class Magnitude(float, enum.Enum):
         Returns
         -------
         str
-            String symbol
+            String symbol.
         """
         return _mag_symbols[self.name]
 
@@ -126,7 +126,18 @@ class MetricMetaData:
 
     @classmethod
     def fromDict(cls, mdDict: dict[str, Any]) -> "MetricMetaData":
-        """Create MetricMetadata from a dictionary."""
+        """Create MetricMetadata from a dictionary.
+
+        Parameters
+        ----------
+        mdDict : dict[str, Any]
+            Metric metadata dictionary.
+
+        Returns
+        -------
+        MetricMetaData
+            Metric metadata object.
+        """
         dtype = np.dtype(mdDict["dtype"])
         return cls(
             Unit(mdDict["unit"]),

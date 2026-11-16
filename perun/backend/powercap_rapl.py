@@ -48,7 +48,29 @@ class PowercapRAPLBackend(Backend):
         raplPath = Path(RAPL_PATH)
 
         def getCallback(file: IOBase, file_path: str) -> Callable[[], Number]:
+            """Create a callback function to read an energy counter from file.
+
+            Parameters
+            ----------
+            file : IOBase
+                Open energy counter file.
+            file_path : str
+                Path of the energy counter file, used in log messages.
+
+            Returns
+            -------
+            Callable[[], Number]
+                Function that returns the current counter value.
+            """
+
             def func() -> Number:
+                """Read the current energy counter value.
+
+                Returns
+                -------
+                Number
+                    Counter value, or 0 if the file could not be read.
+                """
                 try:
                     file.seek(0)
                     return np.uint64(file.readline().strip())

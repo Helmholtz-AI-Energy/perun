@@ -34,11 +34,23 @@ class Sensor:
     measureCallback: Callable[[], Number]
 
     def read(self) -> Number:
-        """Read value from sensor."""
+        """Read value from sensor.
+
+        Returns
+        -------
+        Number
+            Current sensor value.
+        """
         return self.measureCallback()
 
     def toDict(self) -> dict[str, Any]:
-        """Return device as a dictionary."""
+        """Return device as a dictionary.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary representation of the sensor.
+        """
         return {
             "id": self.id,
             "type": self.type.value,

@@ -87,14 +87,14 @@ def getTFactorMag(value: Number, metric_md: MetricMetaData) -> Tuple[float, Magn
     Parameters
     ----------
     value : Number
-        Reference value
+        Reference value.
     metric_md : MetricMetaData
-        Value description
+        Value description.
 
     Returns
     -------
     Tuple[float, Magnitude]
-        Scaling factor and Magnitude Enum
+        Scaling factor and Magnitude Enum.
     """
     if (
         metric_md.unit == Unit.WATT
@@ -132,7 +132,7 @@ def value2ValueUnitStr(value: Number, metric_md: MetricMetaData) -> str:
     Returns
     -------
     str
-        String represenation
+        String represenation.
     """
     tfactor, new_mag = getTFactorMag(value, metric_md)
     return f"{value / tfactor:.3f} {new_mag.symbol}{metric_md.unit.value}"
@@ -145,13 +145,11 @@ def value2MeanStdStr(stats: Stats) -> str:
     ----------
     stats : Stats obj
         Stats to apply formating to.
-    metric_md : MetricMetaData
-        Value metadata.
 
     Returns
     -------
     str
-        String represenation
+        String represenation.
     """
     tfactor, new_mag = getTFactorMag(stats.mean, stats.metric_md)
     return f"{stats.mean / tfactor:.2f} ± {stats.std / tfactor:.2f} {new_mag.symbol}{stats.metric_md.unit.value}"

@@ -18,6 +18,17 @@ class MissingDependencyError(ImportError):
     "extra" to install (e.g. ``pip install perun[nvidia]``) so that missing
     optional dependencies never result in a bare, hard-to-interpret traceback.
 
+    Parameters
+    ----------
+    module : str
+        Name of the module that could not be imported.
+    extra : str | None, optional
+        Name of the perun optional-dependency extra that ships ``module``.
+        When provided, the message suggests ``pip install perun[<extra>]``.
+    feature : str | None, optional
+        Human readable name of the feature that requires the dependency,
+        used to make the message clearer.
+
     Attributes
     ----------
     module : str
@@ -32,19 +43,7 @@ class MissingDependencyError(ImportError):
         extra: str | None = None,
         feature: str | None = None,
     ) -> None:
-        """Build a ``MissingDependencyError`` with an actionable message.
-
-        Parameters
-        ----------
-        module : str
-            Name of the module that could not be imported.
-        extra : str | None, optional
-            Name of the perun optional-dependency extra that ships ``module``.
-            When provided, the message suggests ``pip install perun[<extra>]``.
-        feature : str | None, optional
-            Human readable name of the feature that requires the dependency,
-            used to make the message clearer.
-        """
+        """Build a ``MissingDependencyError`` with an actionable message."""
         self.module = module
         self.extra = extra
         feature_str = f" required for {feature}" if feature else ""
@@ -179,8 +178,8 @@ class Singleton(type):
         """
         Return an instance of a singleton class if it has already been created.
 
-        Return
-        ------
+        Returns
+        -------
         ClassInstance
             Existing instance of the class.
 
@@ -205,7 +204,7 @@ def getRunId(starttime: datetime, run_id: str | None = None) -> str:
     ----------
     starttime : datetime
         The datetime object representing the start time of the run.
-    run_id: str, optional
+    run_id : str, optional
         A string with the id given by the user in the configuration or the command line.
 
     Returns
@@ -241,7 +240,7 @@ def increaseIdCounter(existing: list[str], newId: str) -> str:
     Returns
     -------
     str
-        newId with an added counter if any matches were found.
+        New id with an added counter if any matches were found.
     """
     exp = re.compile(r"^" + newId + r"(_\d+)?$")
     matches: list[re.Match[str]] = [
@@ -271,13 +270,13 @@ def filter_sensors(
     sensors : dict[str, tuple]
         Dictionary of sensors.
     include_sensors : list[str] | None, optional
-        List of sensors to include, by default None
+        List of sensors to include, by default None.
     exclude_sensors : list[str] | None, optional
-        List of sensors to exclude, by default None
+        List of sensors to exclude, by default None.
     include_backends : list[str] | None, optional
-        List of backends to include, by default None
+        List of backends to include, by default None.
     exclude_backends : list[str] | None, optional
-        List of backends to exclude, by default None
+        List of backends to exclude, by default None.
 
     Returns
     -------

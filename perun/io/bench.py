@@ -39,7 +39,7 @@ def exportBench(dataNode: DataNode, mr_id: str) -> str:
     Parameters
     ----------
     dataNode : DataNode
-        Data Node
+        Data Node.
     mr_id : str
         MULTI_RUN node to get data from.
 

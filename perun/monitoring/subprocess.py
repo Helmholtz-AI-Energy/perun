@@ -245,23 +245,23 @@ def perunSubprocess(
     Parameters
     ----------
     queue : Queue
-        Multiprocessing Queue object where the results are sent after finish
+        Multiprocessing Queue object where the results are sent after finish.
     rank : int
-        Local MPI Rank
+        Local MPI Rank.
     l_assigned_sensors : Dict[str, Tuple]
-        Local MPI rank sensor configuration
-    perunConfig: ConfigParser
-        Global perun configuration
+        Local MPI rank sensor configuration.
+    perunConfig : ConfigParser
+        Global perun configuration.
     sp_ready_event : EventClass
-        Indicates monitoring supbrocess is ready, multiprocessing module
+        Indicates monitoring supbrocess is ready, multiprocessing module.
     start_event : EventClass
-        Indicates start of the monitored application
+        Indicates start of the monitored application.
     stop_event : EventClass
-        Indicates the stop of a monitored application
+        Indicates the stop of a monitored application.
     close_event : EventClass
-        Indicates that perun is closing, and the subprocess needs to close
+        Indicates that perun is closing, and the subprocess needs to close.
     sampling_period : float
-        Sampling period in seconds
+        Sampling period in seconds.
     live_callback_inits : dict[str, Callable[[], Callable[[str, Number], None]]]
         Dictionary of live callback initializers, where the key is the name of the callback and the value is a function that returns a callable that accepts metric identifier and value.
     """

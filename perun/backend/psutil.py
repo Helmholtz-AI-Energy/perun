@@ -1,4 +1,4 @@
-"""psutil backend."""
+"""Backend based on psutil."""
 
 import logging
 from typing import Callable, Dict, List, Set, Tuple
@@ -22,8 +22,8 @@ class PSUTILBackend(Backend):
 
     def setup(self) -> None:
         """Configure psutil backend."""
-        psutil.disk_io_counters.cache_clear()  # type: ignore[attr-defined]
-        psutil.net_io_counters.cache_clear()  # type: ignore[attr-defined]
+        psutil.disk_io_counters.cache_clear()  # ty: ignore[missing-attribute]
+        psutil.net_io_counters.cache_clear()  # ty: ignore[missing-attribute]
         self._metadata = {"source": f"psutil {psutil.__version__}"}
         self._sensors = self._findSensors()
 
@@ -148,7 +148,18 @@ class PSUTILBackend(Backend):
         return func
 
     def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
-        """Return desired device objects."""
+        """Return desired device objects.
+
+        Parameters
+        ----------
+        deviceList : Set[str]
+            Ids of the wanted devices.
+
+        Returns
+        -------
+        List[Sensor]
+            Sensor objects for the wanted devices.
+        """
         devices = []
         for deviceName in deviceList:
             if deviceName == "RAM_USAGE":

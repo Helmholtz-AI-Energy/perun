@@ -18,7 +18,7 @@ def exportCSV(outputPath: Path, dataNode: DataNode, mr_id: str) -> None:
     dataNode : DataNode
         Perun data node.
     mr_id : str
-        Id of Multi_run node to get data from
+        Id of Multi_run node to get data from.
     """
     columns = [
         "run id",

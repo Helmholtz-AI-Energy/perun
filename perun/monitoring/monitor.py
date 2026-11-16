@@ -79,10 +79,12 @@ class PerunMonitor:
         The application to be monitored.
     comm : Comm
         The communication object for inter-process communication.
-    l_sensors_config : dict[str, set[str]]
-        The configuration for local sensors.
-    _backends : dict[str, Backend]
+    backends : dict[str, Backend]
         The backends for data collection.
+    l_assigned_sensors : dict[str, tuple]
+        The sensors assigned to the local rank.
+    live_callback_inits : dict[str, Callable[[], Callable[[dict[str, Number]], None]]]
+        Live callback initializers, by callback name.
     config : ConfigParser
         The configuration parser object.
 
@@ -223,7 +225,6 @@ class PerunMonitor:
             4. Runs the application.
             5. Stops the application and retrieves the data.
         - If `record` is False, the method simply runs the application without recording data.
-
         """
         log.info(f"Rank {self._comm.Get_rank()}: _run_application")
 
@@ -519,7 +520,7 @@ class PerunMonitor:
                 )
                 self.perunSP.terminate()
                 self.perunSP.join()
-                if self.perunSP.exitcode and self.perunSP.exitcode != 0:
+                if self.perunSP.exitcode and self.perunSP.exitcode != 0:  # ty: ignore[redundant-condition]
                     log.warning(
                         f"Rank {self._comm.Get_rank()}: Monitoring subprocess exited with code {self.perunSP.exitcode}"
                     )
