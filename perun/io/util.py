@@ -2,7 +2,7 @@
 
 import json
 from collections.abc import Sequence
-from typing import Any, Tuple, cast
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
@@ -81,20 +81,20 @@ def dataframe_to_markdown(df: pd.DataFrame, stralign: str = "right") -> str:
     )
 
 
-def getTFactorMag(value: Number, metric_md: MetricMetaData) -> Tuple[float, Magnitude]:
+def getTFactorMag(value: Number, metric_md: MetricMetaData) -> tuple[float, Magnitude]:
     """Get transformation factor and magnitude to improve string formating.
 
     Parameters
     ----------
     value : Number
-        Reference value
+        Reference value.
     metric_md : MetricMetaData
-        Value description
+        Value description.
 
     Returns
     -------
-    Tuple[float, Magnitude]
-        Scaling factor and Magnitude Enum
+    tuple[float, Magnitude]
+        Scaling factor and Magnitude Enum.
     """
     if (
         metric_md.unit == Unit.WATT
@@ -132,7 +132,7 @@ def value2ValueUnitStr(value: Number, metric_md: MetricMetaData) -> str:
     Returns
     -------
     str
-        String represenation
+        String represenation.
     """
     tfactor, new_mag = getTFactorMag(value, metric_md)
     return f"{value / tfactor:.3f} {new_mag.symbol}{metric_md.unit.value}"
@@ -145,13 +145,11 @@ def value2MeanStdStr(stats: Stats) -> str:
     ----------
     stats : Stats obj
         Stats to apply formating to.
-    metric_md : MetricMetaData
-        Value metadata.
 
     Returns
     -------
     str
-        String represenation
+        String represenation.
     """
     tfactor, new_mag = getTFactorMag(stats.mean, stats.metric_md)
     return f"{stats.mean / tfactor:.2f} ± {stats.std / tfactor:.2f} {new_mag.symbol}{stats.metric_md.unit.value}"
@@ -227,7 +225,7 @@ def _sensor_power_series(raw_data: Any) -> np.ndarray:
 
 def raw_metric_stats(
     node: Any, metric_type: Any
-) -> Tuple[Number, Number, Number, MetricMetaData] | None:
+) -> tuple[Number, Number, Number, MetricMetaData] | None:
     """Compute (min, mean, max, metadata) for a metric from raw sensor data.
 
     The statistics are taken directly from the underlying sensor time-series
@@ -350,4 +348,4 @@ class NumpyEncoder(json.JSONEncoder):
         elif isinstance(o, np.dtype):
             return str(o)
         else:
-            return super(NumpyEncoder, self).default(o)
+            return super().default(o)

@@ -49,7 +49,7 @@ class Comm:
 
         Returns
         -------
-        Optional[Tuple[int, int]]
+        tuple[int, int] | None
             Tuple with MPI version and subversion, or None if not available.
         """
         if self._enabled:
@@ -65,7 +65,7 @@ class Comm:
         Returns
         -------
         int
-            MPI Rank
+            MPI Rank.
         """
         if self._enabled:
             if not self._initialized:
@@ -80,7 +80,7 @@ class Comm:
         Returns
         -------
         int
-            World Size
+            World Size.
         """
         if self._enabled:
             if not self._initialized:
@@ -97,7 +97,7 @@ class Comm:
         obj : Any
             Object to be gathered.
         root : int, optional
-            Reciever rank, by default 0
+            Reciever rank, by default 0.
 
         Returns
         -------
@@ -139,7 +139,7 @@ class Comm:
         obj : Any
             Object to be broadcasted.
         root : int, optional
-            Sender rank, by default 0
+            Sender rank, by default 0.
 
         Returns
         -------
@@ -161,7 +161,13 @@ class Comm:
             self._comm.barrier()
 
     def Abort(self, errorcode: int) -> None:
-        """MPI Abort operation."""
+        """MPI Abort operation.
+
+        Parameters
+        ----------
+        errorcode : int
+            Error code returned to the invoking environment.
+        """
         if self._enabled:
             if not self._initialized:
                 self._mpi_init()
@@ -181,7 +187,7 @@ class Comm:
         ranks : list[int]
             List of ranks that need to send the object.
         root : int, optional
-            Reciever rank, by default 0
+            Reciever rank, by default 0.
 
         Returns
         -------
@@ -211,7 +217,7 @@ class Comm:
 
         Returns
         -------
-        List[int]
+        list[int]
             List with responsive MPI ranks.
         """
         if self._enabled:

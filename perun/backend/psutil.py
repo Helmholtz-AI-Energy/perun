@@ -1,7 +1,7 @@
-"""psutil backend."""
+"""Backend based on psutil."""
 
 import logging
-from typing import Callable, Dict, List, Set, Tuple
+from collections.abc import Callable
 
 import numpy as np
 import psutil
@@ -22,8 +22,8 @@ class PSUTILBackend(Backend):
 
     def setup(self) -> None:
         """Configure psutil backend."""
-        psutil.disk_io_counters.cache_clear()  # type: ignore[attr-defined]
-        psutil.net_io_counters.cache_clear()  # type: ignore[attr-defined]
+        psutil.disk_io_counters.cache_clear()  # ty: ignore[missing-attribute]
+        psutil.net_io_counters.cache_clear()  # ty: ignore[missing-attribute]
         self._metadata = {"source": f"psutil {psutil.__version__}"}
         self._sensors = self._findSensors()
 
@@ -31,12 +31,12 @@ class PSUTILBackend(Backend):
         """Close backend."""
         pass
 
-    def _findSensors(self) -> Dict[str, Tuple]:
+    def _findSensors(self) -> dict[str, tuple]:
         """Return list of visible devices.
 
         Returns
         -------
-        Dict[str, Tuple]
+        dict[str, tuple]
             Dictionary with device ids and measurement unit.
         """
         sensors = {}
@@ -77,12 +77,12 @@ class PSUTILBackend(Backend):
                 sensors[f"CPU_FREQ_{cpu_id}"] = (self.id, DeviceType.CPU, Unit.HZ)
         return sensors
 
-    def availableSensors(self) -> Dict[str, Tuple]:
+    def availableSensors(self) -> dict[str, tuple]:
         """Return a dictionary with all available sensors.
 
         Returns
         -------
-        Dict[str, Tuple]
+        dict[str, tuple]
             Dictionary with device ids and measurement unit.
         """
         return self._sensors
@@ -147,8 +147,19 @@ class PSUTILBackend(Backend):
 
         return func
 
-    def getSensors(self, deviceList: Set[str]) -> List[Sensor]:
-        """Return desired device objects."""
+    def getSensors(self, deviceList: set[str]) -> list[Sensor]:
+        """Return desired device objects.
+
+        Parameters
+        ----------
+        deviceList : Set[str]
+            Ids of the wanted devices.
+
+        Returns
+        -------
+        list[Sensor]
+            Sensor objects for the wanted devices.
+        """
         devices = []
         for deviceName in deviceList:
             if deviceName == "RAM_USAGE":

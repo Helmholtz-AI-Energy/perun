@@ -32,7 +32,13 @@ class Backend(metaclass=Singleton):
 
     @property
     def metadata(self) -> dict:
-        """Return backend metadata."""
+        """Return backend metadata.
+
+        Returns
+        -------
+        dict
+            Backend metadata.
+        """
         log.info(f"Metadata for {self.name} backend: {self._metadata}")
         return self._metadata
 
@@ -55,12 +61,12 @@ class Backend(metaclass=Singleton):
         Parameters
         ----------
         deviceList : set[str]
-            List with wanted device ids
+            List with wanted device ids.
 
         Returns
         -------
         list[Sensor]
-            List of device objects
+            List of device objects.
         """
         pass
 

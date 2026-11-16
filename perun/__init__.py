@@ -1,4 +1,4 @@
-"""perun module."""
+"""The perun package."""
 
 # isort: split
 

@@ -13,9 +13,9 @@ def getHostRankDict(comm: Comm, hostname: str) -> dict[str, list[int]]:
     Parameters
     ----------
     comm : Comm
-        MPI Communicator
+        MPI Communicator.
     hostname : str
-        Local rank Hostname
+        Local rank Hostname.
 
     Returns
     -------
@@ -39,7 +39,7 @@ def assignSensors(
     host_rank_dict: dict[str, list[int]],
     g_available_sensors: list[dict[str, tuple]],
 ) -> list[dict[str, tuple]]:
-    """Assings each mpi rank a sensor based on available backends and Host to rank mapping.
+    """Assign each mpi rank a sensor based on available backends and Host to rank mapping.
 
     Parameters
     ----------

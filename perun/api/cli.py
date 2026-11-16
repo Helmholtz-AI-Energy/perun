@@ -296,7 +296,7 @@ def _get_arg_parser() -> argparse.ArgumentParser:
         nargs="+",
         default=[],
         dest="live_callback_files",
-        type=argparse.FileType("r", encoding="utf-8"),
+        type=argparse.FileType("r", encoding="utf-8"),  # ty: ignore[deprecated]
         help="Path to file that contains the live callbacks to use.",
     )
     monitor_parser.add_argument("cmd", type=str)
@@ -341,7 +341,13 @@ def cli() -> None:
 
 
 def showconf(args: argparse.Namespace) -> None:
-    """Print current perun configuration in INI format."""
+    """Print current perun configuration in INI format.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command line arguments.
+    """
     from perun.configuration import _default_config
 
     if args.showconf_default:
@@ -352,7 +358,13 @@ def showconf(args: argparse.Namespace) -> None:
 
 
 def sensors(args: argparse.Namespace) -> None:
-    """Print available sensors."""
+    """Print available sensors.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command line arguments.
+    """
     perun = Perun(config)
     log.debug("Initialized perun object.")
     arg_by_rank = args.by_rank
@@ -379,7 +391,13 @@ def sensors(args: argparse.Namespace) -> None:
 
 
 def metadata(args: argparse.Namespace) -> None:
-    """Print global metadata dictionaries in json format."""
+    """Print global metadata dictionaries in json format.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command line arguments.
+    """
     perun = Perun(config)
 
     hostMD = perun.l_host_metadata
@@ -395,7 +413,13 @@ def metadata(args: argparse.Namespace) -> None:
 
 
 def export(args: argparse.Namespace) -> None:
-    """Export existing perun output file to another format."""
+    """Export existing perun output file to another format.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command line arguments.
+    """
     in_file = Path(args.input_file)
     if not in_file.exists():
         log.error("File does not exist.")
@@ -419,6 +443,11 @@ def monitor(args: argparse.Namespace) -> None:
     Gather power consumption from hardware devices while SCRIPT [SCRIPT_ARGS] is running.
 
     SCRIPT is a path to the python script to monitor, run with arguments SCRIPT_ARGS.
+
+    Parameters
+    ----------
+    args : argparse.Namespace
+        Parsed command line arguments.
     """
     cmd: str = args.cmd
     log.debug(f"Cmd: {cmd}")

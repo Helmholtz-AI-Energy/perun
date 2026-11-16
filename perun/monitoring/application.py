@@ -5,9 +5,10 @@ import logging
 import logging.handlers
 import os
 import subprocess
+from collections.abc import Callable
 from configparser import ConfigParser
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 log = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ class Application:
         The application to be executed. It can be either a file path or a callable object.
     config : ConfigParser
         The configuration object containing application settings.
+    is_binary : bool, optional
+        Whether the application is an executable instead of a python script (default is False).
     args : tuple, optional
         Positional arguments to be passed to the application (default is an empty tuple).
     kwargs : dict, optional
@@ -57,7 +60,7 @@ class Application:
         self._is_binary = is_binary
         if isinstance(app, Path):
             try:
-                with open(app, "r") as scriptFile:
+                with open(app) as scriptFile:
                     self._scriptFile = scriptFile.read()
             except FileNotFoundError:
                 log.error(
@@ -67,22 +70,46 @@ class Application:
 
     @property
     def name(self) -> str:
-        """Return the application name."""
+        """Return the application name.
+
+        Returns
+        -------
+        str
+            The application name.
+        """
         return self._name
 
     @property
     def args(self) -> tuple[Any, ...]:
-        """Return the application positional arguments."""
+        """Return the application positional arguments.
+
+        Returns
+        -------
+        tuple[Any, ...]
+            The application positional arguments.
+        """
         return self._args
 
     @property
     def kwargs(self) -> dict[str, Any]:
-        """Return the application keyword arguments."""
+        """Return the application keyword arguments.
+
+        Returns
+        -------
+        dict[str, Any]
+            The application keyword arguments.
+        """
         return self._kwargs
 
     @property
     def is_binary(self) -> bool:
-        """Return the application keyword arguments."""
+        """Return whether the application is an executable.
+
+        Returns
+        -------
+        bool
+            True if the application is an executable instead of a python script.
+        """
         return self._is_binary
 
     def _setName(self, config: ConfigParser) -> str:
@@ -113,7 +140,7 @@ class Application:
         elif isinstance(self._app, Path):
             return self._app.stem
         elif callable(self._app):
-            return self._app.__name__
+            return self._app.__name__  # ty: ignore[missing-attribute]
         elif isinstance(self._app, str):
             return self._app
         else:
@@ -126,6 +153,11 @@ class Application:
     def run(self) -> Any:
         """
         Execute the application. If callable, returns the function result.
+
+        Returns
+        -------
+        Any
+            Result of the callable, or None for scripts and executables.
 
         Raises
         ------

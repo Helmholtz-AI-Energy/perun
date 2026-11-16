@@ -2,7 +2,7 @@ import time
 
 time.sleep(5)
 
-with open("does-not-exist.txt", "r") as file:
+with open("does-not-exist.txt") as file:
     lines = file.readlines()
     for line in lines:
         print(line)

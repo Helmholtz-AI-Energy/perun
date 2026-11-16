@@ -4,6 +4,7 @@ import enum
 import logging
 from datetime import datetime
 from pathlib import Path
+from typing import Self
 
 from perun.data_model.data import DataNode
 from perun.io.bench import exportBench
@@ -37,11 +38,17 @@ class IOFormat(enum.Enum):
 
     @property
     def suffix(self) -> str:
-        """Return file suffix from format."""
+        """Return file suffix from format.
+
+        Returns
+        -------
+        str
+            File suffix.
+        """
         return _suffixes[self.value]
 
     @classmethod
-    def fromSuffix(cls, suffix: str) -> "IOFormat":
+    def fromSuffix(cls, suffix: str) -> Self:
         """Return format from suffix.
 
         The suffix is matched exactly (ignoring a leading dot and case) against
@@ -49,6 +56,16 @@ class IOFormat(enum.Enum):
         because several suffixes share characters (e.g. ``json`` vs ``bench``'s
         ``json``), which previously led to the wrong format being selected
         depending on dictionary ordering.
+
+        Parameters
+        ----------
+        suffix : str
+            File suffix, with or without a leading dot.
+
+        Returns
+        -------
+        IOFormat
+            Matching format.
         """
         normalized = suffix.lower().lstrip(".")
         for key, value in _suffixes.items():
@@ -65,13 +82,13 @@ def exportTo(
     Parameters
     ----------
     output_path : Path
-        Output Path
+        Output Path.
     dataNode : DataNode
-        DataNode Object
+        DataNode Object.
     format : IOFormat
-        Selected output format
-    mr_id : Optional[str], optional
-        Run id to extract from DataNode, by default None
+        Selected output format.
+    mr_id : str | None, optional
+        Run id to extract from DataNode, by default None.
 
     Raises
     ------
@@ -161,15 +178,20 @@ def exportTo(
 def importFrom(filePath: Path, format: IOFormat) -> DataNode:
     """Import DataNode structure from path. If no format is given, it is inferred from the file suffix.
 
-    :param filePath: Path to file
-    :type filePath: Path
-    :param format: File format
-    :type format: IOFormat
-    :return: Perun DataNode structure
-    :rtype: DataNode
+    Parameters
+    ----------
+    filePath : Path
+        Path to file.
+    format : IOFormat
+        File format.
+
+    Returns
+    -------
+    DataNode
+        Perun DataNode structure.
     """
     if format == IOFormat.JSON:
-        with open(filePath, "r") as file:
+        with open(filePath) as file:
             dataNode = importJson(file.read())
     elif format == IOFormat.HDF5:
         dataNode = importHDF5(filePath)

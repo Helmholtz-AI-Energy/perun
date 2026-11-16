@@ -30,7 +30,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 dependencies = [
     "py-cpuinfo>=5.0.0",
@@ -59,6 +59,8 @@ dev = [
 
     # QA
     "pre-commit",
+    "ty",
+    "numpydoc",
 
     # Releases and changelogs
     "python-semantic-release>=8.1.1",
@@ -113,44 +115,24 @@ default_bump_level = 0
 env = "GIT_COMMIT_AUTHOR"
 default = "semantic-release <semantic-release>"
 
-# Mypy
-[tool.mypy]
-python_version="3.10"
-packages=["perun"]
-exclude=[
-    'tests/',
-    'examples/'
-]
+# ty
+[tool.ty.environment]
+python-version = "3.11"
 
-disallow_untyped_defs = true
-disallow_any_unimported = true
-no_implicit_optional = true
-check_untyped_defs=true
-warn_return_any=true
-show_error_codes =true
-warn_unused_ignores=false
-follow_imports = "normal"
-follow_untyped_imports = true
+[tool.ty.src]
+include = ["perun"]
 
-[[tool.mypy.overrides]]
-module=[
-    "perun.comm",
-    "perun.backend.rocmsmi",
-    "perun.backend.psutil",
-    "perun.backend.powercap_rapl",
-    "perun.backend.nvml"
-]
-warn_return_any= false
-# ignore_missing_imports = true
-
+[tool.ty.analysis]
+# mpi4py is optional and needs a system MPI to install
+allowed-unresolved-imports = ["mpi4py", "mpi4py.**"]
 
 # Ruff
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 exclude = ["docs", "examples"]
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "D", "D417", "NPY"]
+select = ["E", "F", "I", "D", "D417", "NPY", "UP"]
 ignore = ["E501", "NPY201"]
 
 [tool.ruff.lint.per-file-ignores]
@@ -161,6 +143,21 @@ convention = "numpy"
 
 [tool.ruff.format]
 docstring-code-format = true
+
+# Numpydoc
+[tool.numpydoc_validation]
+checks = [
+    "all",  # report on all checks, except the below
+    "EX01",
+    "SA01",
+    "ES01",
+]
+exclude = [
+    '\.__init__$',
+    '\.__repr__$',
+    '\.__str__$',
+    '\._',  # private functions and methods, and anything nested in them
+]
 
 # Testing
 [tool.pytest.ini_options]

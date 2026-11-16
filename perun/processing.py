@@ -38,11 +38,11 @@ def processEnergyData(
     Parameters
     ----------
     raw_data : RawData
-        Raw Data from sensor
-    start : Optional[Number], optional
-        Start time of region, by default None
-    end : Optional[Number], optional
-        End time of region, by default None
+        Raw Data from sensor.
+    start : Number | None, optional
+        Start time of region, by default None.
+    end : Number | None, optional
+        End time of region, by default None.
 
     Returns
     -------
@@ -102,9 +102,9 @@ def processEnergyData(
 
     avg_power_W = np.mean(power_W)
     if np.__version__[0] == "1":
-        energy_J = np.trapz(power_W, x=t_s)  # type: ignore[attr-defined]
+        energy_J = np.trapz(power_W, x=t_s)  # ty: ignore[missing-attribute]
     else:
-        energy_J = np.trapezoid(power_W, x=t_s)  # type: ignore[attr-defined]
+        energy_J = np.trapezoid(power_W, x=t_s)
 
     return energy_J, avg_power_W
 
@@ -135,10 +135,10 @@ def processIOData(
     ----------
     raw_data : RawData
         Raw data from a cumulative byte counter sensor.
-    start : Optional[Number], optional
-        Start time of region, by default None
-    end : Optional[Number], optional
-        End time of region, by default None
+    start : Number | None, optional
+        Start time of region, by default None.
+    end : Number | None, optional
+        End time of region, by default None.
 
     Returns
     -------
@@ -194,9 +194,9 @@ def processIOData(
 
     avg_bandwidth_Bps = np.mean(bandwidth_Bps)
     if np.__version__[0] == "1":
-        total_bytes = np.trapz(bandwidth_Bps, x=t_s)  # type: ignore[attr-defined]
+        total_bytes = np.trapz(bandwidth_Bps, x=t_s)  # ty: ignore[missing-attribute]
     else:
-        total_bytes = np.trapezoid(bandwidth_Bps, x=t_s)  # type: ignore[attr-defined]
+        total_bytes = np.trapezoid(bandwidth_Bps, x=t_s)
 
     return total_bytes, avg_bandwidth_Bps
 
@@ -363,10 +363,10 @@ def processDataNode(
     ----------
     dataNode : DataNode
         Root data node tree.
-    perunConfig: ConfigParser
-        Perun configuration
+    perunConfig : ConfigParser
+        Perun configuration.
     force_process : bool, optional
-        Force recomputation of child node metrics, by default False
+        Force recomputation of child node metrics, by default False.
 
     Returns
     -------
@@ -496,7 +496,7 @@ def processRegionsWithSensorData(regions: list[Region], dataNode: DataNode) -> N
 
     Parameters
     ----------
-    regions : List[Region]
+    regions : list[Region]
         List of regions that use the same data node.
     dataNode : DataNode
         Data node with sensor data.
@@ -722,7 +722,7 @@ def addRunAndRuntimeInfoToRegion(region: Region) -> None:
     Parameters
     ----------
     region : Region
-        Region object
+        Region object.
     """
     runs_per_rank = []
     runtime = []
@@ -779,17 +779,17 @@ def getInterpolatedValues(
     Parameters
     ----------
     t : np.ndarray
-        Original time steps
+        Original time steps.
     x : np.ndarray
-        Original values
+        Original values.
     start : Number
-        Start of the roi
+        Start of the roi.
     end : Number
-        End of the roi
+        End of the roi.
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray]
+    tuple[np.ndarray, np.ndarray]
         Tuple with the new time steps and values.
     """
     new_t = np.concatenate(

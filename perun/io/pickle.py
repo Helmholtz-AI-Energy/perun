@@ -11,7 +11,7 @@ def exportPickle(dataNode: DataNode) -> bytes:
     Parameters
     ----------
     dataNode : DataNode
-        Data Node
+        Data Node.
 
     Returns
     -------
@@ -27,12 +27,12 @@ def importPickle(pickleData: bytes) -> DataNode:
     Parameters
     ----------
     pickleData : bytes
-        Binary Data
+        Binary Data.
 
     Returns
     -------
     DataNode
-        DataNode
+        DataNode.
     """
     obj = pickle.loads(pickleData)
     if isinstance(obj, DataNode):

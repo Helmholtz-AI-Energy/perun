@@ -210,14 +210,14 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
     Parameters
     ----------
     dataNode : DataNode
-        Application data node
+        Application data node.
     mr_id : str
-        Multirun id
+        Multirun id.
 
     Returns
     -------
     str
-        Report string
+        Report string.
     """
     if not dataNode.processed:
         log.error("Data has not been processed, unable to create report.")
@@ -350,13 +350,13 @@ def textReport(dataNode: DataNode, mr_id: str) -> str:
     if MetricType.ENERGY in dataNode.metrics and isinstance(
         dataNode.metrics[MetricType.ENERGY], Stats
     ):
-        stats: Stats = dataNode.metrics[MetricType.ENERGY]  # type: ignore[assignment]
+        stats: Stats = dataNode.metrics[MetricType.ENERGY]  # ty: ignore[invalid-assignment]
 
         # Application Summary
         total_energy = stats.sum
         e_kWh = total_energy / (3600 * 1e3)
-        kgCO2 = dataNode.metrics[MetricType.CO2].sum / 1e3  # type: ignore[union-attr]
-        money = dataNode.metrics[MetricType.MONEY].sum  # type: ignore[union-attr]
+        kgCO2 = dataNode.metrics[MetricType.CO2].sum / 1e3  # ty: ignore[missing-union-attribute]
+        money = dataNode.metrics[MetricType.MONEY].sum  # ty: ignore[missing-union-attribute]
         money_icon = mr_node.metadata["post-processing.price_unit"]
 
         app_summary_str = f"Application Summary\n\nThe application has been run {n_runs} times. In total, it has used {e_kWh:.3f} kWh, released a total of {kgCO2:.3f} kgCO2e into the atmosphere, and you paid {money:.2f} {money_icon} in electricity for it."
@@ -372,14 +372,14 @@ def sensors_table(sensors: list[dict[str, Any]], by_rank: bool = True) -> str:
     Parameters
     ----------
     sensors : list[dict[str, Any]]
-        List of sensor readings
-    by_rank: bool, optional
+        List of sensor readings.
+    by_rank : bool, optional
         If the table should separate available sensors by rank.
 
     Returns
     -------
     str
-        Table string
+        Table string.
     """
     if not sensors:
         return "No sensor data available."

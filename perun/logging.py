@@ -22,7 +22,18 @@ class ColoredFormatter(logging.Formatter):
     """A logging formatter that adds colors to specific parts of the log message."""
 
     def format(self, record: logging.LogRecord) -> str:
-        """Apply color formating to log message."""
+        """Apply color formating to log message.
+
+        Parameters
+        ----------
+        record : logging.LogRecord
+            Log record to format.
+
+        Returns
+        -------
+        str
+            Formatted log message.
+        """
         levelname = record.levelname
         color_level = COLOR_SEQ % (30 + COLORS.get(levelname, 0))
         record.levelname = f"{color_level}{levelname}{RESET_SEQ}"
@@ -44,12 +55,8 @@ def set_logger_config(config: ConfigParser) -> None:
 
     Parameters
     ----------
-    config: ConfigParser
+    config : ConfigParser
         Configuration object.
-
-    Returns
-    -------
-    None
     """
     # Get logging configuration
     log_lvl = config.get("debug", "log_lvl")

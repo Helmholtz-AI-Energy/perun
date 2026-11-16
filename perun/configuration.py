@@ -6,8 +6,9 @@ import configparser
 import logging
 import os
 import pprint as pp
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
 from perun.io.io import IOFormat
 
@@ -92,9 +93,9 @@ def save_to_config(key: str, value: Any) -> None:
     Parameters
     ----------
     key : str
-        Option name
+        Option name.
     value : Any
-        Option value
+        Option value.
     """
     for section in config.sections():
         if config.has_option(section, key):

@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Union
 
 import h5py
 import numpy as np
@@ -30,7 +29,7 @@ def exportHDF5(filePath: Path, dataNode: DataNode) -> None:
     Parameters
     ----------
     filePath : Path
-        Output path
+        Output path.
     dataNode : DataNode
         Root of data node tree.
     """
@@ -135,7 +134,7 @@ def _readNode(group: h5py.Group) -> DataNode:
     )
 
 
-def _addMetric(h5Group: h5py.Group, metric: Union[Metric, Stats]) -> None:
+def _addMetric(h5Group: h5py.Group, metric: Metric | Stats) -> None:
     """Write metric into hdf5 file."""
     metricGroup = h5Group.create_group(metric.type.name)
 
@@ -154,7 +153,7 @@ def _addMetric(h5Group: h5py.Group, metric: Union[Metric, Stats]) -> None:
         metricGroup.attrs.create("std", metric.std, dtype=metadata.dtype)
 
 
-def _readMetric(group: h5py.Group) -> Union[Metric, Stats]:
+def _readMetric(group: h5py.Group) -> Metric | Stats:
     """Read metric from hdf5 file."""
     metric_md = _readMetricMetadata(group)
     if "value" in group.attrs:
@@ -177,7 +176,7 @@ def _readMetric(group: h5py.Group) -> Union[Metric, Stats]:
 
 
 def _addMetricMetadata(
-    group: Union[h5py.Group, h5py.Dataset], metadata: MetricMetaData
+    group: h5py.Group | h5py.Dataset, metadata: MetricMetaData
 ) -> None:
     """Write metric metadata into hdf5 file."""
     group.attrs["unit"] = metadata.unit.value
@@ -188,7 +187,7 @@ def _addMetricMetadata(
     group.attrs.create("fill", metadata.fill, dtype=metadata.dtype)
 
 
-def _readMetricMetadata(group: Union[h5py.Group, h5py.Dataset]) -> MetricMetaData:
+def _readMetricMetadata(group: h5py.Group | h5py.Dataset) -> MetricMetaData:
     """Read metric metadata form into hdf5 file."""
     dtype = np.dtype(group.attrs["dtype"])
     return MetricMetaData(
@@ -225,10 +224,10 @@ def _readRawData(group: h5py.Group) -> RawData:
     t_md = _readMetricMetadata(timesteps_ds)
     v_md = _readMetricMetadata(values_ds)
 
-    alt_values_ds: Optional[h5py.Dataset] = (
+    alt_values_ds: h5py.Dataset | None = (
         group["alt_values"] if "alt_values" in group else None
     )
-    alt_v_md: Optional[MetricMetaData] = (
+    alt_v_md: MetricMetaData | None = (
         _readMetricMetadata(alt_values_ds) if alt_values_ds is not None else None
     )
     return RawData(
@@ -241,7 +240,7 @@ def _readRawData(group: h5py.Group) -> RawData:
     )
 
 
-def _addRegions(h5Group: h5py.Group, regions: Dict[str, Region]) -> None:
+def _addRegions(h5Group: h5py.Group, regions: dict[str, Region]) -> None:
     regions_group: h5py.Group = h5Group.create_group("regions")
     for region in regions.values():
         _addRegion(regions_group, region)
@@ -253,7 +252,7 @@ def _addRegion(h5Group: h5py.Group, region: Region) -> None:
     region_group.attrs["processed"] = region.processed
 
     region_metrics = region_group.create_group("metrics")
-    _addMetric(region_group, region.runs_per_rank)  # type: ignore[arg-type]
+    _addMetric(region_group, region.runs_per_rank)  # ty: ignore[invalid-argument-type]
     for metricType, stat in region.metrics.items():
         _addMetric(region_metrics, stat)
     raw_data_group = region_group.create_group("raw_data")
@@ -261,8 +260,8 @@ def _addRegion(h5Group: h5py.Group, region: Region) -> None:
         raw_data_group.create_dataset(str(rank), data=data)
 
 
-def _readRegions(group: h5py.Group) -> Dict[str, Region]:
-    regionsDict: Dict[str, Region] = {}
+def _readRegions(group: h5py.Group) -> dict[str, Region]:
+    regionsDict: dict[str, Region] = {}
     for key, region_group in group.items():
         regionsDict[key] = _readRegion(region_group)
     return regionsDict
@@ -274,9 +273,9 @@ def _readRegion(group: h5py.Group) -> Region:
     regionObj.processed = group.attrs["processed"]
 
     for metric_group in group["metrics"].values():
-        stat: Stats = _readMetric(metric_group)  # type: ignore[assignment]
+        stat: Stats = _readMetric(metric_group)  # ty: ignore[invalid-assignment]
         regionObj.metrics[stat.type] = stat
-    regionObj.runs_per_rank = _readMetric(group["N_RUNS"])  # type: ignore[assignment]
+    regionObj.runs_per_rank = _readMetric(group["N_RUNS"])  # ty: ignore[invalid-assignment]
 
     raw_data_group = group["raw_data"]
     regionObj.raw_data = {}

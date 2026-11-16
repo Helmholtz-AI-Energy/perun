@@ -3,9 +3,9 @@
 import logging
 import pprint as pp
 import re
+from collections.abc import Callable
 from io import IOBase
 from pathlib import Path
-from typing import Callable
 
 import cpuinfo
 import numpy as np
@@ -54,9 +54,29 @@ class HWMonGraceBackend(Backend):
             raise ImportWarning("No hwmon interface available")
 
         def getCallback(file: IOBase, file_path: str) -> Callable[[], Number]:
-            """Create a callback function to read sensor value from file."""
+            """Create a callback function to read sensor value from file.
+
+            Parameters
+            ----------
+            file : IOBase
+                Open sensor file.
+            file_path : str
+                Path of the sensor file, used in log messages.
+
+            Returns
+            -------
+            Callable[[], Number]
+                Function that returns the current sensor value.
+            """
 
             def func() -> Number:
+                """Read the current sensor value.
+
+                Returns
+                -------
+                Number
+                    Sensor value, or 0 if the file could not be read.
+                """
                 try:
                     file.seek(0)
                     value = file.readline().strip()
@@ -69,9 +89,20 @@ class HWMonGraceBackend(Backend):
             return func
 
         def read_file_content(path: Path) -> str:
-            """Read content from a sysfs file."""
+            """Read content from a sysfs file.
+
+            Parameters
+            ----------
+            path : Path
+                Path to the sysfs file.
+
+            Returns
+            -------
+            str
+                First line of the file, or an empty string if it could not be read.
+            """
             try:
-                with open(path, "r") as f:
+                with open(path) as f:
                     return f.readline().strip()
             except OSError:
                 return ""
@@ -99,7 +130,7 @@ class HWMonGraceBackend(Backend):
                         log.debug(f"Found power_average sensor: {sensor_path}")
 
                         try:
-                            sensor_file_handle = open(sensor_path, "r")
+                            sensor_file_handle = open(sensor_path)
                         except OSError as e:
                             log.debug(f"Error opening file: {sensor_path}")
                             log.debug(e)
